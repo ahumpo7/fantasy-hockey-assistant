@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dead Lokomotiv - Fantasy Hockey Matchup & Streamer Assistant</title>
+  <title>Dead Lokomotiv - Fantasy Hockey Live Matchup & Streamer Assistant</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -36,11 +36,7 @@
       --shadow-md: 0 8px 24px rgba(0,0,0,0.4);
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -51,7 +47,6 @@
       line-height: 1.5;
     }
 
-    /* Top Nav */
     header {
       background: rgba(17, 24, 39, 0.85);
       backdrop-filter: blur(12px);
@@ -63,36 +58,72 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
     }
 
-    .brand {
+    .brand { display: flex; align-items: center; gap: 12px; }
+
+    .brand-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+    }
+
+    .brand-title { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: #fff; }
+    .brand-subtitle { font-size: 0.8rem; color: var(--text-muted); }
+
+    .header-controls {
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
-    .brand-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, #0284c7, #38bdf8);
-      border-radius: var(--radius-md);
+    .refresh-btn {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
     }
 
-    .brand-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: #fff;
+    .refresh-btn:hover {
+      background: linear-gradient(135deg, #34d399, #10b981);
+      transform: translateY(-1px);
     }
 
-    .brand-subtitle {
-      font-size: 0.8rem;
+    .refresh-btn.spinning .refresh-icon {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    .live-status {
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
       color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
     }
 
     .nav-tabs {
@@ -119,22 +150,43 @@
       gap: 8px;
     }
 
-    .tab-btn:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.05);
-    }
-
+    .tab-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
     .tab-btn.active {
       color: #fff;
       background: linear-gradient(135deg, #0284c7, #0369a1);
       box-shadow: 0 2px 10px rgba(2, 132, 199, 0.3);
     }
 
-    /* Main Container */
-    .container {
-      max-width: 1400px;
-      margin: 28px auto;
-      padding: 0 24px;
+    .container { max-width: 1400px; margin: 28px auto; padding: 0 24px; }
+
+    /* Alert Banner for Recent Transactions */
+    .transactions-alert {
+      background: rgba(24, 34, 52, 0.9);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .tx-content {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.88rem;
+    }
+
+    .tx-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: rgba(56, 189, 248, 0.2);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
     }
 
     /* Matchup Hero Banner */
@@ -152,137 +204,38 @@
       overflow: hidden;
     }
 
-    .matchup-banner::before {
-      content: "";
-      position: absolute;
-      top: -50px;
-      right: 20%;
-      width: 250px;
-      height: 250px;
-      background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .team-hero {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .team-hero.right {
-      flex-direction: row-reverse;
-      text-align: right;
-    }
+    .team-hero { display: flex; align-items: center; gap: 20px; }
+    .team-hero.right { flex-direction: row-reverse; text-align: right; }
 
     .team-avatar {
-      width: 68px;
-      height: 68px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 26px;
-      font-weight: 800;
-      border: 2px solid;
+      width: 68px; height: 68px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; font-weight: 800; border: 2px solid;
     }
 
-    .avatar-my {
-      background: linear-gradient(135deg, #0369a1, #0284c7);
-      border-color: #38bdf8;
-      box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
-    }
+    .avatar-my { background: linear-gradient(135deg, #0369a1, #0284c7); border-color: #38bdf8; box-shadow: 0 0 20px rgba(56, 189, 248, 0.25); }
+    .avatar-opp { background: linear-gradient(135deg, #be123c, #f43f5e); border-color: #fb7185; box-shadow: 0 0 20px rgba(244, 63, 94, 0.25); }
 
-    .avatar-opp {
-      background: linear-gradient(135deg, #be123c, #f43f5e);
-      border-color: #fb7185;
-      box-shadow: 0 0 20px rgba(244, 63, 94, 0.25);
-    }
-
-    .team-info h2 {
-      font-size: 1.45rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      margin-bottom: 4px;
-    }
-
-    .team-tag {
-      display: inline-block;
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
+    .team-info h2 { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+    .team-tag { display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
     .tag-my { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
     .tag-opp { background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); }
 
-    .team-stats {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      margin-top: 6px;
-    }
+    .team-stats { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted); margin-top: 6px; }
 
-    .vs-box {
-      text-align: center;
-      padding: 0 32px;
-      border-left: 1px solid var(--border-subtle);
-      border-right: 1px solid var(--border-subtle);
-    }
+    .vs-box { text-align: center; padding: 0 32px; border-left: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); }
+    .vs-text { font-size: 1.4rem; font-weight: 800; color: var(--text-dim); letter-spacing: 0.1em; }
+    .matchup-week { font-size: 0.8rem; font-weight: 600; color: var(--primary); margin-top: 4px; background: rgba(56, 189, 248, 0.1); padding: 3px 10px; border-radius: 20px; display: inline-block; }
 
-    .vs-text {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: var(--text-dim);
-      letter-spacing: 0.1em;
-    }
+    .section-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; color: #fff; }
+    .section-title span { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
 
-    .matchup-week {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--primary);
-      margin-top: 4px;
-      background: rgba(56, 189, 248, 0.1);
-      padding: 3px 10px;
-      border-radius: 20px;
-      display: inline-block;
-    }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: fadeIn 0.25s ease; }
 
-    /* Section Headers */
-    .section-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin-bottom: 16px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: #fff;
-    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-    .section-title span {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-
-    /* Tabs Content Panes */
-    .tab-pane {
-      display: none;
-    }
-
-    .tab-pane.active {
-      display: block;
-      animation: fadeIn 0.25s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Recommendation Cards Grid */
+    /* Dynamic Recommendation Cards */
     .strat-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -295,10 +248,9 @@
       border: 1px solid var(--border-subtle);
       border-radius: var(--radius-lg);
       padding: 24px;
-      position: relative;
-      transition: all 0.2s ease;
       display: flex;
       flex-direction: column;
+      transition: all 0.2s ease;
     }
 
     .strat-card:hover {
@@ -308,38 +260,18 @@
     }
 
     .strat-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 20px;
-      width: fit-content;
-      margin-bottom: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.75rem; font-weight: 700; padding: 4px 10px;
+      border-radius: 20px; width: fit-content; margin-bottom: 12px;
+      text-transform: uppercase; letter-spacing: 0.05em;
     }
 
     .badge-today { background: var(--accent-green-bg); color: var(--accent-green); border: 1px solid rgba(52, 211, 153, 0.3); }
     .badge-long { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); border: 1px solid rgba(168, 85, 247, 0.3); }
     .badge-goalie { background: var(--accent-amber-bg); color: var(--accent-amber); border: 1px solid rgba(251, 191, 36, 0.3); }
-    .badge-drop { background: var(--accent-rose-bg); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.3); }
 
-    .strat-card h3 {
-      font-size: 1.15rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-      color: #fff;
-    }
-
-    .strat-card p {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      line-height: 1.6;
-      margin-bottom: 16px;
-      flex-grow: 1;
-    }
+    .strat-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
+    .strat-card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; flex-grow: 1; }
 
     .action-box {
       background: rgba(11, 15, 25, 0.6);
@@ -349,31 +281,11 @@
       margin-top: auto;
     }
 
-    .action-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 0.88rem;
-    }
+    .action-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.88rem; }
+    .player-pill { font-weight: 700; color: #fff; display: inline-flex; align-items: center; gap: 6px; }
+    .pos-pill { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; padding: 2px 6px; background: rgba(255, 255, 255, 0.08); border-radius: 4px; color: var(--text-muted); }
 
-    .player-pill {
-      font-weight: 700;
-      color: #fff;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .pos-pill {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      padding: 2px 6px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 4px;
-      color: var(--text-muted);
-    }
-
-    /* Day-by-Day Timeline */
+    /* Timeline */
     .timeline-container {
       background: var(--bg-card);
       border: 1px solid var(--border-subtle);
@@ -405,39 +317,10 @@
       box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
     }
 
-    .day-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 8px;
-      margin-bottom: 10px;
-    }
-
-    .day-name {
-      font-weight: 700;
-      font-size: 0.95rem;
-      color: #fff;
-    }
-
-    .day-slate {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--text-dim);
-    }
-
-    .day-count {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-
-    .count-chip {
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 700;
-      color: #fff;
-    }
-
+    .day-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; margin-bottom: 10px; }
+    .day-name { font-weight: 700; font-size: 0.95rem; color: #fff; }
+    .day-count { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; }
+    .count-chip { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
     .chip-my { color: var(--primary); }
     .chip-opp { color: #fb7185; }
 
@@ -483,15 +366,9 @@
       font-family: inherit;
     }
 
-    .search-box:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
+    .search-box:focus { outline: none; border-color: var(--primary); }
 
-    .filter-pills {
-      display: flex;
-      gap: 6px;
-    }
+    .filter-pills { display: flex; gap: 6px; }
 
     .filter-btn {
       background: rgba(255, 255, 255, 0.05);
@@ -511,13 +388,7 @@
       border-color: var(--primary);
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.88rem;
-    }
-
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; }
     th {
       background: rgba(11, 15, 25, 0.9);
       color: var(--text-muted);
@@ -529,88 +400,32 @@
       border-bottom: 1px solid var(--border-subtle);
     }
 
-    td {
-      padding: 12px 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-      color: var(--text-main);
-    }
+    td { padding: 12px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.03); color: var(--text-main); }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
-    tr:hover td {
-      background: rgba(255, 255, 255, 0.02);
-    }
+    .td-player { font-weight: 600; color: #fff; }
+    .td-mono { font-family: 'JetBrains Mono', monospace; }
 
-    .td-player {
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .td-mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .badge-status {
-      font-size: 0.7rem;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-
+    .badge-status { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; }
     .status-ir { background: var(--accent-rose-bg); color: var(--accent-rose); border: 1px solid rgba(244, 63, 94, 0.4); }
     .status-active { color: var(--accent-green); }
     .status-out { background: var(--accent-rose-bg); color: var(--accent-rose); }
 
-    .schedule-chips {
-      display: flex;
-      gap: 4px;
-    }
+    .schedule-chips { display: flex; gap: 4px; }
+    .s-chip { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; padding: 2px 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.05); color: var(--text-dim); }
+    .s-chip.game { background: rgba(56, 189, 248, 0.15); color: var(--primary); font-weight: 600; }
+    .s-chip.today-game { background: var(--accent-green-bg); color: var(--accent-green); font-weight: 700; border: 1px solid rgba(52, 211, 153, 0.4); }
 
-    .s-chip {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      padding: 2px 5px;
-      border-radius: 3px;
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text-dim);
-    }
-
-    .s-chip.game {
-      background: rgba(56, 189, 248, 0.15);
-      color: var(--primary);
-      font-weight: 600;
-    }
-
-    .s-chip.today-game {
-      background: var(--accent-green-bg);
-      color: var(--accent-green);
-      font-weight: 700;
-      border: 1px solid rgba(52, 211, 153, 0.4);
-    }
-
-    /* Responsive */
     @media (max-width: 1024px) {
-      .days-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-      .matchup-banner {
-        grid-template-columns: 1fr;
-        gap: 20px;
-        text-align: center;
-      }
-      .team-hero, .team-hero.right {
-        flex-direction: column;
-        text-align: center;
-      }
-      .vs-box {
-        border: none;
-        padding: 10px 0;
-      }
+      .days-grid { grid-template-columns: repeat(2, 1fr); }
+      .matchup-banner { grid-template-columns: 1fr; gap: 20px; text-align: center; }
+      .team-hero, .team-hero.right { flex-direction: column; text-align: center; }
+      .vs-box { border: none; padding: 10px 0; }
     }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
   <header>
     <div class="brand">
       <div class="brand-icon">🏒</div>
@@ -618,6 +433,16 @@
         <div class="brand-title">Fantasy Matchup & Streamer Hub</div>
         <div class="brand-subtitle">League 82784331 &bull; Dead Lokomotiv Command Center</div>
       </div>
+    </div>
+
+    <div class="header-controls">
+      <div class="live-status">
+        <span class="status-dot"></span>
+        <span id="lastUpdatedText">Live Sync Ready</span>
+      </div>
+      <button class="refresh-btn" id="refreshBtn" onclick="refreshLeagueData()">
+        <span class="refresh-icon">🔄</span> Check Live League Moves
+      </button>
     </div>
 
     <div class="nav-tabs">
@@ -628,6 +453,14 @@
   </header>
 
   <div class="container">
+
+    <!-- Recent Activity Alert Banner -->
+    <div id="txAlert" class="transactions-alert" style="display: none;">
+      <div class="tx-content">
+        <span class="tx-badge">Live League Activity</span>
+        <span id="txAlertText">Roster changes detected across the league. Strategy recommendations adjusted!</span>
+      </div>
+    </div>
 
     <!-- Matchup Hero Banner -->
     <div class="matchup-banner">
@@ -653,79 +486,16 @@
       </div>
     </div>
 
-    <!-- TAB 1: Insights & Move Recommendations -->
+    <!-- TAB 1: Strategy & Recommended Moves -->
     <div id="tab-insights" class="tab-pane active">
-
       <div class="section-title">
-        Recommended Roster Moves
-        <span>Actionable decisions based on projections, current season form & schedule</span>
+        Live Dynamic Move Recommendations
+        <span id="recsSubtitle">Instantly recalculates if any target is claimed</span>
       </div>
 
-      <div class="strat-grid">
-
-        <!-- Card 1: Tonight Streamer -->
-        <div class="strat-card">
-          <div class="strat-badge badge-today">⚡ Tonight Streamer (Monday)</div>
-          <h3>Stream Lawson Crouse (RW) or Jack Roslovic (C/RW)</h3>
-          <p>
-            You have an open starting <strong>RW</strong> slot tonight because Dylan Holloway and Emil Heineman are idle.
-            Dropping Mark Jankowski (Out / 0 pts) lets you immediately stream a live starter.
-          </p>
-          <div class="action-box">
-            <div class="action-row" style="margin-bottom: 8px;">
-              <span>Drop Candidate:</span>
-              <span class="player-pill" style="color: var(--accent-rose);">❌ Mark Jankowski (C, CAR)</span>
-            </div>
-            <div class="action-row">
-              <span>Top Add Tonight:</span>
-              <span class="player-pill" style="color: var(--accent-green);">
-                ✅ Lawson Crouse (RW, UTA)
-                <span class="pos-pill">vs PIT tonight</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 2: Rest of Week Offensive Core -->
-        <div class="strat-card">
-          <div class="strat-badge badge-long">🎯 Long-Term / Rest-of-Week Add</div>
-          <h3>Upgrade to Carter Verhaeghe (LW, FLA)</h3>
-          <p>
-            Verhaeghe is projected for <strong>216.7 pts</strong> (70.9% owned) and was surprisingly dropped.
-            Florida plays on <strong>Wednesday and Sunday</strong>—two low-volume "off-nights" where your starters are thin and you have guaranteed active lineup spots.
-          </p>
-          <div class="action-box">
-            <div class="action-row" style="margin-bottom: 8px;">
-              <span>Timing:</span>
-              <span class="player-pill" style="color: var(--accent-amber);">Add Tue/Wed morning after tonight</span>
-            </div>
-            <div class="action-row">
-              <span>Projected Impact:</span>
-              <span class="player-pill" style="color: var(--primary);">25 G, 34 A (59 PTS pace)</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Card 3: Goalie Stabilization -->
-        <div class="strat-card">
-          <div class="strat-badge badge-goalie">🥅 Goaltending Critical Need</div>
-          <h3>Secure John Gibson (G, DET)</h3>
-          <p>
-            With Connor Hellebuyck on IR and Dylan Garand taking up a goalie slot with minimal NHL starts, you are at risk of losing the goalie categories.
-            <strong>John Gibson</strong> (220.1 proj pts, 26 wins) gives you an everyday starter playing Tue, Thu, and Sat.
-          </p>
-          <div class="action-box">
-            <div class="action-row" style="margin-bottom: 8px;">
-              <span>Drop Candidate:</span>
-              <span class="player-pill" style="color: var(--accent-rose);">❌ Dylan Garand (G, NYR)</span>
-            </div>
-            <div class="action-row">
-              <span>Add Candidate:</span>
-              <span class="player-pill" style="color: var(--accent-green);">✅ John Gibson (G, DET)</span>
-            </div>
-          </div>
-        </div>
-
+      <!-- Container rendered dynamically by recalculateStrategy() -->
+      <div class="strat-grid" id="stratCardsContainer">
+        <!-- Rendered via JS -->
       </div>
 
       <!-- Day by Day Playbook -->
@@ -738,7 +508,6 @@
           <!-- Populated by JS -->
         </div>
       </div>
-
     </div>
 
     <!-- TAB 2: Head-to-Head Rosters -->
@@ -762,9 +531,7 @@
               <th>Weekly Schedule</th>
             </tr>
           </thead>
-          <tbody id="myRosterTable">
-            <!-- Populated by JS -->
-          </tbody>
+          <tbody id="myRosterTable"></tbody>
         </table>
       </div>
 
@@ -787,9 +554,7 @@
               <th>Weekly Schedule</th>
             </tr>
           </thead>
-          <tbody id="oppRosterTable">
-            <!-- Populated by JS -->
-          </tbody>
+          <tbody id="oppRosterTable"></tbody>
         </table>
       </div>
     </div>
@@ -826,31 +591,220 @@
               <th>Owned %</th>
             </tr>
           </thead>
-          <tbody id="faTable">
-            <!-- Populated by JS -->
-          </tbody>
+          <tbody id="faTable"></tbody>
         </table>
       </div>
     </div>
 
   </div>
 
-  <!-- Include Fantasy Data -->
+  <!-- Include Pre-cached Data -->
   <script src="fantasy_hockey_data.js"></script>
   <script>
     const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     const todayIndex = 0; // Monday is day 0
     let currentPosFilter = 'ALL';
+    let liveRosteredPlayerIds = new Set();
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-      
       document.getElementById('tab-' + tabId).classList.add('active');
       event.currentTarget.classList.add('active');
     }
 
-    // Populate Day-by-Day Playbook
+    // Check if player is available in live pool
+    function isPlayerAvailable(playerId) {
+      if (liveRosteredPlayerIds.size > 0) {
+        return !liveRosteredPlayerIds.has(Number(playerId)) && !liveRosteredPlayerIds.has(String(playerId));
+      }
+      // Fallback to static freeAgents list
+      return fantasyData.freeAgents.some(p => p.id == playerId);
+    }
+
+    function getAvailableFreeAgents() {
+      if (liveRosteredPlayerIds.size === 0) return fantasyData.freeAgents;
+      return fantasyData.freeAgents.filter(p => !liveRosteredPlayerIds.has(Number(p.id)) && !liveRosteredPlayerIds.has(String(p.id)));
+    }
+
+    // Live Strategy & Move Generator
+    function recalculateStrategy() {
+      const container = document.getElementById('stratCardsContainer');
+      container.innerHTML = '';
+
+      const availablePool = getAvailableFreeAgents();
+
+      // 1. Tonight Streamer Candidate Selection
+      // Candidates: Lawson Crouse (id: 3904177), Jack Roslovic (3904098), Eeli Tolvanen (4233566), Alexander Wennberg (3042007)
+      const tonightCandidates = availablePool.filter(p => p.schedule && p.schedule['Mon'] && p.injury !== 'OUT' && p.injury !== 'INJURY_RESERVE');
+      tonightCandidates.sort((a,b) => b.projPts - a.projPts);
+
+      const topTonight = tonightCandidates[0] || { name: 'Eeli Tolvanen', team: 'NYR', pos: 'LW/RW', projPts: 212.7 };
+      const backupTonight = tonightCandidates[1] || { name: 'Jack Roslovic', team: 'TOR', pos: 'C/RW', projPts: 144.0 };
+
+      // 2. Rest-of-Week Off-Night Target Selection
+      // Candidates for off-nights (Wed/Sun or MIN 4-games)
+      // Carter Verhaeghe (id: 3115053), Brock Boeser (3899938), Tyler Bertuzzi (3042009), Ryan Hartman (3042018)
+      const offNightTargets = availablePool.filter(p => {
+        if (p.pos === 'G') return false;
+        if (p.injury === 'OUT' || p.injury === 'INJURY_RESERVE') return false;
+        // Prioritize players with Wed/Sun games or 4 games this week
+        const hasWedOrSun = p.schedule && (p.schedule['Wed'] || p.schedule['Sun']);
+        return hasWedOrSun || p.gamesCount >= 4;
+      });
+      offNightTargets.sort((a,b) => b.projPts - a.projPts);
+
+      const topWeeklyTarget = offNightTargets[0] || { name: 'Brock Boeser', team: 'VAN', pos: 'RW', projPts: 217.6 };
+      const secondWeeklyTarget = offNightTargets[1] || { name: 'Ryan Hartman', team: 'MIN', pos: 'C', projPts: 199.8 };
+
+      // 3. Goalie Category Target Selection
+      const goalieTargets = availablePool.filter(p => p.pos === 'G' && p.injury !== 'OUT' && p.injury !== 'INJURY_RESERVE');
+      goalieTargets.sort((a,b) => b.projPts - a.projPts);
+
+      const topGoalie = goalieTargets[0] || { name: 'John Gibson', team: 'DET', projPts: 220.1 };
+      const backupGoalie = goalieTargets[1] || { name: 'Dan Vladar', team: 'PHI', projPts: 205.3 };
+
+      // Check if Verhaeghe was claimed
+      const isVerhaegheClaimed = !isPlayerAvailable(3115053);
+
+      // Card 1: Tonight Streamer
+      const card1 = document.createElement('div');
+      card1.className = 'strat-card';
+      card1.innerHTML = `
+        <div class="strat-badge badge-today">⚡ Tonight Streamer (Monday)</div>
+        <h3>Stream ${topTonight.name} (${topTonight.elig || topTonight.pos})</h3>
+        <p>
+          You have an open starting <strong>RW/UTIL</strong> slot tonight.
+          Dropping <strong>Mark Jankowski</strong> (CAR, Out / 0 pts) lets you stream immediate live offensive production tonight.
+        </p>
+        <div class="action-box">
+          <div class="action-row" style="margin-bottom: 8px;">
+            <span>Drop:</span>
+            <span class="player-pill" style="color: var(--accent-rose);">❌ Mark Jankowski (C, CAR)</span>
+          </div>
+          <div class="action-row" style="margin-bottom: 8px;">
+            <span>Primary Add:</span>
+            <span class="player-pill" style="color: var(--accent-green);">
+              ✅ ${topTonight.name} (${topTonight.team})
+              <span class="pos-pill">${topTonight.projPts} Proj Pts</span>
+            </span>
+          </div>
+          <div class="action-row">
+            <span>Alternative:</span>
+            <span class="player-pill" style="color: var(--text-muted);">
+              ${backupTonight.name} (${backupTonight.team}) - ${backupTonight.elig || backupTonight.pos}
+            </span>
+          </div>
+        </div>
+      `;
+      container.appendChild(card1);
+
+      // Card 2: Rest of Week Offensive Core
+      const card2 = document.createElement('div');
+      card2.className = 'strat-card';
+      card2.innerHTML = `
+        <div class="strat-badge badge-long">🎯 Rest-of-Week Off-Night Target</div>
+        <h3>${isVerhaegheClaimed ? '🚨 Verhaeghe Taken! Next Best:' : 'Target'} ${topWeeklyTarget.name} (${topWeeklyTarget.team})</h3>
+        <p>
+          ${isVerhaegheClaimed 
+            ? `<strong>Alert:</strong> Carter Verhaeghe is rostered! Your new top target is <strong>${topWeeklyTarget.name}</strong> (${topWeeklyTarget.projPts} pts, ${topWeeklyTarget.gamesCount} games this week).` 
+            : `Verhaeghe is currently <strong>available</strong> (216.7 pts). Florida plays on <strong>Wednesday & Sunday</strong> (key off-nights) with zero bench conflicts.`}
+        </p>
+        <div class="action-box">
+          <div class="action-row" style="margin-bottom: 8px;">
+            <span>Recommended Move:</span>
+            <span class="player-pill" style="color: var(--accent-green);">✅ Add ${topWeeklyTarget.name} (${topWeeklyTarget.elig || topWeeklyTarget.pos}, ${topWeeklyTarget.team})</span>
+          </div>
+          <div class="action-row">
+            <span>Backup Option:</span>
+            <span class="player-pill" style="color: var(--text-muted);">${secondWeeklyTarget.name} (${secondWeeklyTarget.team}) - ${secondWeeklyTarget.gamesCount} GP</span>
+          </div>
+        </div>
+      `;
+      container.appendChild(card2);
+
+      // Card 3: Goalie Category Protection
+      const card3 = document.createElement('div');
+      card3.className = 'strat-card';
+      card3.innerHTML = `
+        <div class="strat-badge badge-goalie">🥅 Goaltending Priority</div>
+        <h3>Secure ${topGoalie.name} (${topGoalie.team})</h3>
+        <p>
+          With Connor Hellebuyck on IR and Dylan Garand taking up a slot with minimal projected starts, picking up an everyday starter prevents your opponent from running away with goalie categories.
+        </p>
+        <div class="action-box">
+          <div class="action-row" style="margin-bottom: 8px;">
+            <span>Drop Candidate:</span>
+            <span class="player-pill" style="color: var(--accent-rose);">❌ Dylan Garand (G, NYR)</span>
+          </div>
+          <div class="action-row" style="margin-bottom: 8px;">
+            <span>Top Starting Goalie:</span>
+            <span class="player-pill" style="color: var(--accent-green);">✅ ${topGoalie.name} (${topGoalie.team}) - ${topGoalie.projPts} Pts</span>
+          </div>
+          <div class="action-row">
+            <span>Next Available:</span>
+            <span class="player-pill" style="color: var(--text-muted);">${backupGoalie.name} (${backupGoalie.team})</span>
+          </div>
+        </div>
+      `;
+      container.appendChild(card3);
+    }
+
+    // Live League API Sync
+    async function refreshLeagueData() {
+      const btn = document.getElementById('refreshBtn');
+      const statusText = document.getElementById('lastUpdatedText');
+      btn.classList.add('spinning');
+      statusText.innerText = "Syncing with ESPN API...";
+
+      try {
+        const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/2027/segments/0/leagues/82784331?view=mRoster&view=mTeam&view=mTransactions2`;
+        const resp = await fetch(url);
+        
+        if (!resp.ok) throw new Error("API status " + resp.status);
+        const data = await resp.json();
+
+        // Update live rostered players set
+        liveRosteredPlayerIds.clear();
+        let myTeamUpdated = null;
+        let oppTeamUpdated = null;
+
+        if (data.teams) {
+          data.teams.forEach(t => {
+            if (t.id === 7) myTeamUpdated = t;
+            if (t.id === 10) oppTeamUpdated = t;
+
+            if (t.roster && t.roster.entries) {
+              t.roster.entries.forEach(e => {
+                liveRosteredPlayerIds.add(Number(e.playerId));
+                liveRosteredPlayerIds.add(String(e.playerId));
+              });
+            }
+          });
+        }
+
+        // Check recent transactions
+        if (data.transactions && data.transactions.length > 0) {
+          const recent = data.transactions[0];
+          document.getElementById('txAlert').style.display = 'flex';
+          document.getElementById('txAlertText').innerText = `Recent league activity verified! Roster status synced with ${liveRosteredPlayerIds.size} total rostered players.`;
+        }
+
+        // Recalculate everything dynamically
+        recalculateStrategy();
+        filterFreeAgents();
+        renderPlaybook();
+
+        statusText.innerText = "Synced: " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+      } catch (err) {
+        console.warn("Direct live fetch error (falling back to cache):", err);
+        statusText.innerText = "Active (Cached Mode)";
+        recalculateStrategy();
+      } finally {
+        btn.classList.remove('spinning');
+      }
+    }
+
     function renderPlaybook() {
       const container = document.getElementById('daysGridContainer');
       container.innerHTML = '';
@@ -858,7 +812,7 @@
       const dayTips = {
         "Mon": "Low volume slate (4 games). Stream Lawson Crouse/Roslovic at RW to jump out to an early lead.",
         "Tue": "Heavy slate (11 games). Full lineups for both teams. Bench lower-tier options.",
-        "Wed": "Off-night (2 games). Only FLA, PHI, BUF, OTT play. Verhaeghe will get guaranteed active ice time.",
+        "Wed": "Off-night (2 games). Only FLA, PHI, BUF, OTT play. Verhaeghe or Boeser will get guaranteed ice time.",
         "Thu": "Mega slate (12 games). Check lineup locks early; potential bench headaches.",
         "Fri": "Light night (2 games). COL, TB, CHI, MTL. Landeskog, Hagel & Matheson active.",
         "Sat": "Huge Saturday (12 games). Decisive night for goalie starts and peripherals.",
@@ -965,7 +919,9 @@
 
     function filterFreeAgents() {
       const q = document.getElementById('faSearch').value.toLowerCase();
-      let list = fantasyData.freeAgents.filter(p => {
+      const pool = getAvailableFreeAgents();
+
+      let list = pool.filter(p => {
         const matchesQuery = p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q);
         if (!matchesQuery) return false;
 
@@ -978,7 +934,6 @@
         return (p.elig && p.elig.includes(currentPosFilter)) || p.pos === currentPosFilter;
       });
 
-      // Sort by actual avg if available, or projPts
       list.sort((a, b) => b.projPts - a.projPts);
       renderFreeAgents(list);
     }
@@ -990,12 +945,14 @@
       filterFreeAgents();
     }
 
-    // Init
     window.addEventListener('DOMContentLoaded', () => {
+      recalculateStrategy();
       renderPlaybook();
       renderRosterTable(fantasyData.myTeam.roster, 'myRosterTable');
       renderRosterTable(fantasyData.oppTeam.roster, 'oppRosterTable');
       filterFreeAgents();
+      // Auto-trigger background live check on load
+      refreshLeagueData();
     });
   </script>
 </body>
