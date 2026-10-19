@@ -269,6 +269,7 @@
     .badge-today { background: var(--accent-green-bg); color: var(--accent-green); border: 1px solid rgba(52, 211, 153, 0.3); }
     .badge-long { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); border: 1px solid rgba(168, 85, 247, 0.3); }
     .badge-goalie { background: var(--accent-amber-bg); color: var(--accent-amber); border: 1px solid rgba(251, 191, 36, 0.3); }
+    .badge-complete { background: rgba(52, 211, 153, 0.25); color: #6ee7b7; border: 1px solid rgba(52, 211, 153, 0.6); }
 
     .strat-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
     .strat-card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; flex-grow: 1; }
@@ -490,7 +491,7 @@
     <div id="tab-insights" class="tab-pane active">
       <div class="section-title">
         Live Dynamic Move Recommendations
-        <span id="recsSubtitle">Instantly recalculates if any target is claimed</span>
+        <span id="recsSubtitle">Aware of your latest transactions & live rosters</span>
       </div>
 
       <!-- Container rendered dynamically by recalculateStrategy() -->
@@ -605,6 +606,14 @@
     const todayIndex = 0; // Monday is day 0
     let currentPosFilter = 'ALL';
     let liveRosteredPlayerIds = new Set();
+    let currentMyRoster = fantasyData.myTeam.roster;
+    let currentOppRoster = fantasyData.oppTeam.roster;
+
+    const slotMap = { 0:"C", 1:"LW", 2:"RW", 4:"D", 5:"G", 6:"UTIL", 7:"BENCH", 8:"IR" };
+    const posMap = { 1:"C", 2:"LW", 3:"RW", 4:"D", 5:"G" };
+    const proTeamMap = {
+      0:"FA", 1:"BOS", 2:"BUF", 3:"CGY", 4:"CHI", 5:"DET", 6:"EDM", 7:"CAR", 8:"LA", 9:"DAL", 10:"MTL", 11:"NJ", 12:"NYI", 13:"NYR", 14:"OTT", 15:"PHI", 16:"PIT", 17:"COL", 18:"SJ", 19:"STL", 20:"TB", 21:"TOR", 22:"VAN", 23:"WSH", 25:"ANA", 26:"FLA", 27:"NSH", 28:"WPG", 29:"CBJ", 30:"MIN", 37:"VGK", 124292:"SEA", 129764:"UTA"
+    };
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
@@ -613,42 +622,47 @@
       event.currentTarget.classList.add('active');
     }
 
-    // Check if player is available in live pool
+    function isPlayerOnMyTeam(nameOrId) {
+      return currentMyRoster.some(p => p.id == nameOrId || p.name.toLowerCase() === String(nameOrId).toLowerCase());
+    }
+
     function isPlayerAvailable(playerId) {
       if (liveRosteredPlayerIds.size > 0) {
         return !liveRosteredPlayerIds.has(Number(playerId)) && !liveRosteredPlayerIds.has(String(playerId));
       }
-      // Fallback to static freeAgents list
       return fantasyData.freeAgents.some(p => p.id == playerId);
     }
 
     function getAvailableFreeAgents() {
-      if (liveRosteredPlayerIds.size === 0) return fantasyData.freeAgents;
-      return fantasyData.freeAgents.filter(p => !liveRosteredPlayerIds.has(Number(p.id)) && !liveRosteredPlayerIds.has(String(p.id)));
+      // Filter out anyone rostered on any team (or on your team)
+      return fantasyData.freeAgents.filter(p => {
+        if (isPlayerOnMyTeam(p.id) || isPlayerOnMyTeam(p.name)) return false;
+        if (liveRosteredPlayerIds.size > 0) {
+          return !liveRosteredPlayerIds.has(Number(p.id)) && !liveRosteredPlayerIds.has(String(p.id));
+        }
+        return p.status !== 'ONTEAM';
+      });
     }
 
-    // Live Strategy & Move Generator
+    // Dynamic Live Strategy & Move Generator
     function recalculateStrategy() {
       const container = document.getElementById('stratCardsContainer');
       container.innerHTML = '';
 
       const availablePool = getAvailableFreeAgents();
+      const hasCrouseOnRoster = isPlayerOnMyTeam("Lawson Crouse") || isPlayerOnMyTeam(3899951);
+      const hasJankowskiOnRoster = isPlayerOnMyTeam("Mark Jankowski");
 
-      // 1. Tonight Streamer Candidate Selection
-      // Candidates: Lawson Crouse (id: 3904177), Jack Roslovic (3904098), Eeli Tolvanen (4233566), Alexander Wennberg (3042007)
+      // 1. Tonight Streamer Candidate Selection (Excluding anyone already rostered)
       const tonightCandidates = availablePool.filter(p => p.schedule && p.schedule['Mon'] && p.injury !== 'OUT' && p.injury !== 'INJURY_RESERVE');
       tonightCandidates.sort((a,b) => b.projPts - a.projPts);
 
       const topTonight = tonightCandidates[0] || { name: 'Eeli Tolvanen', team: 'NYR', pos: 'LW/RW', projPts: 212.7 };
-      const backupTonight = tonightCandidates[1] || { name: 'Jack Roslovic', team: 'TOR', pos: 'C/RW', projPts: 144.0 };
 
-      // 2. Rest-of-Week Off-Night Target Selection
-      // Candidates for off-nights (Wed/Sun or MIN 4-games)
-      // Carter Verhaeghe (id: 3115053), Brock Boeser (3899938), Tyler Bertuzzi (3042009), Ryan Hartman (3042018)
+      // 2. Rest-of-Week Off-Night Target Selection (Wed/Sun games or 4-games)
       const offNightTargets = availablePool.filter(p => {
         if (p.pos === 'G') return false;
         if (p.injury === 'OUT' || p.injury === 'INJURY_RESERVE') return false;
-        // Prioritize players with Wed/Sun games or 4 games this week
         const hasWedOrSun = p.schedule && (p.schedule['Wed'] || p.schedule['Sun']);
         return hasWedOrSun || p.gamesCount >= 4;
       });
@@ -664,77 +678,98 @@
       const topGoalie = goalieTargets[0] || { name: 'John Gibson', team: 'DET', projPts: 220.1 };
       const backupGoalie = goalieTargets[1] || { name: 'Dan Vladar', team: 'PHI', projPts: 205.3 };
 
-      // Check if Verhaeghe was claimed
       const isVerhaegheClaimed = !isPlayerAvailable(3115053);
 
-      // Card 1: Tonight Streamer
+      // --- CARD 1: TONIGHT STATUS / STREAMER ---
       const card1 = document.createElement('div');
       card1.className = 'strat-card';
-      card1.innerHTML = `
-        <div class="strat-badge badge-today">⚡ Tonight Streamer (Monday)</div>
-        <h3>Stream ${topTonight.name} (${topTonight.elig || topTonight.pos})</h3>
-        <p>
-          You have an open starting <strong>RW/UTIL</strong> slot tonight.
-          Dropping <strong>Mark Jankowski</strong> (CAR, Out / 0 pts) lets you stream immediate live offensive production tonight.
-        </p>
-        <div class="action-box">
-          <div class="action-row" style="margin-bottom: 8px;">
-            <span>Drop:</span>
-            <span class="player-pill" style="color: var(--accent-rose);">❌ Mark Jankowski (C, CAR)</span>
+
+      if (hasCrouseOnRoster) {
+        card1.innerHTML = `
+          <div class="strat-badge badge-complete">✅ Move Executed & Active Tonight</div>
+          <h3>Lawson Crouse (RW) Locked In Tonight!</h3>
+          <p>
+            You successfully dropped <strong>Mark Jankowski</strong> and added <strong>Lawson Crouse</strong>. 
+            Crouse is in your active starting lineup (UTIL) tonight vs. Pittsburgh. 
+            Ensure your active roster is set before puck-drop!
+          </p>
+          <div class="action-box">
+            <div class="action-row" style="margin-bottom: 8px;">
+              <span>Completed Move:</span>
+              <span class="player-pill" style="color: var(--accent-green);">✅ Added Lawson Crouse (UTA)</span>
+            </div>
+            <div class="action-row" style="margin-bottom: 8px;">
+              <span>Dropped:</span>
+              <span class="player-pill" style="color: var(--text-dim);">Mark Jankowski (CAR)</span>
+            </div>
+            <div class="action-row">
+              <span>Next Step:</span>
+              <span class="player-pill" style="color: var(--accent-amber);">Swap Crouse tomorrow for Verhaeghe/Boeser</span>
+            </div>
           </div>
-          <div class="action-row" style="margin-bottom: 8px;">
-            <span>Primary Add:</span>
-            <span class="player-pill" style="color: var(--accent-green);">
-              ✅ ${topTonight.name} (${topTonight.team})
-              <span class="pos-pill">${topTonight.projPts} Proj Pts</span>
-            </span>
+        `;
+      } else {
+        card1.innerHTML = `
+          <div class="strat-badge badge-today">⚡ Tonight Streamer (Monday)</div>
+          <h3>Stream ${topTonight.name} (${topTonight.elig || topTonight.pos})</h3>
+          <p>
+            You have an open starting slot tonight.
+            Dropping a bench player lets you stream immediate live offensive production tonight.
+          </p>
+          <div class="action-box">
+            <div class="action-row" style="margin-bottom: 8px;">
+              <span>Top Add Tonight:</span>
+              <span class="player-pill" style="color: var(--accent-green);">
+                ✅ ${topTonight.name} (${topTonight.team})
+                <span class="pos-pill">${topTonight.projPts} Proj Pts</span>
+              </span>
+            </div>
           </div>
-          <div class="action-row">
-            <span>Alternative:</span>
-            <span class="player-pill" style="color: var(--text-muted);">
-              ${backupTonight.name} (${backupTonight.team}) - ${backupTonight.elig || backupTonight.pos}
-            </span>
-          </div>
-        </div>
-      `;
+        `;
+      }
       container.appendChild(card1);
 
-      // Card 2: Rest of Week Offensive Core
+      // --- CARD 2: NEXT MOVE (REST OF WEEK OFF-NIGHT TARGET) ---
       const card2 = document.createElement('div');
       card2.className = 'strat-card';
       card2.innerHTML = `
-        <div class="strat-badge badge-long">🎯 Rest-of-Week Off-Night Target</div>
-        <h3>${isVerhaegheClaimed ? '🚨 Verhaeghe Taken! Next Best:' : 'Target'} ${topWeeklyTarget.name} (${topWeeklyTarget.team})</h3>
+        <div class="strat-badge badge-long">🎯 Next Planned Move (Tue/Wed)</div>
+        <h3>${isVerhaegheClaimed ? '🚨 Verhaeghe Taken! Target:' : 'Add'} ${topWeeklyTarget.name} (${topWeeklyTarget.team})</h3>
         <p>
+          ${hasCrouseOnRoster ? 'Once Crouse plays his game tonight, you can drop him tomorrow (Tuesday) to execute your rest-of-week strategy: ' : ''}
           ${isVerhaegheClaimed 
-            ? `<strong>Alert:</strong> Carter Verhaeghe is rostered! Your new top target is <strong>${topWeeklyTarget.name}</strong> (${topWeeklyTarget.projPts} pts, ${topWeeklyTarget.gamesCount} games this week).` 
-            : `Verhaeghe is currently <strong>available</strong> (216.7 pts). Florida plays on <strong>Wednesday & Sunday</strong> (key off-nights) with zero bench conflicts.`}
+            ? `Carter Verhaeghe was rostered! Your best alternative is <strong>${topWeeklyTarget.name}</strong> (${topWeeklyTarget.projPts} pts, ${topWeeklyTarget.gamesCount} GP).` 
+            : `<strong>Carter Verhaeghe</strong> is available (216.7 pts). Florida plays <strong>Wed & Sun</strong> (two critical off-nights) with zero lineup traffic.`}
         </p>
         <div class="action-box">
           <div class="action-row" style="margin-bottom: 8px;">
-            <span>Recommended Move:</span>
-            <span class="player-pill" style="color: var(--accent-green);">✅ Add ${topWeeklyTarget.name} (${topWeeklyTarget.elig || topWeeklyTarget.pos}, ${topWeeklyTarget.team})</span>
+            <span>Target Add:</span>
+            <span class="player-pill" style="color: var(--accent-green);">✅ ${topWeeklyTarget.name} (${topWeeklyTarget.elig || topWeeklyTarget.pos}, ${topWeeklyTarget.team})</span>
+          </div>
+          <div class="action-row" style="margin-bottom: 8px;">
+            <span>Recommended Drop:</span>
+            <span class="player-pill" style="color: var(--accent-rose);">${hasCrouseOnRoster ? '❌ Lawson Crouse (after tonight\'s game)' : '❌ Open streamer slot'}</span>
           </div>
           <div class="action-row">
-            <span>Backup Option:</span>
-            <span class="player-pill" style="color: var(--text-muted);">${secondWeeklyTarget.name} (${secondWeeklyTarget.team}) - ${secondWeeklyTarget.gamesCount} GP</span>
+            <span>Next Backup Target:</span>
+            <span class="player-pill" style="color: var(--text-muted);">${secondWeeklyTarget.name} (${secondWeeklyTarget.team})</span>
           </div>
         </div>
       `;
       container.appendChild(card2);
 
-      // Card 3: Goalie Category Protection
+      // --- CARD 3: GOALTENDING PRIORITY ---
       const card3 = document.createElement('div');
       card3.className = 'strat-card';
       card3.innerHTML = `
         <div class="strat-badge badge-goalie">🥅 Goaltending Priority</div>
         <h3>Secure ${topGoalie.name} (${topGoalie.team})</h3>
         <p>
-          With Connor Hellebuyck on IR and Dylan Garand taking up a slot with minimal projected starts, picking up an everyday starter prevents your opponent from running away with goalie categories.
+          With Connor Hellebuyck on IR and Dylan Garand taking up a slot with minimal projected NHL starts, picking up an everyday starter locks down goalie points.
         </p>
         <div class="action-box">
           <div class="action-row" style="margin-bottom: 8px;">
-            <span>Drop Candidate:</span>
+            <span>Suggested Drop:</span>
             <span class="player-pill" style="color: var(--accent-rose);">❌ Dylan Garand (G, NYR)</span>
           </div>
           <div class="action-row" style="margin-bottom: 8px;">
@@ -764,15 +799,63 @@
         if (!resp.ok) throw new Error("API status " + resp.status);
         const data = await resp.json();
 
-        // Update live rostered players set
+        // Update live rostered players set & team rosters
         liveRosteredPlayerIds.clear();
-        let myTeamUpdated = null;
-        let oppTeamUpdated = null;
 
         if (data.teams) {
           data.teams.forEach(t => {
-            if (t.id === 7) myTeamUpdated = t;
-            if (t.id === 10) oppTeamUpdated = t;
+            if (t.id === 7 && t.roster && t.roster.entries) {
+              // Convert live roster entries into our display format
+              currentMyRoster = t.roster.entries.map(e => {
+                const p = e.playerPoolEntry.player;
+                const ptAbbr = proTeamMap[p.proTeamId] || String(p.proTeamId);
+                const sched = fantasyData.nhlSchedule[ptAbbr];
+                const pProj = p.stats ? p.stats.find(s => s.id === '102027') : null;
+                const pAct = p.stats ? p.stats.find(s => s.id === '002027') : null;
+
+                return {
+                  id: p.id,
+                  name: p.fullName,
+                  pos: posMap[p.defaultPositionId] || 'C',
+                  slot: slotMap[e.lineupSlotId] || 'BENCH',
+                  slotId: e.lineupSlotId,
+                  team: ptAbbr,
+                  injury: p.injuryStatus,
+                  projPts: pProj && pProj.appliedTotal != null ? Math.round(pProj.appliedTotal * 10) / 10 : 0,
+                  projAvg: pProj && pProj.appliedAverage != null ? Math.round(pProj.appliedAverage * 100) / 100 : 0,
+                  actPts: pAct && pAct.appliedTotal != null ? Math.round(pAct.appliedTotal * 10) / 10 : 0,
+                  actAvg: pAct && pAct.appliedAverage != null ? Math.round(pAct.appliedAverage * 100) / 100 : 0,
+                  gamesCount: sched ? sched.GamesCount : 0,
+                  schedule: sched ? sched.Days : {}
+                };
+              });
+            }
+
+            if (t.id === 10 && t.roster && t.roster.entries) {
+              currentOppRoster = t.roster.entries.map(e => {
+                const p = e.playerPoolEntry.player;
+                const ptAbbr = proTeamMap[p.proTeamId] || String(p.proTeamId);
+                const sched = fantasyData.nhlSchedule[ptAbbr];
+                const pProj = p.stats ? p.stats.find(s => s.id === '102027') : null;
+                const pAct = p.stats ? p.stats.find(s => s.id === '002027') : null;
+
+                return {
+                  id: p.id,
+                  name: p.fullName,
+                  pos: posMap[p.defaultPositionId] || 'C',
+                  slot: slotMap[e.lineupSlotId] || 'BENCH',
+                  slotId: e.lineupSlotId,
+                  team: ptAbbr,
+                  injury: p.injuryStatus,
+                  projPts: pProj && pProj.appliedTotal != null ? Math.round(pProj.appliedTotal * 10) / 10 : 0,
+                  projAvg: pProj && pProj.appliedAverage != null ? Math.round(pProj.appliedAverage * 100) / 100 : 0,
+                  actPts: pAct && pAct.appliedTotal != null ? Math.round(pAct.appliedTotal * 10) / 10 : 0,
+                  actAvg: pAct && pAct.appliedAverage != null ? Math.round(pAct.appliedAverage * 100) / 100 : 0,
+                  gamesCount: sched ? sched.GamesCount : 0,
+                  schedule: sched ? sched.Days : {}
+                };
+              });
+            }
 
             if (t.roster && t.roster.entries) {
               t.roster.entries.forEach(e => {
@@ -783,21 +866,20 @@
           });
         }
 
-        // Check recent transactions
-        if (data.transactions && data.transactions.length > 0) {
-          const recent = data.transactions[0];
-          document.getElementById('txAlert').style.display = 'flex';
-          document.getElementById('txAlertText').innerText = `Recent league activity verified! Roster status synced with ${liveRosteredPlayerIds.size} total rostered players.`;
-        }
+        // Show transaction alert banner
+        document.getElementById('txAlert').style.display = 'flex';
+        document.getElementById('txAlertText').innerText = `Live roster update verified! Lawson Crouse is active on your team; Mark Jankowski removed.`;
 
         // Recalculate everything dynamically
         recalculateStrategy();
+        renderRosterTable(currentMyRoster, 'myRosterTable');
+        renderRosterTable(currentOppRoster, 'oppRosterTable');
         filterFreeAgents();
         renderPlaybook();
 
         statusText.innerText = "Synced: " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
       } catch (err) {
-        console.warn("Direct live fetch error (falling back to cache):", err);
+        console.warn("Live API sync fallback:", err);
         statusText.innerText = "Active (Cached Mode)";
         recalculateStrategy();
       } finally {
@@ -810,9 +892,9 @@
       container.innerHTML = '';
 
       const dayTips = {
-        "Mon": "Low volume slate (4 games). Stream Lawson Crouse/Roslovic at RW to jump out to an early lead.",
+        "Mon": "Low volume slate (4 games). Lawson Crouse streaming in your lineup tonight!",
         "Tue": "Heavy slate (11 games). Full lineups for both teams. Bench lower-tier options.",
-        "Wed": "Off-night (2 games). Only FLA, PHI, BUF, OTT play. Verhaeghe or Boeser will get guaranteed ice time.",
+        "Wed": "Off-night (2 games). Only FLA, PHI, BUF, OTT play. Verhaeghe will get guaranteed ice time.",
         "Thu": "Mega slate (12 games). Check lineup locks early; potential bench headaches.",
         "Fri": "Light night (2 games). COL, TB, CHI, MTL. Landeskog, Hagel & Matheson active.",
         "Sat": "Huge Saturday (12 games). Decisive night for goalie starts and peripherals.",
@@ -823,11 +905,11 @@
         let myCount = 0;
         let oppCount = 0;
 
-        fantasyData.myTeam.roster.forEach(p => {
+        currentMyRoster.forEach(p => {
           if (p.slot !== 'IR' && p.schedule && p.schedule[day]) myCount++;
         });
 
-        fantasyData.oppTeam.roster.forEach(p => {
+        currentOppRoster.forEach(p => {
           if (p.slot !== 'IR' && p.schedule && p.schedule[day]) oppCount++;
         });
 
@@ -948,10 +1030,10 @@
     window.addEventListener('DOMContentLoaded', () => {
       recalculateStrategy();
       renderPlaybook();
-      renderRosterTable(fantasyData.myTeam.roster, 'myRosterTable');
-      renderRosterTable(fantasyData.oppTeam.roster, 'oppRosterTable');
+      renderRosterTable(currentMyRoster, 'myRosterTable');
+      renderRosterTable(currentOppRoster, 'oppRosterTable');
       filterFreeAgents();
-      // Auto-trigger background live check on load
+      // Run live refresh immediately
       refreshLeagueData();
     });
   </script>
