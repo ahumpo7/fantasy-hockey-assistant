@@ -1069,6 +1069,183 @@
     .split-val.warm { color: #fb923c; }
     .split-val.cold { color: #38bdf8; }
 
+    /* ========================================================
+       NEW FEATURES CSS: STREAMER, GOALIES, TRADES, PLAYOFFS
+       ======================================================== */
+    /* Streamer Optimizer */
+    .streamer-hero {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(168, 85, 247, 0.08));
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .streamer-stat-card {
+      background: rgba(17, 24, 39, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+    }
+    .streamer-stat-card .title { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 4px; }
+    .streamer-stat-card .val { font-size: 1.35rem; font-weight: 800; color: #fff; font-family: 'JetBrains Mono', monospace; }
+    .streamer-stat-card .sub { font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; }
+    
+    .streamer-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .streamer-chips-wrap {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .stream-chip {
+      font-size: 0.68rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .stream-chip.open { background: rgba(52, 211, 153, 0.15); color: #6ee7b7; border: 1px solid rgba(52, 211, 153, 0.35); }
+    .stream-chip.clash { background: rgba(148, 163, 184, 0.1); color: var(--text-dim); border: 1px solid rgba(148, 163, 184, 0.2); }
+    .stream-chip.empty { background: transparent; color: #475569; }
+
+    /* Goalie Radar */
+    .radar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+    .radar-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .radar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 10px;
+    }
+    .status-confirmed { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
+    .status-probable { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+    .status-bench { background: rgba(244, 63, 94, 0.15); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.3); }
+    
+    .calc-box {
+      background: rgba(17, 24, 39, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      margin-bottom: 28px;
+    }
+    .calc-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 14px;
+    }
+    .calc-item label { display: block; font-size: 0.78rem; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+    .calc-slider { width: 100%; accent-color: var(--primary); }
+    .calc-val { font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 700; color: #fff; }
+
+    /* Trade Analyzer */
+    .trade-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .trade-team-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+    }
+    .trade-list {
+      max-height: 380px;
+      overflow-y: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: rgba(11, 15, 25, 0.5);
+      padding: 6px;
+      margin-top: 12px;
+    }
+    .trade-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .trade-item:hover { background: rgba(56, 189, 248, 0.08); }
+    .trade-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); }
+    .trade-item-info { flex: 1; display: flex; justify-content: space-between; align-items: center; }
+    .trade-item-name { font-size: 0.85rem; font-weight: 600; color: #fff; }
+    .trade-item-stats { font-size: 0.75rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+    
+    .trade-eval-hero {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.95));
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+    .trade-verdict-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1.15rem;
+      font-weight: 800;
+      padding: 8px 16px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+    .verdict-win { background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); }
+    .verdict-fair { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .verdict-loss { background: rgba(244, 63, 94, 0.2); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.4); }
+
+    /* Playoff Planner */
+    .playoff-hero {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(245, 158, 11, 0.04));
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      margin-bottom: 24px;
+    }
+    .tier-pill {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .tier-gold { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
+    .tier-silver { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4); }
+    .tier-bronze { background: rgba(217, 119, 6, 0.2); color: #f59e0b; border: 1px solid rgba(217, 119, 6, 0.4); }
+    .tier-danger { background: rgba(244, 63, 94, 0.2); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.4); }
+
+    @media (max-width: 900px) {
+      .trade-container { grid-template-columns: 1fr; }
+    }
+
     @media (max-width: 1024px) {
       .days-grid { grid-template-columns: repeat(2, 1fr); }
       .matchup-banner { grid-template-columns: 1fr; gap: 20px; text-align: center; }
@@ -1121,8 +1298,12 @@
 
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('insights')">💡 Strategy & Moves</button>
-      <button class="tab-btn" onclick="switchTab('matchup')">⚔️ Head-to-Head Rosters</button>
-      <button class="tab-btn" onclick="switchTab('freeagents')">🔍 Free Agent Finder</button>
+      <button class="tab-btn" onclick="switchTab('streamer')">🚀 Streaming Optimizer</button>
+      <button class="tab-btn" onclick="switchTab('goalies')">🥅 Goalie Radar</button>
+      <button class="tab-btn" onclick="switchTab('trades')">🔄 Trade Analyzer</button>
+      <button class="tab-btn" onclick="switchTab('playoffs')">🏆 Playoff Planner</button>
+      <button class="tab-btn" onclick="switchTab('matchup')">⚔️ Rosters</button>
+      <button class="tab-btn" onclick="switchTab('freeagents')">🔍 Free Agents</button>
     </div>
   </header>
 
@@ -1217,7 +1398,233 @@
       </div>
     </div>
 
-    <!-- TAB 2: Head-to-Head Rosters -->
+    <!-- TAB: Optimal Streaming Schedule Finder -->
+    <div id="tab-streamer" class="tab-pane">
+      <div class="section-title">
+        🚀 Optimal Streaming Schedule Optimizer
+        <span>Maximize net starts by targeting open active roster slots & dodging bench congestion</span>
+      </div>
+
+      <div class="streamer-hero" id="streamerHeroCards">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="streamer-toolbar">
+        <input type="text" id="streamerSearch" class="search-box" style="max-width: 320px;" placeholder="Search streamer by name or team..." oninput="renderStreamerOptimizer()">
+        <div class="filter-pills" id="streamerPosFilters">
+          <button class="filter-btn active" onclick="setStreamerPosFilter('ALL')">All</button>
+          <button class="filter-btn" onclick="setStreamerPosFilter('BOGO')">🔥 Multi-Start (2+ Games)</button>
+          <button class="filter-btn" onclick="setStreamerPosFilter('F')">Forwards</button>
+          <button class="filter-btn" onclick="setStreamerPosFilter('D')">Defense</button>
+          <button class="filter-btn" onclick="setStreamerPosFilter('G')">Goalies</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Window:</span>
+          <select id="streamerWindowSelect" class="team-select" style="padding: 6px 12px; font-size: 0.8rem;" onchange="renderStreamerOptimizer()">
+            <option value="REST_OF_WEEK" selected>Rest of Week (Thu - Sun)</option>
+            <option value="OFF_NIGHTS">Off-Nights Only (Fri & Sun)</option>
+            <option value="ALL_WEEK">Full Week (Mon - Sun)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Streamer</th>
+              <th>Pos / Elig</th>
+              <th>Team</th>
+              <th>Usable Starts</th>
+              <th>Schedule Breakdown</th>
+              <th>PPG (L7 / Proj)</th>
+              <th>Est. Points Added</th>
+              <th>Recommended Drop Candidate</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="streamerTableBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: Goalie Start Radar & Confirmed Starters -->
+    <div id="tab-goalies" class="tab-pane">
+      <div class="section-title">
+        🥅 Goalie Crease Radar & Confirmed Starters
+        <span>Live netminder confirmations, crease depth tracking & start/sit optimization</span>
+      </div>
+
+      <div class="intel-tracker-bar" style="margin-bottom: 20px;">
+        <div class="intel-title">
+          <span class="intel-badge">🛡️ Crease Intel</span>
+          <span><strong>Dylan Garand</strong> confirmed #1 for NY Rangers (5.19 PPG) &bull; <strong>Stuart Skinner</strong> confirmed for Edmonton tonight &bull; <strong>Jakub Dobes</strong> prime off-night target (Fri/Sun)</span>
+        </div>
+        <div class="intel-links">
+          <a href="https://www.dailyfaceoff.com/nhl-starting-goalies" target="_blank" rel="noopener" class="intel-link">🥅 Daily Faceoff Starters ↗</a>
+          <a href="https://www.goaliepost.com/" target="_blank" rel="noopener" class="intel-link">🎯 GoaliePost Confirmations ↗</a>
+        </div>
+      </div>
+
+      <div class="radar-grid" id="goalieRadarGrid">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Goalie Points Calculator -->
+      <div class="calc-box">
+        <div class="section-title" style="margin-bottom: 6px;">
+          🧮 Goalie Fantasy Points Simulator (League Scoring)
+          <span>Simulate expected fantasy points under your scoring settings: +3 Win, +0.15 Save, -2 GA, +3 Shutout</span>
+        </div>
+        <div class="calc-controls">
+          <div class="calc-item">
+            <label>Shots Faced: <span id="calcShotsVal" class="calc-val">30</span></label>
+            <input type="range" min="15" max="55" value="30" id="calcShots" class="calc-slider" oninput="updateGoalieCalc()">
+          </div>
+          <div class="calc-item">
+            <label>Goals Allowed: <span id="calcGAVal" class="calc-val">2</span></label>
+            <input type="range" min="0" max="7" value="2" id="calcGA" class="calc-slider" oninput="updateGoalieCalc()">
+          </div>
+          <div class="calc-item">
+            <label>Goalie Result:</label>
+            <select id="calcOutcome" class="team-select" style="width: 100%; padding: 6px 10px; font-size: 0.85rem;" onchange="updateGoalieCalc()">
+              <option value="WIN">Win (+3 pts)</option>
+              <option value="LOSS">Loss (0 win pts)</option>
+              <option value="OTL">OT/SO Loss (0 win pts)</option>
+            </select>
+          </div>
+          <div class="calc-item" style="display: flex; flex-direction: column; justify-content: center; background: rgba(56, 189, 248, 0.08); border-radius: var(--radius-md); padding: 10px 16px; border: 1px solid rgba(56, 189, 248, 0.2);">
+            <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Simulated Total</div>
+            <div id="calcResultDisplay" style="font-size: 1.6rem; font-weight: 800; color: #38bdf8; font-family: 'JetBrains Mono', monospace;">+3.20 Pts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Trade Analyzer & Buy-Low / Sell-High -->
+    <div id="tab-trades" class="tab-pane">
+      <div class="section-title">
+        🔄 Trade Analyzer & Market Inefficiency Radar
+        <span>Evaluate 2-team trade proposals, capitalize on sell-high momentum & target buy-low superstars</span>
+      </div>
+
+      <!-- Trade Evaluation Hero -->
+      <div id="tradeEvalHero" class="trade-eval-hero">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Interactive 2-Team Trade Simulator -->
+      <div class="trade-container">
+        <!-- Side A: Active Team -->
+        <div class="trade-team-panel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h3 id="tradeTeamAName" style="font-size: 1.05rem; color: #fff;">Dead Lokomotiv (Sending)</h3>
+            <span class="player-pill" style="color: var(--primary);">Your Team</span>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Select players you would trade away:</div>
+          <div class="trade-list" id="tradeListTeamA">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Side B: Opponent Team -->
+        <div class="trade-team-panel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h3 style="font-size: 1.05rem; color: #fff;">Receiving from:</h3>
+              <select id="tradeTeamBSelect" class="team-select" style="padding: 4px 8px; font-size: 0.82rem;" onchange="onTradeTeamBChange(this.value)">
+                <!-- Populated by JS -->
+              </select>
+            </div>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">Select players you want to acquire:</div>
+          <div class="trade-list" id="tradeListTeamB">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Market Radar: Buy Low & Sell High Cards -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px;">
+        <div class="radar-card">
+          <div class="radar-header">
+            <span style="font-size: 0.95rem; font-weight: 700; color: #f87171;">🔥 League Sell-High Radar (Unsustainable Heaters)</span>
+            <span class="player-pill" style="color: #f87171;">Sell at Peak</span>
+          </div>
+          <div id="sellHighList" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <div class="radar-card">
+          <div class="radar-header">
+            <span style="font-size: 0.95rem; font-weight: 700; color: #38bdf8;">❄️ League Buy-Low Radar (Slumping Stars)</span>
+            <span class="player-pill" style="color: #38bdf8;">Target via Trade</span>
+          </div>
+          <div id="buyLowList" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Playoff Planner (Weeks 19-21 Schedule Matrix) -->
+    <div id="tab-playoffs" class="tab-pane">
+      <div class="section-title">
+        🏆 Fantasy Playoff Schedule Matrix (Weeks 19 - 21)
+        <span>Championship schedules for all 32 NHL teams: Quarterfinals, Semifinals & Finals</span>
+      </div>
+
+      <div class="playoff-hero">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <span class="badge-rank" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24; border-color: rgba(251, 191, 36, 0.4);">Playoff Format</span>
+            <h3 style="color: #fff; font-size: 1.15rem; margin-top: 4px;">Weeks 19 to 21 &bull; 6-Week Total Playoff Gauntlet</h3>
+          </div>
+          <div id="myPlayoffGradeBadge" class="tier-pill tier-gold" style="font-size: 0.85rem; padding: 6px 14px;">
+            Dead Lokomotiv: Analyzing...
+          </div>
+        </div>
+        <p style="font-size: 0.83rem; color: var(--text-muted); line-height: 1.55;">
+          In your league, playoffs cover <strong>Matchup Periods 19 (Round 1), 20 (Semifinals), and 21 (Finals)</strong>.
+          Teams play between <strong>14 and 18 games</strong>. An 18-game team (Ottawa, Tampa Bay, Washington, LA) yields <strong>4 more games per player</strong> than a 14-game team (Montreal)—representing up to <strong>+40 to +60 free fantasy points</strong> in your championship run.
+        </p>
+      </div>
+
+      <div class="table-toolbar" style="margin-bottom: 16px;">
+        <input type="text" id="playoffSearch" class="search-box" style="max-width: 300px;" placeholder="Filter NHL teams..." oninput="filterPlayoffMatrix()">
+        <div class="filter-pills" id="playoffTierFilters">
+          <button class="filter-btn active" onclick="setPlayoffTierFilter('ALL')">All Tiers (32 Teams)</button>
+          <button class="filter-btn" onclick="setPlayoffTierFilter('Tier 1')">👑 Tier 1 Gold (18 Games)</button>
+          <button class="filter-btn" onclick="setPlayoffTierFilter('Tier 2')">🥈 Tier 2 Silver (17 Games)</button>
+          <button class="filter-btn" onclick="setPlayoffTierFilter('Tier 3')">🥉 Tier 3 (16 Games)</button>
+          <button class="filter-btn" onclick="setPlayoffTierFilter('Tier 4')">⚠️ Tier 4 Danger (&le;15 Games)</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>NHL Team</th>
+              <th>Round 1 (W19)</th>
+              <th>Semis (W20)</th>
+              <th>Finals (W21)</th>
+              <th>Total Playoff Games</th>
+              <th>Off-Night Starts</th>
+              <th>Tier Grade</th>
+              <th>Rostered on Your Team</th>
+            </tr>
+          </thead>
+          <tbody id="playoffTableBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
     <div id="tab-matchup" class="tab-pane">
       <div class="section-title" id="myRosterTitle">
         Dead Lokomotiv (Your Lineup)
@@ -1797,6 +2204,10 @@
       renderRosterTable(currentMyRoster, 'myRosterTable');
       renderRosterTable(currentOppRoster, 'oppRosterTable');
       filterFreeAgents();
+      if (document.getElementById('tab-streamer')?.classList.contains('active')) renderStreamerOptimizer();
+      if (document.getElementById('tab-goalies')?.classList.contains('active')) renderGoalieRadar();
+      if (document.getElementById('tab-trades')?.classList.contains('active')) renderTradeAnalyzer();
+      if (document.getElementById('tab-playoffs')?.classList.contains('active')) renderPlayoffPlanner();
 
       if (saveStorage) {
         const alertEl = document.getElementById('txAlert');
@@ -1811,8 +2222,19 @@
     function switchTab(tabId) {
       document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-      document.getElementById('tab-' + tabId).classList.add('active');
-      event.currentTarget.classList.add('active');
+      const targetPane = document.getElementById('tab-' + tabId);
+      if (targetPane) targetPane.classList.add('active');
+      if (typeof event !== 'undefined' && event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+      } else {
+        const btn = document.querySelector(`.tab-btn[onclick*="'${tabId}'"]`);
+        if (btn) btn.classList.add('active');
+      }
+
+      if (tabId === 'streamer') renderStreamerOptimizer();
+      else if (tabId === 'goalies') renderGoalieRadar();
+      else if (tabId === 'trades') renderTradeAnalyzer();
+      else if (tabId === 'playoffs') renderPlayoffPlanner();
     }
 
     function selectDay(idx) {
@@ -2907,6 +3329,662 @@
       document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
       event.currentTarget.classList.add('active');
       filterFreeAgents();
+    }
+
+    // ========================================================
+    // FEATURE 1: OPTIMAL STREAMING SCHEDULE FINDER
+    // ========================================================
+    let streamerPosFilter = 'ALL';
+
+    function setStreamerPosFilter(filter) {
+      streamerPosFilter = filter;
+      const container = document.getElementById('streamerPosFilters');
+      if (container) {
+        container.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        if (event && event.currentTarget) event.currentTarget.classList.add('active');
+      }
+      renderStreamerOptimizer();
+    }
+
+    function renderStreamerOptimizer() {
+      const heroContainer = document.getElementById('streamerHeroCards');
+      const tableBody = document.getElementById('streamerTableBody');
+      const searchBox = document.getElementById('streamerSearch');
+      const windowSelect = document.getElementById('streamerWindowSelect');
+      if (!heroContainer || !tableBody) return;
+
+      const q = searchBox ? searchBox.value.toLowerCase().trim() : '';
+      const windowMode = windowSelect ? windowSelect.value : 'REST_OF_WEEK';
+
+      // Determine target days
+      let targetDays = [];
+      if (windowMode === 'OFF_NIGHTS') {
+        targetDays = ['Fri', 'Sun'];
+      } else if (windowMode === 'ALL_WEEK') {
+        targetDays = daysOfWeek;
+      } else {
+        // Rest of week starting today
+        targetDays = daysOfWeek.slice(todayIndex);
+        if (targetDays.length === 0) targetDays = ['Thu', 'Fri', 'Sat', 'Sun'];
+      }
+
+      // Calculate daily open slots for active team
+      const dayCapacity = {};
+      targetDays.forEach(d => {
+        dayCapacity[d] = getDailyLineupCapacity(d);
+      });
+
+      // Render Hero Cards
+      const friCap = getDailyLineupCapacity('Fri');
+      const sunCap = getDailyLineupCapacity('Sun');
+      heroContainer.innerHTML = `
+        <div class="streamer-stat-card" style="border-color: rgba(56, 189, 248, 0.4);">
+          <div class="title" style="color: #38bdf8;">⚡ Prime Off-Night Slots</div>
+          <div class="val" style="color: #38bdf8;">${friCap.openSkaterSlots + sunCap.openSkaterSlots} Open Skater Slots</div>
+          <div class="sub">Friday: <strong>${friCap.openSkaterSlots} open</strong> &bull; Sunday: <strong>${sunCap.openSkaterSlots} open</strong> &bull; 0 bench waste!</div>
+        </div>
+        <div class="streamer-stat-card" style="border-color: rgba(52, 211, 153, 0.4);">
+          <div class="title" style="color: #34d399;">🌟 Top Forward Streamer</div>
+          <div class="val" style="color: #34d399;">Tyler Bertuzzi (TOR)</div>
+          <div class="sub">Plays Fri @ PHI & Sun vs CBJ &bull; <strong>2 Usable Starts</strong> &bull; +7.2 Est. Pts</div>
+        </div>
+        <div class="streamer-stat-card" style="border-color: rgba(168, 85, 247, 0.4);">
+          <div class="title" style="color: #c084fc;">🥅 Top Goalie Streamer</div>
+          <div class="val" style="color: #c084fc;">Jakub Dobes (MTL)</div>
+          <div class="sub">Starts Fri @ CHI & Sun @ WPG &bull; <strong>2 Open Starts</strong> &bull; +6.4 Est. Pts</div>
+        </div>
+      `;
+
+      // Evaluate Free Agents
+      const pool = getAvailableFreeAgents();
+      const evaluated = [];
+
+      // Find drop candidate on active roster
+      const nonGoalieBench = currentMyRoster.filter(p => p.slot === 'BENCH' && p.pos !== 'G');
+      const lowestBenchSkater = (nonGoalieBench.length > 0)
+        ? nonGoalieBench.sort((a,b) => (a.actAvg || 0) - (b.actAvg || 0))[0]
+        : (currentMyRoster.find(p => p.name.includes("Kuemper")) || { name: "Bench Skater (0 Fri/Sun gms)" });
+
+      pool.forEach(p => {
+        let usableStarts = 0;
+        let clashStarts = 0;
+        const chips = [];
+
+        targetDays.forEach(d => {
+          const game = p.schedule ? p.schedule[d] : null;
+          if (game && game.trim() !== '') {
+            const cap = dayCapacity[d] || { openSkaterSlots: 0, openGoalieSlots: 0 };
+            const isOpen = (p.pos === 'G') ? (cap.openGoalieSlots > 0) : (cap.openSkaterSlots > 0);
+            if (isOpen) {
+              usableStarts++;
+              chips.push(`<span class="stream-chip open">✅ ${d} (${game})</span>`);
+            } else {
+              clashStarts++;
+              chips.push(`<span class="stream-chip clash">⛔ ${d} (Lineup Full)</span>`);
+            }
+          }
+        });
+
+        const totalGamesInWindow = usableStarts + clashStarts;
+        if (totalGamesInWindow === 0) return;
+
+        // Position filter
+        if (streamerPosFilter === 'BOGO' && usableStarts < 2) return;
+        if (streamerPosFilter === 'F' && (p.pos === 'D' || p.pos === 'G')) return;
+        if (streamerPosFilter === 'D' && p.pos !== 'D') return;
+        if (streamerPosFilter === 'G' && p.pos !== 'G') return;
+
+        // Search match
+        if (q && !p.name.toLowerCase().includes(q) && !p.team.toLowerCase().includes(q)) return;
+
+        const valPerGame = (p.l7Avg > 0) ? (p.l7Avg * 0.65 + (p.actAvg || 2.5) * 0.35) : (p.projAvg || 3.0);
+        const estPtsAdded = Math.round(usableStarts * valPerGame * 10) / 10;
+
+        evaluated.push({
+          player: p,
+          usableStarts,
+          clashStarts,
+          totalGamesInWindow,
+          chips,
+          valPerGame: Math.round(valPerGame * 10) / 10,
+          estPtsAdded
+        });
+      });
+
+      // Sort by usable starts descending, then est points descending
+      evaluated.sort((a, b) => b.usableStarts - a.usableStarts || b.estPtsAdded - a.estPtsAdded);
+
+      tableBody.innerHTML = '';
+      if (evaluated.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 30px;">No available streamers matching selected criteria.</td></tr>`;
+        return;
+      }
+
+      evaluated.slice(0, 30).forEach((item, idx) => {
+        const p = item.player;
+        const tr = document.createElement('tr');
+        const isBogo = item.usableStarts >= 2;
+        const dropRec = (p.pos === 'G') ? "Darcy Kuemper (1.77 PPG)" : `${lowestBenchSkater.name} (${lowestBenchSkater.actAvg || 0} PPG)`;
+
+        tr.innerHTML = `
+          <td>
+            <div class="player-cell">
+              <span class="player-rank">${idx + 1}</span>
+              <div>
+                <div class="player-name">
+                  ${p.name}
+                  ${isBogo ? '<span class="player-pill" style="color: var(--accent-green); background: rgba(52,211,153,0.15);">🔥 2 Usable Starts</span>' : ''}
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-dim);">${p.injury !== 'ACTIVE' ? '⚠️ ' + p.injury : 'Active'}</div>
+              </div>
+            </div>
+          </td>
+          <td><span class="pos-pill">${p.elig || p.pos}</span></td>
+          <td><strong>${p.team}</strong></td>
+          <td>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 800; color: ${item.usableStarts >= 2 ? '#34d399' : '#38bdf8'};">
+              ${item.usableStarts}
+            </span>
+            <span style="font-size: 0.75rem; color: var(--text-dim);"> / ${item.totalGamesInWindow} gms</span>
+          </td>
+          <td><div class="streamer-chips-wrap">${item.chips.join(' ')}</div></td>
+          <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">
+            <strong>${item.valPerGame}</strong>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">${p.l7Avg > 0 ? '(L7: ' + p.l7Avg + ')' : '(Proj: ' + p.projAvg + ')'}</span>
+          </td>
+          <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 800; color: #34d399;">
+            +${item.estPtsAdded.toFixed(1)} pts
+          </td>
+          <td style="font-size: 0.78rem; color: var(--text-muted);">${dropRec}</td>
+          <td>
+            <a href="https://fantasy.espn.com/hockey/league?leagueId=82784331" target="_blank" rel="noopener" class="player-pill" style="color: var(--primary); text-decoration: none; border-color: rgba(56,189,248,0.4);">
+              Claim ↗
+            </a>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    // ========================================================
+    // FEATURE 2: GOALIE START RADAR & POINTS SIMULATOR
+    // ========================================================
+    function renderGoalieRadar() {
+      const grid = document.getElementById('goalieRadarGrid');
+      if (!grid) return;
+
+      const myGoalies = currentMyRoster.filter(p => p.pos === 'G');
+
+      grid.innerHTML = `
+        <!-- Card 1: Tonight's Crease Action -->
+        <div class="radar-card">
+          <div class="radar-header">
+            <div>
+              <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Matchup 1</span>
+              <h3 style="font-size: 0.95rem; color: #fff; margin-top: 4px;">Toronto @ NY Rangers (7:00 PM EDT)</h3>
+            </div>
+            <span class="status-confirmed status-pill">Confirmed Creases</span>
+          </div>
+          <div style="font-size: 0.82rem; line-height: 1.5; color: var(--text-main);">
+            <div style="margin-bottom: 8px;">
+              🗽 <strong>NYR: Dylan Garand</strong> (🟢 Confirmed #1 Starter &bull; <strong>5.19 PPG</strong>)<br>
+              <span style="color: #34d399; font-size: 0.75rem;">✅ VERDICT: MUST START tonight. Taking all NYR starts with Shesterkin & Korpisalo out.</span>
+            </div>
+            <div>
+              🍁 <strong>TOR: Anthony Stolarz</strong> (🟢 Confirmed Starter &bull; 3.82 PPG)<br>
+              <span style="color: var(--text-muted); font-size: 0.75rem;">Joseph Woll was claimed by Team 17. Stolarz holds the crease tonight.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Edmonton Crease Action -->
+        <div class="radar-card">
+          <div class="radar-header">
+            <div>
+              <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Matchup 2</span>
+              <h3 style="font-size: 0.95rem; color: #fff; margin-top: 4px;">Carolina @ Edmonton (9:00 PM EDT)</h3>
+            </div>
+            <span class="status-confirmed status-pill">Confirmed Creases</span>
+          </div>
+          <div style="font-size: 0.82rem; line-height: 1.5; color: var(--text-main);">
+            <div style="margin-bottom: 8px;">
+              🛢️ <strong>EDM: Stuart Skinner</strong> (🟢 Confirmed Starter &bull; <strong>5.37 PPG</strong>)<br>
+              <span style="color: #34d399; font-size: 0.75rem;">✅ VERDICT: MUST START. 48.3 total points, heavy home favorite.</span>
+            </div>
+            <div>
+              🌀 <strong>CAR: Pyotr Kochetkov</strong> (🟡 Probable Starter &bull; 4.10 PPG)<br>
+              <span style="color: var(--text-muted); font-size: 0.75rem;">Frederik Andersen resting; Kochetkov starts vs high-octane Oilers offense.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Active Roster Start / Sit Protocol -->
+        <div class="radar-card" style="border-color: rgba(52, 211, 153, 0.3);">
+          <div class="radar-header">
+            <h3 style="font-size: 0.95rem; color: #fff;">${currentTeam.name} Goalie Start Protocol</h3>
+            <span class="player-pill" style="color: var(--accent-green);">Active Advice</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
+            ${myGoalies.map(g => {
+              const isGarand = g.name.includes("Garand");
+              const isSkinner = g.name.includes("Skinner");
+              const isKuemper = g.name.includes("Kuemper");
+              let badge = isKuemper ? '<span class="status-bench status-pill">⛔ SIT / DROP</span>' : '<span class="status-confirmed status-pill">🟢 START TONIGHT</span>';
+              let advice = isKuemper 
+                ? 'Underperforming (1.77 PPG). Recommend dropping for Jakub Dobes (MTL) for Fri/Sun off-night starts.' 
+                : (isGarand ? 'Confirmed NYR #1 Starter vs Toronto tonight & Saturday vs Pittsburgh.' : 'Confirmed Edmonton #1 Starter vs Carolina tonight & Saturday vs Toronto.');
+
+              return `
+                <div style="padding: 8px 12px; background: rgba(11, 15, 25, 0.5); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong>${g.name} (${g.team})</strong>
+                    ${badge}
+                  </div>
+                  <div style="font-size: 0.76rem; color: var(--text-muted);">${advice}</div>
+                </div>
+              `;
+            }).join('') || '<div style="color: var(--text-muted);">No goalies on current roster.</div>'}
+          </div>
+        </div>
+
+        <!-- Card 4: Top Waiver Goalie Targets -->
+        <div class="radar-card" style="border-color: rgba(168, 85, 247, 0.3);">
+          <div class="radar-header">
+            <h3 style="font-size: 0.95rem; color: #fff;">Top Available Waiver Netminders</h3>
+            <span class="player-pill" style="color: var(--accent-purple);">Waiver Radar</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.82rem;">
+            <div style="padding: 8px 12px; background: rgba(168, 85, 247, 0.08); border-radius: var(--radius-sm); border: 1px solid rgba(168, 85, 247, 0.25);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>1. Jakub Dobes <span class="pos-pill">G &bull; MTL</span></strong>
+                <span class="player-pill" style="color: #c084fc;">Off-Night Gold</span>
+              </div>
+              <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
+                Starts Montreal's light off-night games <strong>Friday @ CHI</strong> and <strong>Sunday @ WPG</strong>. Yields 2 open-slot starts with 0 lineup conflicts.
+              </div>
+            </div>
+            <div style="padding: 8px 12px; background: rgba(11, 15, 25, 0.5); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>2. Dan Vladar <span class="pos-pill">G &bull; PHI</span></strong>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">205.3 Proj &bull; 4.37 Avg</span>
+              </div>
+              <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
+                Securing consistent Philadelphia volume with .902 SV% baseline.
+              </div>
+            </div>
+            <div style="padding: 8px 12px; background: rgba(11, 15, 25, 0.5); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>3. Dustin Wolf <span class="pos-pill">G &bull; CGY</span></strong>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;">191.5 Proj Pts</span>
+              </div>
+              <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 4px;">
+                Calgary primary starting workload.
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      updateGoalieCalc();
+    }
+
+    function updateGoalieCalc() {
+      const shotsEl = document.getElementById('calcShots');
+      const gaEl = document.getElementById('calcGA');
+      const outcomeEl = document.getElementById('calcOutcome');
+      const shotsValEl = document.getElementById('calcShotsVal');
+      const gaValEl = document.getElementById('calcGAVal');
+      const resultEl = document.getElementById('calcResultDisplay');
+
+      if (!shotsEl || !gaEl || !outcomeEl || !resultEl) return;
+
+      const shots = parseInt(shotsEl.value);
+      const ga = parseInt(gaEl.value);
+      const outcome = outcomeEl.value;
+
+      if (shotsValEl) shotsValEl.textContent = shots;
+      if (gaValEl) gaValEl.textContent = ga;
+
+      const saves = Math.max(0, shots - ga);
+      const savePts = saves * 0.15;
+      const winPts = (outcome === 'WIN') ? 3.0 : 0.0;
+      const gaPts = ga * -2.0;
+      const soPts = (ga === 0) ? 3.0 : 0.0;
+
+      const total = Math.round((savePts + winPts + gaPts + soPts) * 100) / 100;
+      const sign = total >= 0 ? '+' : '';
+      resultEl.textContent = `${sign}${total.toFixed(2)} Pts`;
+      resultEl.style.color = (total >= 4.0) ? '#34d399' : (total >= 1.5 ? '#38bdf8' : '#f87171');
+    }
+
+    // ========================================================
+    // FEATURE 3: TRADE ANALYZER & MARKET RADAR
+    // ========================================================
+    let tradeSelectedA = new Set();
+    let tradeSelectedB = new Set();
+    let tradeTeamBId = null;
+
+    function renderTradeAnalyzer() {
+      const selectB = document.getElementById('tradeTeamBSelect');
+      const teamAName = document.getElementById('tradeTeamAName');
+      const listA = document.getElementById('tradeListTeamA');
+      const listB = document.getElementById('tradeListTeamB');
+      if (!selectB || !listA || !listB) return;
+
+      if (teamAName) teamAName.textContent = `${currentTeam.name} (Sending)`;
+
+      // Populate Opponent Dropdown
+      const oppTeams = allLeagueTeams.filter(t => t.id !== currentTeam.id);
+      if (tradeTeamBId == null || !oppTeams.some(t => t.id === tradeTeamBId)) {
+        tradeTeamBId = (currentTeam.opponentId && oppTeams.some(t => t.id === currentTeam.opponentId))
+          ? currentTeam.opponentId
+          : oppTeams[0].id;
+      }
+
+      selectB.innerHTML = oppTeams.map(t => `
+        <option value="${t.id}" ${t.id === tradeTeamBId ? 'selected' : ''}>${t.name} (${t.record})</option>
+      `).join('');
+
+      const teamB = allLeagueTeams.find(t => t.id === tradeTeamBId) || oppTeams[0];
+
+      // Populate Team A Checkboxes
+      listA.innerHTML = currentMyRoster.map(p => `
+        <label class="trade-item">
+          <input type="checkbox" ${tradeSelectedA.has(p.id) ? 'checked' : ''} onchange="toggleTradePlayer('A', ${p.id})">
+          <div class="trade-item-info">
+            <span class="trade-item-name">${p.name} <span class="pos-pill">${p.pos} &bull; ${p.team}</span></span>
+            <span class="trade-item-stats">${p.projPts} Proj &bull; ${p.actAvg} PPG</span>
+          </div>
+        </label>
+      `).join('');
+
+      // Populate Team B Checkboxes
+      listB.innerHTML = (teamB.roster || []).map(p => `
+        <label class="trade-item">
+          <input type="checkbox" ${tradeSelectedB.has(p.id) ? 'checked' : ''} onchange="toggleTradePlayer('B', ${p.id})">
+          <div class="trade-item-info">
+            <span class="trade-item-name">${p.name} <span class="pos-pill">${p.pos} &bull; ${p.team}</span></span>
+            <span class="trade-item-stats">${p.projPts} Proj &bull; ${p.actAvg} PPG</span>
+          </div>
+        </label>
+      `).join('');
+
+      updateTradeEvaluation();
+      renderMarketRadar();
+    }
+
+    function onTradeTeamBChange(newTeamId) {
+      tradeTeamBId = Number(newTeamId);
+      tradeSelectedB.clear();
+      renderTradeAnalyzer();
+    }
+
+    function toggleTradePlayer(side, playerId) {
+      const set = (side === 'A') ? tradeSelectedA : tradeSelectedB;
+      if (set.has(playerId)) set.delete(playerId);
+      else set.add(playerId);
+      updateTradeEvaluation();
+    }
+
+    function updateTradeEvaluation() {
+      const hero = document.getElementById('tradeEvalHero');
+      if (!hero) return;
+
+      const teamB = allLeagueTeams.find(t => t.id === tradeTeamBId);
+      const playersA = currentMyRoster.filter(p => tradeSelectedA.has(p.id));
+      const playersB = (teamB && teamB.roster) ? teamB.roster.filter(p => tradeSelectedB.has(p.id)) : [];
+
+      if (playersA.length === 0 && playersB.length === 0) {
+        hero.innerHTML = `
+          <div style="text-align: center; color: var(--text-muted); padding: 10px 0;">
+            <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 6px;">Interactive 2-Team Trade Simulator</div>
+            <div>Select players from <strong>${currentTeam.name}</strong> and <strong>${teamB ? teamB.name : 'Opponent'}</strong> above to see instant net projected points, momentum shifts, and trade grades.</div>
+          </div>
+        `;
+        return;
+      }
+
+      const projA = playersA.reduce((sum, p) => sum + (p.projPts || 0), 0);
+      const projB = playersB.reduce((sum, p) => sum + (p.projPts || 0), 0);
+      const diffProj = Math.round((projB - projA) * 10) / 10;
+
+      const l7A = playersA.reduce((sum, p) => sum + (p.l7Avg || 0), 0);
+      const l7B = playersB.reduce((sum, p) => sum + (p.l7Avg || 0), 0);
+      const diffL7 = Math.round((l7B - l7A) * 100) / 100;
+
+      let verdictClass = 'verdict-fair';
+      let verdictBadge = '⚖️ FAIR TRADE / BALANCED';
+      let verdictDesc = 'Value is balanced across both rosters with mutual strategic fit.';
+
+      if (diffProj >= 15.0) {
+        verdictClass = 'verdict-win';
+        verdictBadge = '🏆 SMASH ACCEPT (Heavily Favors You)';
+        verdictDesc = `You gain <strong>+${diffProj} projected points</strong>! This trade significantly upgrades your team ceiling.`;
+      } else if (diffProj >= 3.0) {
+        verdictClass = 'verdict-win';
+        verdictBadge = '✅ FAVORABLE UPGRADE (Favors You)';
+        verdictDesc = `You gain <strong>+${diffProj} projected points</strong> with solid roster utility.`;
+      } else if (diffProj <= -15.0) {
+        verdictClass = 'verdict-loss';
+        verdictBadge = '⚠️ UNFAVORABLE OVERPAY (Favors Opponent)';
+        verdictDesc = `You are surrendering <strong>${Math.abs(diffProj)} net projected points</strong>. Request an additional asset or reject.`;
+      } else if (diffProj <= -3.0) {
+        verdictClass = 'verdict-loss';
+        verdictBadge = '⚠️ SLIGHT OVERPAY';
+        verdictDesc = `You lose <strong>${Math.abs(diffProj)} net points</strong>. Ensure positional need justifies this cost.`;
+      }
+
+      hero.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <div class="${verdictClass} trade-verdict-badge">${verdictBadge}</div>
+            <div style="font-size: 0.85rem; color: var(--text-main);">${verdictDesc}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Net Projected Points</div>
+            <div style="font-size: 1.6rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: ${diffProj >= 0 ? '#34d399' : '#f87171'};">
+              ${diffProj >= 0 ? '+' : ''}${diffProj} Pts
+            </div>
+          </div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; font-size: 0.8rem; background: rgba(11, 15, 25, 0.4); padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+          <div>
+            <span style="color: var(--text-muted);">Giving Up:</span>
+            <strong style="color: #fff;"> ${playersA.map(p => p.name).join(', ') || 'None'}</strong>
+            <div style="font-family: 'JetBrains Mono', monospace; color: var(--text-dim); font-size: 0.74rem;">${projA.toFixed(1)} Proj &bull; ${l7A.toFixed(2)} L7</div>
+          </div>
+          <div>
+            <span style="color: var(--text-muted);">Acquiring:</span>
+            <strong style="color: #fff;"> ${playersB.map(p => p.name).join(', ') || 'None'}</strong>
+            <div style="font-family: 'JetBrains Mono', monospace; color: var(--text-dim); font-size: 0.74rem;">${projB.toFixed(1)} Proj &bull; ${l7B.toFixed(2)} L7</div>
+          </div>
+          <div>
+            <span style="color: var(--text-muted);">L7 Momentum Shift:</span>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 700; color: ${diffL7 >= 0 ? '#34d399' : '#f87171'};">
+              ${diffL7 >= 0 ? '+' : ''}${diffL7} PPG
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderMarketRadar() {
+      const sellEl = document.getElementById('sellHighList');
+      const buyEl = document.getElementById('buyLowList');
+      if (!sellEl || !buyEl) return;
+
+      const sellCandidates = [];
+      const buyCandidates = [];
+
+      allLeagueTeams.forEach(t => {
+        (t.roster || []).forEach(p => {
+          const l7 = p.l7Avg || 0;
+          const act = p.actAvg || 0;
+          const proj = p.projAvg || 0;
+
+          // Sell-High: L7 spike >= +2.0 over season avg
+          if (l7 > 0 && act > 0 && (l7 - act) >= 2.0) {
+            sellCandidates.push({ player: p, teamName: t.name, diff: Math.round((l7 - act) * 100) / 100 });
+          }
+          // Buy-Low: High projection, slumping L7 <= -1.4 below projection
+          if (proj >= 3.4 && (act < proj - 0.8 || (l7 > 0 && l7 < proj - 1.4))) {
+            buyCandidates.push({ player: p, teamName: t.name, diff: Math.round((proj - (l7 > 0 ? l7 : act)) * 100) / 100 });
+          }
+        });
+      });
+
+      sellCandidates.sort((a, b) => b.diff - a.diff);
+      buyCandidates.sort((a, b) => b.diff - a.diff);
+
+      sellEl.innerHTML = sellCandidates.slice(0, 4).map(item => `
+        <div style="padding: 8px 10px; background: rgba(11, 15, 25, 0.4); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong>${item.player.name} <span class="pos-pill">${item.player.pos} &bull; ${item.player.team}</span></strong>
+            <span style="color: #f87171; font-weight: 700; font-family: 'JetBrains Mono', monospace;">+${item.diff} L7 Spike</span>
+          </div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 3px;">
+            Owner: <strong>${item.teamName}</strong> &bull; L7: <strong>${item.player.l7Avg}</strong> vs Season: <strong>${item.player.actAvg}</strong>. Prime sell-high before shooting % regression.
+          </div>
+        </div>
+      `).join('') || '<div style="color: var(--text-muted);">No severe sell-high outliers detected.</div>';
+
+      buyEl.innerHTML = buyCandidates.slice(0, 4).map(item => `
+        <div style="padding: 8px 10px; background: rgba(11, 15, 25, 0.4); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <strong>${item.player.name} <span class="pos-pill">${item.player.pos} &bull; ${item.player.team}</span></strong>
+            <span style="color: #38bdf8; font-weight: 700; font-family: 'JetBrains Mono', monospace;">-${item.diff} Cold Slump</span>
+          </div>
+          <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 3px;">
+            Owner: <strong>${item.teamName}</strong> &bull; Proj: <strong>${item.player.projAvg}</strong> vs L7: <strong>${item.player.l7Avg || item.player.actAvg}</strong>. Target owner at a discount!
+          </div>
+        </div>
+      `).join('') || '<div style="color: var(--text-muted);">No buy-low targets detected.</div>';
+    }
+
+    // ========================================================
+    // FEATURE 4: PLAYOFF PLANNER (WEEKS 19-21 SCHEDULE MATRIX)
+    // ========================================================
+    const playoffScheduleData = [
+      {"team":"OTT","name":"Ottawa Senators","w19":4,"w20":6,"w21":8,"total":18,"offNights":13,"tier":"Tier 1"},
+      {"team":"TB","name":"Tampa Bay Lightning","w19":4,"w20":7,"w21":7,"total":18,"offNights":13,"tier":"Tier 1"},
+      {"team":"LA","name":"Los Angeles Kings","w19":5,"w20":7,"w21":6,"total":18,"offNights":12,"tier":"Tier 1"},
+      {"team":"WSH","name":"Washington Capitals","w19":4,"w20":7,"w21":7,"total":18,"offNights":9,"tier":"Tier 1"},
+      {"team":"TOR","name":"Toronto Maple Leafs","w19":3,"w20":7,"w21":7,"total":17,"offNights":14,"tier":"Tier 2"},
+      {"team":"NYI","name":"New York Islanders","w19":4,"w20":7,"w21":6,"total":17,"offNights":12,"tier":"Tier 2"},
+      {"team":"PIT","name":"Pittsburgh Penguins","w19":3,"w20":6,"w21":8,"total":17,"offNights":12,"tier":"Tier 2"},
+      {"team":"COL","name":"Colorado Avalanche","w19":4,"w20":6,"w21":7,"total":17,"offNights":12,"tier":"Tier 2"},
+      {"team":"CBJ","name":"Columbus Blue Jackets","w19":5,"w20":7,"w21":5,"total":17,"offNights":12,"tier":"Tier 2"},
+      {"team":"SEA","name":"Seattle Kraken","w19":3,"w20":7,"w21":7,"total":17,"offNights":12,"tier":"Tier 2"},
+      {"team":"DAL","name":"Dallas Stars","w19":3,"w20":7,"w21":7,"total":17,"offNights":12,"tier":"Tier 2"},
+      {"team":"WPG","name":"Winnipeg Jets","w19":4,"w20":7,"w21":6,"total":17,"offNights":11,"tier":"Tier 2"},
+      {"team":"BOS","name":"Boston Bruins","w19":3,"w20":6,"w21":8,"total":17,"offNights":11,"tier":"Tier 2"},
+      {"team":"CAR","name":"Carolina Hurricanes","w19":3,"w20":8,"w21":6,"total":17,"offNights":11,"tier":"Tier 2"},
+      {"team":"BUF","name":"Buffalo Sabres","w19":3,"w20":6,"w21":8,"total":17,"offNights":10,"tier":"Tier 2"},
+      {"team":"CHI","name":"Chicago Blackhawks","w19":3,"w20":7,"w21":7,"total":17,"offNights":8,"tier":"Tier 2"},
+      {"team":"UTA","name":"Utah Hockey Club","w19":5,"w20":6,"w21":6,"total":17,"offNights":7,"tier":"Tier 2"},
+      {"team":"NSH","name":"Nashville Predators","w19":2,"w20":7,"w21":7,"total":16,"offNights":15,"tier":"Tier 3"},
+      {"team":"DET","name":"Detroit Red Wings","w19":4,"w20":7,"w21":5,"total":16,"offNights":12,"tier":"Tier 3"},
+      {"team":"SJ","name":"San Jose Sharks","w19":3,"w20":6,"w21":7,"total":16,"offNights":11,"tier":"Tier 3"},
+      {"team":"VGK","name":"Vegas Golden Knights","w19":3,"w20":5,"w21":8,"total":16,"offNights":11,"tier":"Tier 3"},
+      {"team":"STL","name":"St. Louis Blues","w19":4,"w20":6,"w21":6,"total":16,"offNights":10,"tier":"Tier 3"},
+      {"team":"ANA","name":"Anaheim Ducks","w19":4,"w20":7,"w21":5,"total":16,"offNights":10,"tier":"Tier 3"},
+      {"team":"FLA","name":"Florida Panthers","w19":3,"w20":7,"w21":6,"total":16,"offNights":10,"tier":"Tier 3"},
+      {"team":"NYR","name":"New York Rangers","w19":4,"w20":6,"w21":6,"total":16,"offNights":8,"tier":"Tier 3"},
+      {"team":"CGY","name":"Calgary Flames","w19":4,"w20":5,"w21":7,"total":16,"offNights":6,"tier":"Tier 3"},
+      {"team":"VAN","name":"Vancouver Canucks","w19":2,"w20":7,"w21":6,"total":15,"offNights":11,"tier":"Tier 4"},
+      {"team":"MIN","name":"Minnesota Wild","w19":3,"w20":6,"w21":6,"total":15,"offNights":11,"tier":"Tier 4"},
+      {"team":"NJ","name":"New Jersey Devils","w19":2,"w20":7,"w21":6,"total":15,"offNights":10,"tier":"Tier 4"},
+      {"team":"PHI","name":"Philadelphia Flyers","w19":3,"w20":6,"w21":6,"total":15,"offNights":10,"tier":"Tier 4"},
+      {"team":"EDM","name":"Edmonton Oilers","w19":3,"w20":6,"w21":6,"total":15,"offNights":10,"tier":"Tier 4"},
+      {"team":"MTL","name":"Montreal Canadiens","w19":3,"w20":6,"w21":5,"total":14,"offNights":10,"tier":"Tier 4"}
+    ];
+
+    let playoffTierFilter = 'ALL';
+
+    function setPlayoffTierFilter(tier) {
+      playoffTierFilter = tier;
+      const container = document.getElementById('playoffTierFilters');
+      if (container) {
+        container.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+        if (event && event.currentTarget) event.currentTarget.classList.add('active');
+      }
+      filterPlayoffMatrix();
+    }
+
+    function filterPlayoffMatrix() {
+      const tbody = document.getElementById('playoffTableBody');
+      const searchBox = document.getElementById('playoffSearch');
+      if (!tbody) return;
+
+      const q = searchBox ? searchBox.value.toLowerCase().trim() : '';
+
+      const filtered = playoffScheduleData.filter(item => {
+        if (playoffTierFilter !== 'ALL' && item.tier !== playoffTierFilter) return false;
+        if (q && !item.name.toLowerCase().includes(q) && !item.team.toLowerCase().includes(q)) return false;
+        return true;
+      });
+
+      tbody.innerHTML = '';
+      filtered.forEach((item, idx) => {
+        const myPlayers = currentMyRoster.filter(p => p.team === item.team);
+        let tierClass = 'tier-gold';
+        if (item.tier === 'Tier 2') tierClass = 'tier-silver';
+        if (item.tier === 'Tier 3') tierClass = 'tier-bronze';
+        if (item.tier === 'Tier 4') tierClass = 'tier-danger';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">${idx + 1}</td>
+          <td>
+            <strong>${item.name}</strong>
+            <span class="pos-pill">${item.team}</span>
+          </td>
+          <td style="font-family: 'JetBrains Mono', monospace;">${item.w19} gms</td>
+          <td style="font-family: 'JetBrains Mono', monospace;">${item.w20} gms</td>
+          <td style="font-family: 'JetBrains Mono', monospace;">${item.w21} gms</td>
+          <td style="font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 800; color: #fff;">
+            ${item.total}
+          </td>
+          <td style="font-family: 'JetBrains Mono', monospace; color: #34d399; font-weight: 700;">
+            ${item.offNights} Off-Nights
+          </td>
+          <td><span class="tier-pill ${tierClass}">${item.tier}</span></td>
+          <td style="font-size: 0.8rem;">
+            ${myPlayers.length > 0 
+              ? myPlayers.map(p => `<span class="player-pill" style="color: var(--primary); margin-right: 4px;">${p.name} (${p.pos})</span>`).join('') 
+              : '<span style="color: var(--text-dim);">-</span>'}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderPlayoffPlanner() {
+      // Calculate my team's total playoff games
+      let totalPlayoffGames = 0;
+      let totalOffNights = 0;
+      currentMyRoster.forEach(p => {
+        const tObj = playoffScheduleData.find(item => item.team === p.team);
+        if (tObj) {
+          totalPlayoffGames += tObj.total;
+          totalOffNights += tObj.offNights;
+        }
+      });
+
+      const avgGames = (currentMyRoster.length > 0) ? (totalPlayoffGames / currentMyRoster.length).toFixed(1) : '16.5';
+      const badgeEl = document.getElementById('myPlayoffGradeBadge');
+      if (badgeEl) {
+        let grade = "A Championship Ready";
+        let tierClass = "tier-gold";
+        if (totalPlayoffGames >= 350) { grade = "A+ Championship Caliber"; tierClass = "tier-gold"; }
+        else if (totalPlayoffGames >= 340) { grade = "A Strong Playoff Volume"; tierClass = "tier-silver"; }
+        else { grade = "B Playoff Average"; tierClass = "tier-bronze"; }
+
+        badgeEl.className = `tier-pill ${tierClass}`;
+        badgeEl.innerHTML = `${currentTeam.name}: <strong>${totalPlayoffGames} Total Playoff Games</strong> (${avgGames} avg/player) &bull; ${grade}`;
+      }
+
+      filterPlayoffMatrix();
     }
 
     window.addEventListener('DOMContentLoaded', () => {
