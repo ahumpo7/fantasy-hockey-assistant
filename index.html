@@ -80,6 +80,53 @@
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .team-switcher-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 5px 12px;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    .switcher-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--primary);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .team-select {
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .team-select:hover, .team-select:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+    }
+
+    .team-select option {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 6px;
     }
 
     .refresh-btn {
@@ -711,6 +758,13 @@
     </div>
 
     <div class="header-controls">
+      <div class="team-switcher-box">
+        <label for="teamSelectDropdown" class="switcher-label">🎭 Roleplay Team:</label>
+        <select id="teamSelectDropdown" class="team-select" onchange="switchRoleplayTeam(this.value)">
+          <!-- Populated dynamically -->
+        </select>
+      </div>
+
       <div class="live-status">
         <span class="status-dot"></span>
         <span id="lastUpdatedText">Live Sync Ready</span>
@@ -740,23 +794,23 @@
     <!-- Matchup Hero Banner -->
     <div class="matchup-banner">
       <div class="team-hero">
-        <div class="team-avatar avatar-my">DL</div>
+        <div id="heroMyAvatar" class="team-avatar avatar-my">DL</div>
         <div class="team-info">
-          <h2>Dead Lokomotiv <span class="team-tag tag-my">You</span></h2>
-          <div class="team-stats">Record: 2-1-0 &bull; 21 Players &bull; Current Week 4</div>
+          <h2 id="heroMyName">Dead Lokomotiv <span id="heroMyTag" class="team-tag tag-my">You</span></h2>
+          <div id="heroMyStats" class="team-stats">Record: 2-1-0 &bull; 21 Players &bull; Current Week 4</div>
         </div>
       </div>
 
       <div class="vs-box">
         <div class="vs-text">VS</div>
-        <div class="matchup-week">Week 4 (Oct 19 - Oct 25)</div>
+        <div id="matchupWeekLabel" class="matchup-week">Week 4 (Oct 19 - Oct 25)</div>
       </div>
 
       <div class="team-hero right">
-        <div class="team-avatar avatar-opp">ICE</div>
+        <div id="heroOppAvatar" class="team-avatar avatar-opp">ICE</div>
         <div class="team-info">
-          <h2>Bay Ridge Icelanders <span class="team-tag tag-opp">Opponent</span></h2>
-          <div class="team-stats">Record: 2-1-0 &bull; Led by MacKinnon, Johnston, Marner</div>
+          <h2 id="heroOppName">Bay Ridge Icelanders <span id="heroOppTag" class="team-tag tag-opp">Opponent</span></h2>
+          <div id="heroOppStats" class="team-stats">Record: 2-1-0 &bull; Led by MacKinnon, Johnston, Marner</div>
         </div>
       </div>
     </div>
@@ -809,7 +863,7 @@
 
     <!-- TAB 2: Head-to-Head Rosters -->
     <div id="tab-matchup" class="tab-pane">
-      <div class="section-title">
+      <div class="section-title" id="myRosterTitle">
         Dead Lokomotiv (Your Lineup)
         <span>21 Rostered Players</span>
       </div>
@@ -835,9 +889,9 @@
         </table>
       </div>
 
-      <div class="section-title">
+      <div class="section-title" id="oppRosterTitle">
         Bay Ridge Icelanders (Opponent Lineup)
-        <span>21 Rostered Players</span>
+        <span>20 Rostered Players</span>
       </div>
       <div class="table-container">
         <table>
@@ -915,8 +969,28 @@
     let todayIndex = getCurrentDayIndex();
     let currentPosFilter = 'ALL';
     let liveRosteredPlayerIds = new Set();
-    let currentMyRoster = fantasyData.myTeam.roster;
-    let currentOppRoster = fantasyData.oppTeam.roster;
+
+    // League Teams & Roleplay State
+    let allLeagueTeams = (typeof fantasyData !== 'undefined' && fantasyData.teams) 
+      ? fantasyData.teams 
+      : [fantasyData.myTeam, fantasyData.oppTeam];
+
+    let currentTeamId = 7;
+    try {
+      const saved = localStorage.getItem('roleplay_team_id');
+      if (saved && allLeagueTeams.some(t => t.id === Number(saved))) {
+        currentTeamId = Number(saved);
+      }
+    } catch (e) {}
+
+    let initialTeam = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
+    let initialOpp = (initialTeam && initialTeam.opponentId) 
+      ? allLeagueTeams.find(t => t.id === initialTeam.opponentId) 
+      : allLeagueTeams.find(t => t.id !== initialTeam.id) || allLeagueTeams[0];
+    let currentOpponentId = initialOpp ? initialOpp.id : 10;
+
+    let currentMyRoster = initialTeam ? initialTeam.roster : fantasyData.myTeam.roster;
+    let currentOppRoster = initialOpp ? initialOpp.roster : fantasyData.oppTeam.roster;
 
     // Accurate Player IDs for quick checks
     const PLAYER_IDS = {
@@ -933,6 +1007,114 @@
     const proTeamMap = {
       0:"FA", 1:"BOS", 2:"BUF", 3:"CGY", 4:"CHI", 5:"DET", 6:"EDM", 7:"CAR", 8:"LA", 9:"DAL", 10:"MTL", 11:"NJ", 12:"NYI", 13:"NYR", 14:"OTT", 15:"PHI", 16:"PIT", 17:"COL", 18:"SJ", 19:"STL", 20:"TB", 21:"TOR", 22:"VAN", 23:"WSH", 25:"ANA", 26:"FLA", 27:"NSH", 28:"WPG", 29:"CBJ", 30:"MIN", 37:"VGK", 124292:"SEA", 129764:"UTA"
     };
+
+    function populateTeamDropdown() {
+      const select = document.getElementById('teamSelectDropdown');
+      if (!select) return;
+      select.innerHTML = '';
+
+      allLeagueTeams.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        const isDefault = (t.id === 7);
+        opt.textContent = `${t.name} (${t.abbrev} • ${t.record})${isDefault ? ' [You]' : ''}`;
+        if (t.id === currentTeamId) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    function updateHeaderAndHero(team, oppTeam) {
+      if (!team) return;
+      const isDefault = (team.id === 7);
+
+      const subEl = document.querySelector('.brand-subtitle');
+      if (subEl) {
+        subEl.innerHTML = `League 82784331 &bull; <strong>${team.name}</strong> Command Center ${!isDefault ? '<span style="color:#fbbf24; font-size:0.75rem; font-weight:700;">(Roleplay Mode)</span>' : ''}`;
+      }
+
+      const myAvatar = document.getElementById('heroMyAvatar');
+      if (myAvatar) myAvatar.textContent = team.abbrev || team.name.substring(0, 3).toUpperCase();
+
+      const myName = document.getElementById('heroMyName');
+      if (myName) {
+        myName.innerHTML = `${team.name} <span id="heroMyTag" class="team-tag ${isDefault ? 'tag-my' : ''}" style="${!isDefault ? 'background:rgba(251,191,36,0.2); color:#fbbf24; border:1px solid rgba(251,191,36,0.4);' : ''}">${isDefault ? 'You' : 'Roleplay'}</span>`;
+      }
+
+      const myStats = document.getElementById('heroMyStats');
+      if (myStats) {
+        myStats.innerHTML = `Record: ${team.record} &bull; ${team.roster.length} Players &bull; Current Week 4`;
+      }
+
+      if (oppTeam) {
+        const oppAvatar = document.getElementById('heroOppAvatar');
+        if (oppAvatar) oppAvatar.textContent = oppTeam.abbrev || oppTeam.name.substring(0, 3).toUpperCase();
+
+        const oppName = document.getElementById('heroOppName');
+        if (oppName) {
+          oppName.innerHTML = `${oppTeam.name} <span id="heroOppTag" class="team-tag tag-opp">Opponent</span>`;
+        }
+
+        const oppStats = document.getElementById('heroOppStats');
+        if (oppStats) {
+          const topOpp = [...oppTeam.roster].sort((a,b) => (b.actAvg||0) - (a.actAvg||0)).slice(0, 3).map(p => p.name.split(' ').pop()).join(', ');
+          oppStats.innerHTML = `Record: ${oppTeam.record} &bull; ${oppTeam.roster.length} Players${topOpp ? ` &bull; Key: ${topOpp}` : ''}`;
+        }
+      }
+
+      const myRosterTitle = document.getElementById('myRosterTitle');
+      if (myRosterTitle) {
+        myRosterTitle.innerHTML = `${team.name} (${isDefault ? 'Your Lineup' : 'Roleplay Lineup'}) <span>${team.roster.length} Rostered Players</span>`;
+      }
+
+      const oppRosterTitle = document.getElementById('oppRosterTitle');
+      if (oppRosterTitle && oppTeam) {
+        oppRosterTitle.innerHTML = `${oppTeam.name} (Opponent Lineup) <span>${oppTeam.roster.length} Rostered Players</span>`;
+      }
+    }
+
+    function switchRoleplayTeam(teamId, saveStorage = true) {
+      currentTeamId = Number(teamId);
+      if (saveStorage) {
+        try { localStorage.setItem('roleplay_team_id', String(currentTeamId)); } catch (e) {}
+      }
+
+      const team = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
+      if (!team) return;
+
+      let oppTeam = null;
+      if (team.opponentId) {
+        oppTeam = allLeagueTeams.find(t => t.id === team.opponentId);
+      }
+      if (!oppTeam) {
+        oppTeam = allLeagueTeams.find(t => t.id !== team.id) || allLeagueTeams[0];
+      }
+      currentOpponentId = oppTeam ? oppTeam.id : 10;
+
+      currentMyRoster = team.roster || [];
+      currentOppRoster = oppTeam ? (oppTeam.roster || []) : [];
+
+      updateHeaderAndHero(team, oppTeam);
+
+      const dropdown = document.getElementById('teamSelectDropdown');
+      if (dropdown && dropdown.value != String(team.id)) {
+        dropdown.value = String(team.id);
+      }
+
+      recalculateStrategy();
+      renderPlaybook();
+      renderRosterTable(currentMyRoster, 'myRosterTable');
+      renderRosterTable(currentOppRoster, 'oppRosterTable');
+      filterFreeAgents();
+
+      if (saveStorage) {
+        const alertEl = document.getElementById('txAlert');
+        const alertText = document.getElementById('txAlertText');
+        if (alertEl && alertText) {
+          alertEl.style.display = 'flex';
+          alertText.innerHTML = `🎭 Now roleplaying as <strong>${team.name} (${team.record})</strong>. Facing <strong>${oppTeam.name} (${oppTeam.record})</strong> in Week 4. Playbook, lineups & moves updated!`;
+        }
+      }
+    }
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
@@ -1143,7 +1325,8 @@
       }
 
       const availablePool = getAvailableFreeAgents();
-      const capacity = getDailyLineupCapacity(currentDay);
+      const currentTeam = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0] || fantasyData.myTeam;
+      const capacity = getDailyLineupCapacity(currentDay, currentMyRoster);
 
       // Check current roster state
       const hasBoeserOnRoster = isPlayerOnMyTeam("Brock Boeser") || isPlayerOnMyTeam(PLAYER_IDS.BOESER);
@@ -1168,9 +1351,9 @@
             <span class="strat-badge" style="background: rgba(56, 189, 248, 0.15); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.35);">🛡️ Move #1: Lineup Locked & Full</span>
             <span class="badge-rank">Capacity 14/14</span>
           </div>
-          <h3>${currentDay} Slate: Maximum Active Capacity (0 Open Slots)</h3>
+          <h3>${currentDay} Slate: Maximum Active Capacity (${currentTeam.name})</h3>
           <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px; font-size: 0.84rem; color: #fca5a5; line-height: 1.5;">
-            🛑 <strong>DO NOT STREAM FOR ${currentDay.toUpperCase()}!</strong> You already have <strong>${capacity.totalPlaying} active players with games tonight</strong> for only 14 starting spots (2 C, 2 LW, 2 RW, 4 D, 2 UTIL, 2 G). ${benchedWithGame.length > 0 ? `Even <strong>${benchedNames}</strong> is forced to sit on your bench with an active game.` : ''} Any player added for tonight would simply sit on your bench or force you to bench an active starter.
+            🛑 <strong>DO NOT STREAM FOR ${currentDay.toUpperCase()}!</strong> <strong>${currentTeam.name}</strong> already has <strong>${capacity.totalPlaying} active players with games tonight</strong> for only 14 starting spots (2 C, 2 LW, 2 RW, 4 D, 2 UTIL, 2 G). ${benchedWithGame.length > 0 ? `Even <strong>${benchedNames}</strong> is forced to sit on your bench with an active game.` : ''} Any player added for tonight would simply sit on your bench or force you to bench an active starter.
           </div>
           <div class="why-section">
             <div class="why-title">📋 Tonight's Confirmed Starting Lineup (14 / 14 Full):</div>
@@ -1181,7 +1364,7 @@
             </ul>
           </div>
           <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 12px; font-size: 0.8rem; color: #7dd3fc;">
-            💡 <strong>Strategic Pivot:</strong> Save your weekly transactions! Focus your waiver adds ahead of <strong>Friday's off-night</strong> (where you only have 2 active players and 12 open starting spots).
+            💡 <strong>Strategic Pivot:</strong> Save your weekly transactions! Focus your waiver adds ahead of <strong>Friday's off-night</strong> (where only 2 NHL games are played) to gain games.
           </div>
           <div class="action-box" style="margin-top: 14px;">
             <div class="action-row" style="margin-bottom: 6px;">
@@ -1194,7 +1377,7 @@
             </div>
             <div class="action-row">
               <span>Next Move:</span>
-              <span class="player-pill" style="color: var(--accent-amber);">Add Tyler Bertuzzi for Friday's Light Slate</span>
+              <span class="player-pill" style="color: var(--accent-amber);">Target Off-Night Volume (Fri & Sun)</span>
             </div>
           </div>
         `;
@@ -1227,6 +1410,11 @@
         const b1Trend = getPlayerTrendAnalysis(backupStreamer1);
         const b2Trend = getPlayerTrendAnalysis(backupStreamer2);
 
+        const droppableBench = currentMyRoster
+          .filter(p => p.slot === 'BENCH' && p.injury !== 'INJURY_RESERVE')
+          .sort((a,b) => (a.actAvg || 0) - (b.actAvg || 0));
+        const suggestedDropName = droppableBench.length > 0 ? `${droppableBench[0].name} (${droppableBench[0].pos}, ${droppableBench[0].team} • ${droppableBench[0].actAvg || 0} avg)` : 'Open bench slot';
+
         card1.innerHTML = `
           <div class="strat-header">
             <span class="strat-badge badge-today">⚡ Move #1: ${isViewingRealToday ? "Today's Streamer" : currentDay + " Streamer"}</span>
@@ -1237,7 +1425,7 @@
           <div class="why-section">
             <div class="why-title">🔍 Multi-Split Analysis & Rationale:</div>
             <ul class="why-list">
-              <li><strong>Open Slot Utilization:</strong> You have <strong>${capacity.openSkaterSlots} open skater starting slots</strong> on ${currentDay}. ${topStreamer.name} slides right into your active lineup with 0 bench waste.</li>
+              <li><strong>Open Slot Utilization:</strong> <strong>${currentTeam.name}</strong> has <strong>${capacity.openSkaterSlots} open skater starting slots</strong> on ${currentDay}. ${topStreamer.name} slides right into your active lineup with 0 bench waste.</li>
               <li><strong>Trajectory & Form (7/15/30 Days):</strong> ${streamerTrend.description}</li>
               <li><strong>Projection & Ceiling:</strong> Season projection of <strong>${topStreamer.projPts} fantasy pts</strong> (${topStreamer.projAvg} avg) provides dependable scoring.</li>
             </ul>
@@ -1262,11 +1450,11 @@
           <div class="action-box" style="margin-top: 14px;">
             <div class="action-row" style="margin-bottom: 6px;">
               <span>Target Streamer:</span>
-              <span class="player-pill" style="color: var(--accent-green);">✅ ${topStreamer.name} (${topStreamer.schedule[currentDay]})</span>
+              <span class="player-pill" style="color: var(--accent-green);">✅ ${topStreamer.name} (${topStreamer.schedule[currentDay] || 'Active'})</span>
             </div>
             <div class="action-row" style="margin-bottom: 6px;">
               <span>Suggested Drop:</span>
-              <span class="player-pill" style="color: var(--accent-rose);">❌ Gabriel Landeskog (COL &bull; 2.35 avg) or open bench spot</span>
+              <span class="player-pill" style="color: var(--accent-rose);">❌ ${suggestedDropName}</span>
             </div>
             <div class="action-row">
               <span>Lineup Slot:</span>
@@ -1297,6 +1485,10 @@
       const hartmanTrend = getPlayerTrendAnalysis(hartmanPlayer);
       const cirelliTrend = getPlayerTrendAnalysis(cirelliPlayer);
 
+      const isBertuzziOnMyTeam = isPlayerOnMyTeam("Tyler Bertuzzi");
+      const mainCard2Target = isBertuzziOnMyTeam ? hartmanPlayer : bertuzziPlayer;
+      const mainCard2Trend = isBertuzziOnMyTeam ? hartmanTrend : bertuzziTrend;
+
       const card2 = document.createElement('div');
       card2.className = 'strat-card';
       card2.innerHTML = `
@@ -1304,17 +1496,20 @@
           <span class="strat-badge badge-long">🎯 Move #2: Weekend Off-Night Weapon</span>
           <span class="badge-rank">Priority 2</span>
         </div>
-        <h3>Add Tyler Bertuzzi (LW, CHI) – Fri & Sun Off-Nights</h3>
+        <h3>Add ${mainCard2Target.name} (${mainCard2Target.pos}, ${mainCard2Target.team}) – Off-Night Advantage</h3>
         <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #7dd3fc;">
-          💡 <strong>League Roster Update:</strong> Carter Verhaeghe was claimed off waivers by Broad Street Bullies. Brock Boeser is already rostered on Dead Lokomotiv. Shifting primary rest-of-week target to <strong>Tyler Bertuzzi (CHI)</strong> for Friday & Sunday off-night volume.
+          ${currentTeam.id === 7 
+            ? '💡 <strong>League Roster Update:</strong> Carter Verhaeghe was claimed off waivers by Broad Street Bullies. Brock Boeser is active on Dead Lokomotiv. Shifting primary rest-of-week target to <strong>Tyler Bertuzzi (CHI)</strong> for Friday & Sunday off-night volume.'
+            : `💡 <strong>Off-Night Leverage for ${currentTeam.name}:</strong> Friday has only 2 NHL games and Sunday has only 5 NHL games. Adding off-night volume ensures starting active games while opponents are idle.`
+          }
         </div>
-        ${renderSplitsStrip(bertuzziPlayer)}
+        ${renderSplitsStrip(mainCard2Target)}
         <div class="why-section">
-          <div class="why-title">🔍 Why Tyler Bertuzzi is the Top Rest-of-Week Move:</div>
+          <div class="why-title">🔍 Why ${mainCard2Target.name} is the Top Rest-of-Week Move:</div>
           <ul class="why-list">
-            <li><strong>Slow Start Buy-Low Opportunity:</strong> Bertuzzi has averaged 1.72 season PPG (vs 2.62 proj), but remains locked on Chicago's top line with Connor Bedard and top power play. His underlying shot volume (30 projected goals) signals high positive regression.</li>
-            <li><strong>Dual Off-Night Alignment:</strong> Chicago plays on <strong>Friday (vs MTL) and Sunday (vs FLA)</strong>. Friday has only 2 games and Sunday only 5 games across the NHL, guaranteeing Bertuzzi active starts with zero bench waste.</li>
-            <li><strong>Favorable Defensive Matchups:</strong> Montreal ranks in the bottom tier in goals allowed (3.33 GA/G), setting up a prime scoring ceiling on Friday.</li>
+            <li><strong>Off-Night Volume:</strong> Playing on Friday and/or Sunday bypasses crowded slate bench jams, guaranteeing starting minutes for ${currentTeam.name}.</li>
+            <li><strong>Underlying Production:</strong> Season projection of <strong>${mainCard2Target.projPts || mainCard2Target.projAvg}</strong> with secure top-6 deployment and power-play time.</li>
+            <li><strong>Form & Trend:</strong> ${mainCard2Trend.description}</li>
           </ul>
         </div>
         <div class="backups-container">
@@ -1324,7 +1519,7 @@
               <span class="backup-name">1. Ryan Hartman <span class="pos-pill">C &bull; MIN</span> ${hartmanTrend.badge}</span>
               <span class="backup-stat">Sat & Sun &bull; ${hartmanPlayer.l7Avg != null ? hartmanPlayer.l7Avg + ' L7' : '199.8 Pts'}</span>
             </div>
-            <div class="backup-reason">L7: <strong>${hartmanPlayer.l7Avg != null ? hartmanPlayer.l7Avg : '-'}</strong> | L15: <strong>${hartmanPlayer.l15Avg != null ? hartmanPlayer.l15Avg : '-'}</strong> | Season: <strong>${hartmanPlayer.actAvg != null ? hartmanPlayer.actAvg : '-'}</strong>. Surged to 2.07 PPG over last 7 days. Plays Saturday and Sunday finale vs Vancouver.</div>
+            <div class="backup-reason">L7: <strong>${hartmanPlayer.l7Avg != null ? hartmanPlayer.l7Avg : '-'}</strong> | L15: <strong>${hartmanPlayer.l15Avg != null ? hartmanPlayer.l15Avg : '-'}</strong>. Surged to 2.07 PPG over last 7 days. Plays Saturday and Sunday finale vs Vancouver.</div>
           </div>
           <div class="backup-item">
             <div class="backup-header">
@@ -1337,15 +1532,15 @@
         <div class="action-box" style="margin-top: 14px;">
           <div class="action-row" style="margin-bottom: 6px;">
             <span>Target Player:</span>
-            <span class="player-pill" style="color: var(--accent-green);">✅ Tyler Bertuzzi (211.9 Proj Pts)</span>
+            <span class="player-pill" style="color: var(--accent-green);">✅ ${mainCard2Target.name} (${mainCard2Target.team})</span>
           </div>
           <div class="action-row" style="margin-bottom: 6px;">
             <span>Recommended Drop:</span>
-            <span class="player-pill" style="color: var(--accent-rose);">❌ Open streamer spot after tonight / Landeskog</span>
+            <span class="player-pill" style="color: var(--accent-rose);">❌ Lowest producing bench skater</span>
           </div>
           <div class="action-row">
             <span>Schedule Advantage:</span>
-            <span class="player-pill" style="color: var(--primary);">Fri vs MTL &bull; Sun vs FLA (2 Off-Night Starts)</span>
+            <span class="player-pill" style="color: var(--primary);">Maximizes Friday & Sunday off-night starts</span>
           </div>
         </div>
       `;
@@ -1358,73 +1553,130 @@
         name: "John Gibson", team: "DET", pos: "G", projPts: 220.0, projAvg: 4.23,
         actAvg: 2.60, l30Avg: 2.60, l15Avg: 2.62, l7Avg: 7.95
       };
-      const garandPlayer = currentMyRoster.find(p => p.name.includes("Garand")) || {
+      const teamGoalies = currentMyRoster.filter(p => p.pos === 'G');
+      const primaryGoalie = teamGoalies[0] || {
         name: "Dylan Garand", team: "NYR", pos: "G", projPts: 137.8, projAvg: 3.36,
         actAvg: 5.19, l30Avg: 5.19, l15Avg: 4.16, l7Avg: 3.65
       };
-      const dobesPlayer = availablePool.find(p => p.name.includes("Dobes")) || {
-        name: "Jakub Dobes", team: "MTL", pos: "G", projPts: 207.8, projAvg: 5.20,
-        actAvg: 1.98, l30Avg: 1.98, l15Avg: 0.62, l7Avg: 3.20
-      };
-
       const gibsonTrend = getPlayerTrendAnalysis(gibsonPlayer);
-      const garandTrend = getPlayerTrendAnalysis(garandPlayer);
+      const isDeadLokomotiv = (currentTeam.id === 7);
 
       const card3 = document.createElement('div');
       card3.className = 'strat-card';
-      card3.innerHTML = `
-        <div class="strat-header">
-          <span class="strat-badge badge-goalie">🥅 Move #3: Goalie Crease Management</span>
-          <span class="badge-rank">Priority 3</span>
-        </div>
-        <h3>Crease Report: Garand & Skinner Active | Depth Target: John Gibson</h3>
-        <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #6ee7b7;">
-          🛡️ <strong>Rangers Goalie Starting Update:</strong> Dylan Garand has taken over as the confirmed #1 starter for the NY Rangers with Igor Shesterkin (knee) and Joonas Korpisalo (IR) sidelined. Garand has delivered <strong>36.4 actual points (5.19 PPG)</strong> under your scoring system. <strong>Hold and start Garand tonight vs Toronto.</strong>
-        </div>
-        <div style="margin-bottom: 6px; font-size: 0.78rem; font-weight: 700; color: var(--primary);">Dylan Garand Multi-Split Baseline:</div>
-        ${renderSplitsStrip(garandPlayer)}
-        <div style="margin: 12px 0 6px; font-size: 0.78rem; font-weight: 700; color: #f87171;">John Gibson Surge (Available Target):</div>
-        ${renderSplitsStrip(gibsonPlayer)}
-        <div class="why-section">
-          <div class="why-title">🔍 Trend Analysis & Crease Strategy:</div>
-          <ul class="why-list">
-            <li><strong>John Gibson's Massive L7 Spike:</strong> Gibson started the season slow (2.60 avg), but has caught fire over the last 7 days, averaging an explosive <strong>7.95 fantasy pts/game (+5.35 over season avg)</strong>. Detroit plays Thursday @ Vancouver and Saturday @ Calgary.</li>
-            <li><strong>Dylan Garand Must-Start Status:</strong> Garand is holding a 5.19 season average across starts—drastically beating his 3.36 preseason projection. He provides immediate NHL #1 starter security with Shesterkin out.</li>
-            <li><strong>Bench Upgrade:</strong> Darcy Kuemper (1.77 actual PPG) is currently underperforming on your bench; Gibson provides a red-hot volume upgrade if roster flexibility allows.</li>
-          </ul>
-        </div>
-        <div class="backups-container">
-          <div class="backups-title">🔄 Backup Goalie Targets:</div>
-          <div class="backup-item">
-            <div class="backup-header">
-              <span class="backup-name">1. Jakub Dobes <span class="pos-pill">G &bull; MTL</span></span>
-              <span class="backup-stat">Fri & Sun &bull; 207.8 Pts</span>
+
+      if (isDeadLokomotiv) {
+        const garandPlayer = currentMyRoster.find(p => p.name.includes("Garand")) || primaryGoalie;
+        card3.innerHTML = `
+          <div class="strat-header">
+            <span class="strat-badge badge-goalie">🥅 Move #3: Goalie Crease Management</span>
+            <span class="badge-rank">Priority 3</span>
+          </div>
+          <h3>Crease Report: Garand & Skinner Active | Depth Target: John Gibson</h3>
+          <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #6ee7b7;">
+            🛡️ <strong>Rangers Goalie Starting Update:</strong> Dylan Garand has taken over as the confirmed #1 starter for the NY Rangers with Igor Shesterkin (knee) and Joonas Korpisalo (IR) sidelined. Garand has delivered <strong>36.4 actual points (5.19 PPG)</strong> under your scoring system. <strong>Hold and start Garand tonight vs Toronto.</strong>
+          </div>
+          <div style="margin-bottom: 6px; font-size: 0.78rem; font-weight: 700; color: var(--primary);">Dylan Garand Multi-Split Baseline:</div>
+          ${renderSplitsStrip(garandPlayer)}
+          <div style="margin: 12px 0 6px; font-size: 0.78rem; font-weight: 700; color: #f87171;">John Gibson Surge (Available Target):</div>
+          ${renderSplitsStrip(gibsonPlayer)}
+          <div class="why-section">
+            <div class="why-title">🔍 Trend Analysis & Crease Strategy:</div>
+            <ul class="why-list">
+              <li><strong>John Gibson's Massive L7 Spike:</strong> Gibson started the season slow (2.60 avg), but has caught fire over the last 7 days, averaging an explosive <strong>7.95 fantasy pts/game (+5.35 over season avg)</strong>. Detroit plays Thursday @ Vancouver and Saturday @ Calgary.</li>
+              <li><strong>Dylan Garand Must-Start Status:</strong> Garand is holding a 5.19 season average across starts—drastically beating his 3.36 preseason projection. He provides immediate NHL #1 starter security with Shesterkin out.</li>
+              <li><strong>Bench Upgrade:</strong> Darcy Kuemper (1.77 actual PPG) is currently underperforming on your bench; Gibson provides a red-hot volume upgrade if roster flexibility allows.</li>
+            </ul>
+          </div>
+          <div class="backups-container">
+            <div class="backups-title">🔄 Backup Goalie Targets:</div>
+            <div class="backup-item">
+              <div class="backup-header">
+                <span class="backup-name">1. Jakub Dobes <span class="pos-pill">G &bull; MTL</span></span>
+                <span class="backup-stat">Fri & Sun &bull; 207.8 Pts</span>
+              </div>
+              <div class="backup-reason">L7: <strong>3.20</strong> | Season: <strong>1.98</strong>. Starts Montreal's light off-night games Friday @ CHI and Sunday @ WPG; elite off-night schedule fit.</div>
             </div>
-            <div class="backup-reason">L7: <strong>3.20</strong> | Season: <strong>1.98</strong>. Starts Montreal's light off-night games Friday @ CHI and Sunday @ WPG; elite off-night schedule fit.</div>
-          </div>
-          <div class="backup-item">
-            <div class="backup-header">
-              <span class="backup-name">2. Dan Vladar <span class="pos-pill">G &bull; PHI</span></span>
-              <span class="backup-stat">205.3 Pts &bull; 4.37 Avg</span>
+            <div class="backup-item">
+              <div class="backup-header">
+                <span class="backup-name">2. Dan Vladar <span class="pos-pill">G &bull; PHI</span></span>
+                <span class="backup-stat">205.3 Pts &bull; 4.37 Avg</span>
+              </div>
+              <div class="backup-reason">Steady starting goalie volume in Philadelphia with 2.67 GAA and .902 SV% projection.</div>
             </div>
-            <div class="backup-reason">Steady starting goalie volume in Philadelphia with 2.67 GAA and .902 SV% projection.</div>
           </div>
-        </div>
-        <div class="action-box" style="margin-top: 14px;">
-          <div class="action-row" style="margin-bottom: 6px;">
-            <span>Crease Starters:</span>
-            <span class="player-pill" style="color: var(--accent-green);">✅ Skinner (5.37 PPG) & Garand (5.19 PPG)</span>
+          <div class="action-box" style="margin-top: 14px;">
+            <div class="action-row" style="margin-bottom: 6px;">
+              <span>Crease Starters:</span>
+              <span class="player-pill" style="color: var(--accent-green);">✅ Skinner (5.37 PPG) & Garand (5.19 PPG)</span>
+            </div>
+            <div class="action-row" style="margin-bottom: 6px;">
+              <span>Depth Add / Drop:</span>
+              <span class="player-pill" style="color: var(--accent-amber);">Add Gibson (7.95 L7) &bull; Drop Kuemper (1.77 PPG)</span>
+            </div>
+            <div class="action-row">
+              <span>Garand Verdict:</span>
+              <span class="player-pill" style="color: var(--accent-green);">DO NOT DROP &bull; Active NYR Starter</span>
+            </div>
           </div>
-          <div class="action-row" style="margin-bottom: 6px;">
-            <span>Depth Add / Drop:</span>
-            <span class="player-pill" style="color: var(--accent-amber);">Add Gibson (7.95 L7) &bull; Drop Kuemper (1.77 PPG) or Landeskog</span>
+        `;
+      } else {
+        const goalieNames = teamGoalies.map(g => `${g.name} (${g.team} • ${g.actAvg > 0 ? g.actAvg + ' PPG' : '0 starts'})`).join(', ') || 'No rostered goalies';
+        card3.innerHTML = `
+          <div class="strat-header">
+            <span class="strat-badge badge-goalie">🥅 Move #3: Goalie Crease Management</span>
+            <span class="badge-rank">Priority 3</span>
           </div>
-          <div class="action-row">
-            <span>Garand Verdict:</span>
-            <span class="player-pill" style="color: var(--accent-green);">DO NOT DROP &bull; Active NYR Starter</span>
+          <h3>Crease Report: ${currentTeam.name} Goalies | Target: John Gibson</h3>
+          <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #7dd3fc;">
+            🛡️ <strong>${currentTeam.name} Goalie Depth:</strong> Rostered goalies: <strong>${goalieNames}</strong>.
           </div>
-        </div>
-      `;
+          ${teamGoalies.length > 0 ? `
+            <div style="margin-bottom: 6px; font-size: 0.78rem; font-weight: 700; color: var(--primary);">${primaryGoalie.name} Multi-Split Baseline:</div>
+            ${renderSplitsStrip(primaryGoalie)}
+          ` : ''}
+          <div style="margin: 12px 0 6px; font-size: 0.78rem; font-weight: 700; color: #f87171;">John Gibson Surge (Available Waiver Target):</div>
+          ${renderSplitsStrip(gibsonPlayer)}
+          <div class="why-section">
+            <div class="why-title">🔍 Goalie Assessment for ${currentTeam.name}:</div>
+            <ul class="why-list">
+              <li><strong>Waiver Surge:</strong> John Gibson (DET) is currently on an explosive 7-day surge averaging <strong>7.95 PPG (+5.35 over season avg)</strong>.</li>
+              <li><strong>Off-Night Alternative:</strong> Jakub Dobes (MTL) starts Friday @ CHI and Sunday @ WPG, providing valuable off-night goalie starts.</li>
+              <li><strong>Crease Health:</strong> Ensure active starters are locked into starting goalie slots on heavy Thursday and Saturday nights.</li>
+            </ul>
+          </div>
+          <div class="backups-container">
+            <div class="backups-title">🔄 Top Available Goalie Adds:</div>
+            <div class="backup-item">
+              <div class="backup-header">
+                <span class="backup-name">1. John Gibson <span class="pos-pill">G &bull; DET</span> ${gibsonTrend.badge}</span>
+                <span class="backup-stat">7.95 L7 Avg &bull; 220.0 Proj</span>
+              </div>
+              <div class="backup-reason">L7: <strong>7.95</strong> | Season: <strong>2.60</strong>. Red hot over last 7 days with heavy Detroit volume.</div>
+            </div>
+            <div class="backup-item">
+              <div class="backup-header">
+                <span class="backup-name">2. Jakub Dobes <span class="pos-pill">G &bull; MTL</span></span>
+                <span class="backup-stat">Fri & Sun &bull; 207.8 Pts</span>
+              </div>
+              <div class="backup-reason">L7: <strong>3.20</strong> | Season: <strong>1.98</strong>. Starts Montreal's light off-night games Friday and Sunday.</div>
+            </div>
+          </div>
+          <div class="action-box" style="margin-top: 14px;">
+            <div class="action-row" style="margin-bottom: 6px;">
+              <span>Primary Goalies:</span>
+              <span class="player-pill" style="color: var(--accent-green);">${teamGoalies.map(g => g.name).join(' & ') || 'None'}</span>
+            </div>
+            <div class="action-row" style="margin-bottom: 6px;">
+              <span>Waiver Move:</span>
+              <span class="player-pill" style="color: var(--accent-amber);">Add Gibson (7.95 L7) or Dobes (Off-Nights)</span>
+            </div>
+            <div class="action-row">
+              <span>Strategy:</span>
+              <span class="player-pill" style="color: var(--primary);">Optimize Goalie Starts for Matchup Period 4</span>
+            </div>
+          </div>
+        `;
+      }
       container.appendChild(card3);
     }
 
@@ -1445,106 +1697,72 @@
         liveRosteredPlayerIds.clear();
 
         if (data.teams) {
-          data.teams.forEach(t => {
-            if (t.id === 7 && t.roster && t.roster.entries) {
-              currentMyRoster = t.roster.entries.map(e => {
-                const p = e.playerPoolEntry.player;
-                const ptAbbr = proTeamMap[p.proTeamId] || String(p.proTeamId);
-                const sched = fantasyData.nhlSchedule[ptAbbr];
-                const pProj = p.stats ? p.stats.find(s => s.id === '102027') : null;
-                const pAct = p.stats ? p.stats.find(s => s.id === '002027') : null;
-                const pL7 = p.stats ? p.stats.find(s => s.id === '012027') : null;
-                const pL15 = p.stats ? p.stats.find(s => s.id === '022027') : null;
-                const pL30 = p.stats ? p.stats.find(s => s.id === '032027') : null;
+          allLeagueTeams = data.teams.map(t => {
+            const tId = Number(t.id);
+            const tRec = (t.record && t.record.overall) ? `${t.record.overall.wins}-${t.record.overall.losses}` : '0-0';
+            const existing = allLeagueTeams.find(x => x.id === tId);
+            const oppId = existing ? existing.opponentId : null;
 
-                return {
-                  id: p.id,
-                  name: p.fullName,
-                  pos: posMap[p.defaultPositionId] || 'C',
-                  slot: slotMap[e.lineupSlotId] || 'BENCH',
-                  slotId: e.lineupSlotId,
-                  team: ptAbbr,
-                  injury: p.injuryStatus,
-                  projPts: pProj && pProj.appliedTotal != null ? Math.round(pProj.appliedTotal * 10) / 10 : 0,
-                  projAvg: pProj && pProj.appliedAverage != null ? Math.round(pProj.appliedAverage * 100) / 100 : 0,
-                  actPts: pAct && pAct.appliedTotal != null ? Math.round(pAct.appliedTotal * 10) / 10 : 0,
-                  actAvg: pAct && pAct.appliedAverage != null ? Math.round(pAct.appliedAverage * 100) / 100 : 0,
-                  l7Pts: pL7 && pL7.appliedTotal != null ? Math.round(pL7.appliedTotal * 10) / 10 : 0,
-                  l7Avg: pL7 && pL7.appliedAverage != null ? Math.round(pL7.appliedAverage * 100) / 100 : 0,
-                  l15Pts: pL15 && pL15.appliedTotal != null ? Math.round(pL15.appliedTotal * 10) / 10 : 0,
-                  l15Avg: pL15 && pL15.appliedAverage != null ? Math.round(pL15.appliedAverage * 100) / 100 : 0,
-                  l30Pts: pL30 && pL30.appliedTotal != null ? Math.round(pL30.appliedTotal * 10) / 10 : 0,
-                  l30Avg: pL30 && pL30.appliedAverage != null ? Math.round(pL30.appliedAverage * 100) / 100 : 0,
-                  gamesCount: sched ? sched.GamesCount : 0,
-                  schedule: sched ? sched.Days : {}
-                };
-              });
-            }
-
-            if (t.id === 10 && t.roster && t.roster.entries) {
-              currentOppRoster = t.roster.entries.map(e => {
-                const p = e.playerPoolEntry.player;
-                const ptAbbr = proTeamMap[p.proTeamId] || String(p.proTeamId);
-                const sched = fantasyData.nhlSchedule[ptAbbr];
-                const pProj = p.stats ? p.stats.find(s => s.id === '102027') : null;
-                const pAct = p.stats ? p.stats.find(s => s.id === '002027') : null;
-                const pL7 = p.stats ? p.stats.find(s => s.id === '012027') : null;
-                const pL15 = p.stats ? p.stats.find(s => s.id === '022027') : null;
-                const pL30 = p.stats ? p.stats.find(s => s.id === '032027') : null;
-
-                return {
-                  id: p.id,
-                  name: p.fullName,
-                  pos: posMap[p.defaultPositionId] || 'C',
-                  slot: slotMap[e.lineupSlotId] || 'BENCH',
-                  slotId: e.lineupSlotId,
-                  team: ptAbbr,
-                  injury: p.injuryStatus,
-                  projPts: pProj && pProj.appliedTotal != null ? Math.round(pProj.appliedTotal * 10) / 10 : 0,
-                  projAvg: pProj && pProj.appliedAverage != null ? Math.round(pProj.appliedAverage * 100) / 100 : 0,
-                  actPts: pAct && pAct.appliedTotal != null ? Math.round(pAct.appliedTotal * 10) / 10 : 0,
-                  actAvg: pAct && pAct.appliedAverage != null ? Math.round(pAct.appliedAverage * 100) / 100 : 0,
-                  l7Pts: pL7 && pL7.appliedTotal != null ? Math.round(pL7.appliedTotal * 10) / 10 : 0,
-                  l7Avg: pL7 && pL7.appliedAverage != null ? Math.round(pL7.appliedAverage * 100) / 100 : 0,
-                  l15Pts: pL15 && pL15.appliedTotal != null ? Math.round(pL15.appliedTotal * 10) / 10 : 0,
-                  l15Avg: pL15 && pL15.appliedAverage != null ? Math.round(pL15.appliedAverage * 100) / 100 : 0,
-                  l30Pts: pL30 && pL30.appliedTotal != null ? Math.round(pL30.appliedTotal * 10) / 10 : 0,
-                  l30Avg: pL30 && pL30.appliedAverage != null ? Math.round(pL30.appliedAverage * 100) / 100 : 0,
-                  gamesCount: sched ? sched.GamesCount : 0,
-                  schedule: sched ? sched.Days : {}
-                };
-              });
-            }
-
+            let roster = [];
             if (t.roster && t.roster.entries) {
+              roster = t.roster.entries.map(e => {
+                const p = e.playerPoolEntry.player;
+                const ptAbbr = proTeamMap[p.proTeamId] || String(p.proTeamId);
+                const sched = fantasyData.nhlSchedule ? fantasyData.nhlSchedule[ptAbbr] : null;
+                const pProj = p.stats ? p.stats.find(s => s.id === '102027') : null;
+                const pAct = p.stats ? p.stats.find(s => s.id === '002027') : null;
+                const pL7 = p.stats ? p.stats.find(s => s.id === '012027') : null;
+                const pL15 = p.stats ? p.stats.find(s => s.id === '022027') : null;
+                const pL30 = p.stats ? p.stats.find(s => s.id === '032027') : null;
+
+                return {
+                  id: p.id,
+                  name: p.fullName,
+                  pos: posMap[p.defaultPositionId] || 'C',
+                  slot: slotMap[e.lineupSlotId] || 'BENCH',
+                  slotId: e.lineupSlotId,
+                  team: ptAbbr,
+                  injury: p.injuryStatus,
+                  projPts: pProj && pProj.appliedTotal != null ? Math.round(pProj.appliedTotal * 10) / 10 : 0,
+                  projAvg: pProj && pProj.appliedAverage != null ? Math.round(pProj.appliedAverage * 100) / 100 : 0,
+                  actPts: pAct && pAct.appliedTotal != null ? Math.round(pAct.appliedTotal * 10) / 10 : 0,
+                  actAvg: pAct && pAct.appliedAverage != null ? Math.round(pAct.appliedAverage * 100) / 100 : 0,
+                  l7Pts: pL7 && pL7.appliedTotal != null ? Math.round(pL7.appliedTotal * 10) / 10 : 0,
+                  l7Avg: pL7 && pL7.appliedAverage != null ? Math.round(pL7.appliedAverage * 100) / 100 : 0,
+                  l15Pts: pL15 && pL15.appliedTotal != null ? Math.round(pL15.appliedTotal * 10) / 10 : 0,
+                  l15Avg: pL15 && pL15.appliedAverage != null ? Math.round(pL15.appliedAverage * 100) / 100 : 0,
+                  l30Pts: pL30 && pL30.appliedTotal != null ? Math.round(pL30.appliedTotal * 10) / 10 : 0,
+                  l30Avg: pL30 && pL30.appliedAverage != null ? Math.round(pL30.appliedAverage * 100) / 100 : 0,
+                  gamesCount: sched ? sched.GamesCount : 0,
+                  schedule: sched ? sched.Days : {}
+                };
+              });
+
               t.roster.entries.forEach(e => {
                 liveRosteredPlayerIds.add(Number(e.playerId));
                 liveRosteredPlayerIds.add(String(e.playerId));
               });
             }
+
+            return {
+              id: tId,
+              name: t.name ? t.name.trim() : (existing ? existing.name : `Team ${tId}`),
+              abbrev: t.abbrev || (existing ? existing.abbrev : 'TEAM'),
+              record: tRec,
+              opponentId: oppId,
+              roster: roster
+            };
           });
+
+          populateTeamDropdown();
+          switchRoleplayTeam(currentTeamId, false);
         }
 
-        const hasBoeser = isPlayerOnMyTeam("Brock Boeser") || isPlayerOnMyTeam(PLAYER_IDS.BOESER);
-        const hasJenner = isPlayerOnMyTeam("Boone Jenner");
-        
-        let alertMsg = "Live sync verified with ESPN API! ";
-        if (hasBoeser && hasJenner) {
-          alertMsg += "Roster up to date: Brock Boeser & Boone Jenner active on Dead Lokomotiv; Mark Jankowski dropped.";
-        } else if (hasBoeser) {
-          alertMsg += "Roster up to date: Brock Boeser active on Dead Lokomotiv.";
-        } else {
-          alertMsg += `Live league rosters synced (${currentMyRoster.length} players on Dead Lokomotiv).`;
-        }
+        const activeTeam = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
+        let alertMsg = `Live sync verified with ESPN API! ${allLeagueTeams.length} league teams updated. Active lineup: ${activeTeam.name} (${currentMyRoster.length} players).`;
 
         document.getElementById('txAlert').style.display = 'flex';
         document.getElementById('txAlertText').innerText = alertMsg;
-
-        recalculateStrategy();
-        renderRosterTable(currentMyRoster, 'myRosterTable');
-        renderRosterTable(currentOppRoster, 'oppRosterTable');
-        filterFreeAgents();
-        renderPlaybook();
 
         statusText.innerText = "Synced: " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
       } catch (err) {
@@ -1735,11 +1953,8 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-      recalculateStrategy();
-      renderPlaybook();
-      renderRosterTable(currentMyRoster, 'myRosterTable');
-      renderRosterTable(currentOppRoster, 'oppRosterTable');
-      filterFreeAgents();
+      populateTeamDropdown();
+      switchRoleplayTeam(currentTeamId, false);
       refreshLeagueData();
     });
   </script>

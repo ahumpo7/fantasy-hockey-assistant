@@ -105,12 +105,43 @@ function Extract-Roster($tObj) {
     return $roster
 }
 
-$myTeamObj = $leagueData.teams | Where-Object { $_.id -eq 7 }
-$oppTeamObj = $leagueData.teams | Where-Object { $_.id -eq 10 }
+# Schedule matching for matchupPeriod 4
+$opponentMap = @{}
+if ($leagueData.schedule) {
+    foreach ($m in $leagueData.schedule) {
+        if ($m.matchupPeriodId -eq 4) {
+            $hId = [int]$m.home.teamId
+            $aId = [int]$m.away.teamId
+            $opponentMap[$hId] = $aId
+            $opponentMap[$aId] = $hId
+        }
+    }
+}
 
-$myRoster = Extract-Roster $myTeamObj
-$oppRoster = Extract-Roster $oppTeamObj
+$allTeams = @()
+foreach ($t in $leagueData.teams) {
+    $tId = [int]$t.id
+    $tRec = if ($t.record -and $t.record.overall) { "$($t.record.overall.wins)-$($t.record.overall.losses)" } else { "0-0" }
+    $tRoster = Extract-Roster $t
+    $oppId = if ($opponentMap.ContainsKey($tId)) { $opponentMap[$tId] } else { $null }
+    
+    $allTeams += [ordered]@{
+        id = $tId
+        name = $t.name.Trim()
+        abbrev = $t.abbrev
+        record = $tRec
+        opponentId = $oppId
+        roster = $tRoster
+    }
+}
 
+$myTeamObj = $allTeams | Where-Object { $_.id -eq 7 }
+$oppTeamObj = $allTeams | Where-Object { $_.id -eq 10 }
+
+$myRoster = $myTeamObj.roster
+$oppRoster = $oppTeamObj.roster
+
+Write-Host "Extracted $($allTeams.Count) league teams."
 Write-Host "Dead Lokomotiv players: $($myRoster.Count)"
 Write-Host "Bay Ridge Icelanders players: $($oppRoster.Count)"
 
@@ -229,6 +260,8 @@ if (-not $hasWashe) {
 $dataExport = [ordered]@{
     matchupPeriod = 4
     weekName = "Week 4 (Oct 19 - Oct 25, 2026)"
+    activeTeamId = 7
+    teams = $allTeams
     myTeam = [ordered]@{
         name = "Dead Lokomotiv"
         abbrev = "DEAD"
