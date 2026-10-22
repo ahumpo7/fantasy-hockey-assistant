@@ -56,15 +56,27 @@ function Extract-Roster($tObj) {
         $pos = $posMap[[int]$p.defaultPositionId]
         $slot = $slotMap[[int]$entry.lineupSlotId]
         
-        # 2027 Projections (102027) & Actual (002027)
+        # 2027 Projections (102027), Season Actual (002027), L7 (012027), L15 (022027), L30 (032027)
         $pProj = $p.stats | Where-Object { $_.id -eq "102027" }
         $pAct = $p.stats | Where-Object { $_.id -eq "002027" }
+        $pL7 = $p.stats | Where-Object { $_.id -eq "012027" }
+        $pL15 = $p.stats | Where-Object { $_.id -eq "022027" }
+        $pL30 = $p.stats | Where-Object { $_.id -eq "032027" }
         
         $projPts = if ($pProj -and $pProj.appliedTotal -ne $null) { [math]::Round([double]$pProj.appliedTotal, 1) } else { 0 }
         $projAvg = if ($pProj -and $pProj.appliedAverage -ne $null) { [math]::Round([double]$pProj.appliedAverage, 2) } else { 0 }
         
         $actPts = if ($pAct -and $pAct.appliedTotal -ne $null) { [math]::Round([double]$pAct.appliedTotal, 1) } else { 0 }
         $actAvg = if ($pAct -and $pAct.appliedAverage -ne $null) { [math]::Round([double]$pAct.appliedAverage, 2) } else { 0 }
+
+        $l7Pts = if ($pL7 -and $pL7.appliedTotal -ne $null) { [math]::Round([double]$pL7.appliedTotal, 1) } else { 0 }
+        $l7Avg = if ($pL7 -and $pL7.appliedAverage -ne $null) { [math]::Round([double]$pL7.appliedAverage, 2) } else { 0 }
+
+        $l15Pts = if ($pL15 -and $pL15.appliedTotal -ne $null) { [math]::Round([double]$pL15.appliedTotal, 1) } else { 0 }
+        $l15Avg = if ($pL15 -and $pL15.appliedAverage -ne $null) { [math]::Round([double]$pL15.appliedAverage, 2) } else { 0 }
+
+        $l30Pts = if ($pL30 -and $pL30.appliedTotal -ne $null) { [math]::Round([double]$pL30.appliedTotal, 1) } else { 0 }
+        $l30Avg = if ($pL30 -and $pL30.appliedAverage -ne $null) { [math]::Round([double]$pL30.appliedAverage, 2) } else { 0 }
         
         $sched = if ($nhlSchedule.ContainsKey($ptAbbr)) { $nhlSchedule[$ptAbbr] } else { $null }
 
@@ -80,6 +92,12 @@ function Extract-Roster($tObj) {
             projAvg = $projAvg
             actPts = $actPts
             actAvg = $actAvg
+            l7Pts = $l7Pts
+            l7Avg = $l7Avg
+            l15Pts = $l15Pts
+            l15Avg = $l15Avg
+            l30Pts = $l30Pts
+            l30Avg = $l30Avg
             gamesCount = if ($sched) { $sched.GamesCount } else { 0 }
             schedule = if ($sched) { $sched.Days } else { @{} }
         }
@@ -104,7 +122,7 @@ $filterObj = [ordered]@{
         filterSlotIds = [ordered]@{ value = [int[]](0..13) }
         filterStatsForTopScoringPeriodIds = [ordered]@{
             value = 5
-            additionalValue = [string[]]@("102027","002027","002026","102026")
+            additionalValue = [string[]]@("102027","002027","012027","022027","032027","002026","102026")
         }
         sortAppliedStatId = [ordered]@{ sortAsc = $false; sortPriority = 1; value = "102027" }
         sortDraftRanks = [ordered]@{ sortPriority = 100; sortAsc = $true; value = "STANDARD" }
@@ -136,11 +154,25 @@ foreach ($item in $faRes.players) {
     
     $pProj = $p.stats | Where-Object { $_.id -eq "102027" }
     $pAct = $p.stats | Where-Object { $_.id -eq "002027" }
+    $pL7 = $p.stats | Where-Object { $_.id -eq "012027" }
+    $pL15 = $p.stats | Where-Object { $_.id -eq "022027" }
+    $pL30 = $p.stats | Where-Object { $_.id -eq "032027" }
     
     $projPts = if ($pProj -and $pProj.appliedTotal -ne $null) { [math]::Round([double]$pProj.appliedTotal, 1) } else { 0 }
     $projAvg = if ($pProj -and $pProj.appliedAverage -ne $null) { [math]::Round([double]$pProj.appliedAverage, 2) } else { 0 }
+    
     $actPts = if ($pAct -and $pAct.appliedTotal -ne $null) { [math]::Round([double]$pAct.appliedTotal, 1) } else { 0 }
     $actAvg = if ($pAct -and $pAct.appliedAverage -ne $null) { [math]::Round([double]$pAct.appliedAverage, 2) } else { 0 }
+
+    $l7Pts = if ($pL7 -and $pL7.appliedTotal -ne $null) { [math]::Round([double]$pL7.appliedTotal, 1) } else { 0 }
+    $l7Avg = if ($pL7 -and $pL7.appliedAverage -ne $null) { [math]::Round([double]$pL7.appliedAverage, 2) } else { 0 }
+
+    $l15Pts = if ($pL15 -and $pL15.appliedTotal -ne $null) { [math]::Round([double]$pL15.appliedTotal, 1) } else { 0 }
+    $l15Avg = if ($pL15 -and $pL15.appliedAverage -ne $null) { [math]::Round([double]$pL15.appliedAverage, 2) } else { 0 }
+
+    $l30Pts = if ($pL30 -and $pL30.appliedTotal -ne $null) { [math]::Round([double]$pL30.appliedTotal, 1) } else { 0 }
+    $l30Avg = if ($pL30 -and $pL30.appliedAverage -ne $null) { [math]::Round([double]$pL30.appliedAverage, 2) } else { 0 }
+
     $gp = if ($pAct -and $pAct.stats -and $pAct.stats.psobject.properties["30"]) { [double]$pAct.stats.psobject.properties["30"].Value } else { 0 }
 
     $sched = if ($nhlSchedule.ContainsKey($ptAbbr)) { $nhlSchedule[$ptAbbr] } else { $null }
@@ -157,6 +189,12 @@ foreach ($item in $faRes.players) {
         projAvg = $projAvg
         actPts = $actPts
         actAvg = $actAvg
+        l7Pts = $l7Pts
+        l7Avg = $l7Avg
+        l15Pts = $l15Pts
+        l15Avg = $l15Avg
+        l30Pts = $l30Pts
+        l30Avg = $l30Avg
         actGP = $gp
         ownedPct = if ($p.ownership) { [math]::Round($p.ownership.percentOwned, 1) } else { 0 }
         gamesCount = if ($sched) { $sched.GamesCount } else { 0 }

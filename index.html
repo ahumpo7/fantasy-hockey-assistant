@@ -618,6 +618,79 @@
     .s-chip.game { background: rgba(56, 189, 248, 0.15); color: var(--primary); font-weight: 600; }
     .s-chip.today-game { background: var(--accent-green-bg); color: var(--accent-green); font-weight: 700; border: 1px solid rgba(52, 211, 153, 0.4); }
 
+    .badge-trend {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .trend-hot {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .trend-warming {
+      background: rgba(251, 146, 60, 0.15);
+      color: #fb923c;
+      border: 1px solid rgba(251, 146, 60, 0.35);
+    }
+    .trend-cold {
+      background: rgba(56, 189, 248, 0.12);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .trend-warning {
+      background: rgba(251, 191, 36, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(251, 191, 36, 0.35);
+    }
+    .trend-steady {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .trend-neutral {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-dim);
+    }
+
+    .splits-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      background: rgba(11, 15, 25, 0.55);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      margin: 10px 0;
+      text-align: center;
+      gap: 6px;
+    }
+    .split-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .split-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-dim);
+      font-weight: 600;
+    }
+    .split-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .split-val.hot { color: #f87171; }
+    .split-val.warm { color: #fb923c; }
+    .split-val.cold { color: #38bdf8; }
+
     @media (max-width: 1024px) {
       .days-grid { grid-template-columns: repeat(2, 1fr); }
       .matchup-banner { grid-template-columns: 1fr; gap: 20px; text-align: center; }
@@ -747,11 +820,14 @@
               <th>Slot</th>
               <th>Player</th>
               <th>Pos</th>
-              <th>NHL Team</th>
+              <th>Team</th>
               <th>Status</th>
-              <th>2027 Proj Pts (Avg)</th>
-              <th>Actual 26-27 Pts (Avg)</th>
-              <th>Games This Wk</th>
+              <th>Proj Avg</th>
+              <th>Season Avg</th>
+              <th>Last 7d</th>
+              <th>Last 15d</th>
+              <th>Trend</th>
+              <th>Gms</th>
               <th>Weekly Schedule</th>
             </tr>
           </thead>
@@ -770,11 +846,14 @@
               <th>Slot</th>
               <th>Player</th>
               <th>Pos</th>
-              <th>NHL Team</th>
+              <th>Team</th>
               <th>Status</th>
-              <th>2027 Proj Pts (Avg)</th>
-              <th>Actual 26-27 Pts (Avg)</th>
-              <th>Games This Wk</th>
+              <th>Proj Avg</th>
+              <th>Season Avg</th>
+              <th>Last 7d</th>
+              <th>Last 15d</th>
+              <th>Trend</th>
+              <th>Gms</th>
               <th>Weekly Schedule</th>
             </tr>
           </thead>
@@ -791,6 +870,7 @@
           <div class="filter-pills">
             <button class="filter-btn active" onclick="setPosFilter('ALL')">All</button>
             <button class="filter-btn" id="btnPlaysTonight" onclick="setPosFilter('TONIGHT')">🔥 Plays Tonight</button>
+            <button class="filter-btn" onclick="setPosFilter('HOT')">⚡ Heating Up</button>
             <button class="filter-btn" onclick="setPosFilter('C')">C</button>
             <button class="filter-btn" onclick="setPosFilter('LW')">LW</button>
             <button class="filter-btn" onclick="setPosFilter('RW')">RW</button>
@@ -804,13 +884,15 @@
             <tr>
               <th>Player</th>
               <th>Pos / Eligible</th>
-              <th>NHL Team</th>
-              <th>Injury</th>
-              <th>2027 Proj Pts</th>
+              <th>Team</th>
+              <th>Status</th>
               <th>Proj Avg</th>
-              <th>Actual 26-27 Pts</th>
-              <th>Actual Avg</th>
-              <th>Games This Wk</th>
+              <th>Season Avg</th>
+              <th>Last 7d</th>
+              <th>Last 15d</th>
+              <th>Last 30d</th>
+              <th>Trend / Momentum</th>
+              <th>Gms</th>
               <th>Weekly Schedule</th>
               <th>Owned %</th>
             </tr>
@@ -892,6 +974,122 @@
       });
     }
 
+    // Multi-Split Momentum & Trend Engine (L7 / L15 / L30 / Season vs Proj)
+    function getPlayerTrendAnalysis(p) {
+      const l7 = p.l7Avg != null ? p.l7Avg : 0;
+      const l15 = p.l15Avg != null ? p.l15Avg : 0;
+      const l30 = p.l30Avg != null ? p.l30Avg : 0;
+      const act = p.actAvg != null ? p.actAvg : 0;
+      const proj = p.projAvg != null ? p.projAvg : 0;
+
+      if (act === 0 && l7 === 0) {
+        return {
+          status: 'INACTIVE',
+          badge: '<span class="badge-trend trend-neutral">💤 Inactive</span>',
+          label: 'No Games Played',
+          description: 'Has not logged active ice time this season.',
+          diffL7: 0
+        };
+      }
+
+      const diffL7Season = Math.round((l7 - act) * 100) / 100;
+      const diffActProj = Math.round((act - proj) * 100) / 100;
+
+      // 1. Heating Up from Slow Start:
+      // L7 is higher than L15, and L7 is significantly above season average
+      if ((l7 > l15 && l15 >= act && l7 >= act + 0.3) || (act < proj && l7 >= proj && l7 > l15)) {
+        return {
+          status: 'HEATING_UP',
+          badge: `<span class="badge-trend trend-hot">🔥 Heating Up (+${Math.abs(diffL7Season)} L7)</span>`,
+          label: 'Heating Up',
+          description: `<strong>Slow start but surging:</strong> Started the season at ${act} PPG, but has accelerated to <strong>${l15} (L15)</strong> and <strong>${l7} (L7)</strong>, trending well above his baseline.`,
+          diffL7: diffL7Season
+        };
+      }
+
+      // 2. Red Hot / Dominant Form:
+      // Beating projections consistently across all splits
+      if (l7 >= proj && act >= proj && l7 >= 3.0) {
+        return {
+          status: 'ELITE',
+          badge: `<span class="badge-trend trend-hot">⚡ Red Hot (${l7} L7)</span>`,
+          label: 'Red Hot',
+          description: `<strong>Peak form:</strong> Consistently outperforming projections. Averaging <strong>${l7} PPG over the last 7 days</strong> and ${act} on the season (vs ${proj} proj).`,
+          diffL7: diffL7Season
+        };
+      }
+
+      // 3. Downfall / Slump:
+      // Severe drop in last 7-15 days compared to season baseline
+      if ((l7 < l15 - 0.4 && l15 <= act) || (act > 1.5 && l7 < act * 0.55) || (l7 < 0 && act > 0)) {
+        return {
+          status: 'DOWNFALL',
+          badge: `<span class="badge-trend trend-cold">🧊 Downfall (${diffL7Season} L7)</span>`,
+          label: 'Downfall',
+          description: `<strong>Warning – Cooling off:</strong> Ice time or scoring has dropped sharply from a ${act} season average down to <strong>${l15} (L15)</strong> and <strong>${l7} (L7)</strong>.`,
+          diffL7: diffL7Season
+        };
+      }
+
+      // 4. Slow Start / Sluggish:
+      // Below projections and hasn't yet ignited
+      if (act < proj * 0.8 && l7 <= act) {
+        return {
+          status: 'SLOW_START',
+          badge: `<span class="badge-trend trend-warning">⚠️ Sluggish Start (${diffActProj} vs Proj)</span>`,
+          label: 'Slow Start',
+          description: `<strong>Slower start:</strong> Averaging ${act} PPG (vs ${proj} proj) and yet to catch fire (${l7} L7). Locked into prime role with buy-low breakout potential.`,
+          diffL7: diffL7Season
+        };
+      }
+
+      // 5. Steady / Reliable Baseline
+      return {
+        status: 'STEADY',
+        badge: `<span class="badge-trend trend-steady">➡️ Steady (${l7 > 0 ? l7 : act} avg)</span>`,
+        label: 'Steady',
+        description: `<strong>Reliable baseline:</strong> Consistent output across recent splits (${l7} L7 &bull; ${l15} L15 &bull; ${act} Season).`,
+        diffL7: diffL7Season
+      };
+    }
+
+    // Micro-splits Visual Strip
+    function renderSplitsStrip(p) {
+      if (!p) return '';
+      const t = getPlayerTrendAnalysis(p);
+      const l7Class = (p.l7Avg > p.actAvg + 0.2) ? 'hot' : ((p.l7Avg < p.actAvg * 0.65 && p.actAvg > 1.5) ? 'cold' : '');
+      const l15Class = (p.l15Avg > p.actAvg + 0.1) ? 'warm' : '';
+
+      return `
+        <div class="splits-grid">
+          <div class="split-col">
+            <span class="split-label">Proj Avg</span>
+            <span class="split-val">${p.projAvg != null ? p.projAvg : '-'}</span>
+          </div>
+          <div class="split-col">
+            <span class="split-label">Season Avg</span>
+            <span class="split-val">${p.actAvg != null ? p.actAvg : '-'}</span>
+          </div>
+          <div class="split-col">
+            <span class="split-label">Last 30d</span>
+            <span class="split-val">${p.l30Avg != null ? p.l30Avg : (p.actAvg != null ? p.actAvg : '-')}</span>
+          </div>
+          <div class="split-col">
+            <span class="split-label">Last 15d</span>
+            <span class="split-val ${l15Class}">${p.l15Avg != null ? p.l15Avg : '-'}</span>
+          </div>
+          <div class="split-col">
+            <span class="split-label">Last 7d</span>
+            <span class="split-val ${l7Class}">${p.l7Avg != null ? p.l7Avg : '-'}</span>
+          </div>
+        </div>
+        <div style="margin: 6px 0 10px; font-size: 0.8rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+          <span><strong>Momentum:</strong> ${t.badge}</span>
+          <span style="color: var(--text-muted); font-size: 0.74rem;">${t.diffL7 >= 0 ? '+' + t.diffL7 : t.diffL7} PPG vs Season Baseline</span>
+        </div>
+      `;
+    }
+
     // Dynamic Live Strategy & Move Generator
     function recalculateStrategy() {
       const container = document.getElementById('stratCardsContainer');
@@ -901,7 +1099,6 @@
       const realTodayIdx = getCurrentDayIndex();
       const isViewingRealToday = (todayIndex === realTodayIdx);
 
-      // Dynamically update the filter button label
       const btnTonight = document.getElementById('btnPlaysTonight');
       if (btnTonight) {
         btnTonight.innerText = `🔥 Plays ${isViewingRealToday ? 'Tonight' : currentDay} (${currentDay})`;
@@ -921,41 +1118,32 @@
       // CARD 1: DYNAMIC STREAMER FOR CURRENT DAY
       // ==========================================
       const dayStreamers = availablePool.filter(p => p.schedule && p.schedule[currentDay] && p.pos !== 'G')
-        .sort((a, b) => b.projPts - a.projPts);
+        .sort((a, b) => {
+          // Sort by hottest last 7/15 days weighted with projection
+          const aHeat = (a.l7Avg || a.actAvg || 0) * 0.6 + (a.projAvg || 0) * 0.4;
+          const bHeat = (b.l7Avg || b.actAvg || 0) * 0.6 + (b.projAvg || 0) * 0.4;
+          return bHeat - aHeat;
+        });
 
       const topStreamer = dayStreamers[0] || {
         name: "Tyler Bertuzzi", team: "CHI", pos: "LW", projPts: 211.9, projAvg: 2.62,
+        actAvg: 1.72, l30Avg: 1.72, l15Avg: 1.76, l7Avg: 1.52,
         schedule: { [currentDay]: "Active Game" }
       };
       const backupStreamer1 = dayStreamers[1] || {
         name: "Pavel Zacha", team: "BOS", pos: "C", projPts: 222.0, projAvg: 2.74,
+        actAvg: 2.32, l30Avg: 2.32, l15Avg: 3.24, l7Avg: 3.32,
         schedule: { [currentDay]: "Active Game" }
       };
       const backupStreamer2 = dayStreamers[2] || {
         name: "Ivan Barbashev", team: "VGK", pos: "LW", projPts: 215.0, projAvg: 2.59,
+        actAvg: 2.59, l30Avg: 2.59, l15Avg: 2.45, l7Avg: 2.50,
         schedule: { [currentDay]: "Active Game" }
       };
 
-      let streamerReasons = [];
-      if (topStreamer.name.includes("Sherwood")) {
-        streamerReasons = [
-          `<strong>Elite Peripheral Floor & Matchup:</strong> San Jose visits Ottawa (${topStreamer.schedule[currentDay] || '@ OTT'}). Sherwood provides a 31-goal scoring pace with massive physical hit (+0.25) and shot (+0.15) volume.`,
-          `<strong>Top Point Projection on Slate:</strong> Leads all available free agents playing ${currentDay} with <strong>${topStreamer.projPts} projected points</strong> (3.05 avg/game).`,
-          `<strong>Immediate Starting Utilization:</strong> Steps cleanly into your active starting or UTIL slot with 0% bench risk.`
-        ];
-      } else if (topStreamer.name.includes("Bertuzzi")) {
-        streamerReasons = [
-          `<strong>Prime Off-Night Opportunity:</strong> Chicago plays ${topStreamer.schedule[currentDay] || 'vs MTL'} on a light off-night slate where your starting lineup has open spots.`,
-          `<strong>Top-Line & PP1 Deployment:</strong> Skates alongside Connor Bedard with guaranteed net-front power-play time (30 projected goals).`,
-          `<strong>Weekend Continuity:</strong> Also plays Sunday's matchup finale vs Florida, delivering multi-game value.`
-        ];
-      } else {
-        streamerReasons = [
-          `<strong>Immediate Point Production:</strong> ${topStreamer.team} plays <strong>${topStreamer.schedule[currentDay]}</strong> on ${currentDay}. Steps directly into your active lineup for live scoring vs 0 bench pts.`,
-          `<strong>Strong Baseline:</strong> Projected for <strong>${topStreamer.projPts} fantasy points</strong> (${topStreamer.projAvg} average per game).`,
-          `<strong>Clean Roster Fit:</strong> High-floor streamer option without blocking core starters.`
-        ];
-      }
+      const streamerTrend = getPlayerTrendAnalysis(topStreamer);
+      const b1Trend = getPlayerTrendAnalysis(backupStreamer1);
+      const b2Trend = getPlayerTrendAnalysis(backupStreamer2);
 
       let benchAlertHtml = '';
       if (benchedActiveForDay.length > 0) {
@@ -975,27 +1163,30 @@
         </div>
         <h3>Stream ${topStreamer.name} (${topStreamer.pos}, ${topStreamer.team}) – ${currentDay}</h3>
         ${benchAlertHtml}
+        ${renderSplitsStrip(topStreamer)}
         <div class="why-section">
-          <div class="why-title">🔍 Why Stream ${topStreamer.name} on ${currentDay}:</div>
+          <div class="why-title">🔍 Multi-Split Analysis & Rationale:</div>
           <ul class="why-list">
-            ${streamerReasons.map(r => `<li>${r}</li>`).join('')}
+            <li><strong>Trajectory & Form (7/15/30 Days):</strong> ${streamerTrend.description}</li>
+            <li><strong>Immediate Point Production:</strong> ${topStreamer.team} plays <strong>${topStreamer.schedule[currentDay]}</strong> on ${currentDay}. Steps directly into your active lineup for live scoring vs 0 bench pts.</li>
+            <li><strong>Projection & Ceiling:</strong> Season projection of <strong>${topStreamer.projPts} fantasy pts</strong> (${topStreamer.projAvg} avg) provides a high baseline floor without locking long-term roster flexibility.</li>
           </ul>
         </div>
         <div class="backups-container">
           <div class="backups-title">🔄 Other ${currentDay} Streamer Choices:</div>
           <div class="backup-item">
             <div class="backup-header">
-              <span class="backup-name">1. ${backupStreamer1.name} <span class="pos-pill">${backupStreamer1.pos} &bull; ${backupStreamer1.team}</span></span>
-              <span class="backup-stat">${backupStreamer1.schedule[currentDay] || 'Plays'} &bull; ${backupStreamer1.projPts} Pts</span>
+              <span class="backup-name">1. ${backupStreamer1.name} <span class="pos-pill">${backupStreamer1.pos} &bull; ${backupStreamer1.team}</span> ${b1Trend.badge}</span>
+              <span class="backup-stat">${backupStreamer1.schedule[currentDay] || 'Plays'} &bull; ${backupStreamer1.l7Avg != null ? backupStreamer1.l7Avg + ' L7' : backupStreamer1.projAvg + ' Proj'}</span>
             </div>
-            <div class="backup-reason">${backupStreamer1.projAvg} avg fantasy pts/game. High scoring environment in active top-six role.</div>
+            <div class="backup-reason">L7: <strong>${backupStreamer1.l7Avg != null ? backupStreamer1.l7Avg : '-'}</strong> | L15: <strong>${backupStreamer1.l15Avg != null ? backupStreamer1.l15Avg : '-'}</strong> | Season: <strong>${backupStreamer1.actAvg != null ? backupStreamer1.actAvg : '-'}</strong>. ${b1Trend.description}</div>
           </div>
           <div class="backup-item">
             <div class="backup-header">
-              <span class="backup-name">2. ${backupStreamer2.name} <span class="pos-pill">${backupStreamer2.pos} &bull; ${backupStreamer2.team}</span></span>
-              <span class="backup-stat">${backupStreamer2.schedule[currentDay] || 'Plays'} &bull; ${backupStreamer2.projPts} Pts</span>
+              <span class="backup-name">2. ${backupStreamer2.name} <span class="pos-pill">${backupStreamer2.pos} &bull; ${backupStreamer2.team}</span> ${b2Trend.badge}</span>
+              <span class="backup-stat">${backupStreamer2.schedule[currentDay] || 'Plays'} &bull; ${backupStreamer2.l7Avg != null ? backupStreamer2.l7Avg + ' L7' : backupStreamer2.projAvg + ' Proj'}</span>
             </div>
-            <div class="backup-reason">${backupStreamer2.projAvg} avg fantasy pts/game. Top-line / power-play deployment with dependable shooting.</div>
+            <div class="backup-reason">L7: <strong>${backupStreamer2.l7Avg != null ? backupStreamer2.l7Avg : '-'}</strong> | L15: <strong>${backupStreamer2.l15Avg != null ? backupStreamer2.l15Avg : '-'}</strong> | Season: <strong>${backupStreamer2.actAvg != null ? backupStreamer2.actAvg : '-'}</strong>. ${b2Trend.description}</div>
           </div>
         </div>
         <div class="action-box" style="margin-top: 14px;">
@@ -1018,6 +1209,23 @@
       // ==========================================
       // CARD 2: WEEKEND OFF-NIGHT TARGET (FRI & SUN)
       // ==========================================
+      const bertuzziPlayer = availablePool.find(p => p.name.includes("Bertuzzi")) || {
+        name: "Tyler Bertuzzi", team: "CHI", pos: "LW", projPts: 211.9, projAvg: 2.62,
+        actAvg: 1.72, l30Avg: 1.72, l15Avg: 1.76, l7Avg: 1.52
+      };
+      const hartmanPlayer = availablePool.find(p => p.name.includes("Hartman")) || {
+        name: "Ryan Hartman", team: "MIN", pos: "C", projPts: 199.8, projAvg: 2.63,
+        actAvg: 1.41, l30Avg: 1.41, l15Avg: 1.36, l7Avg: 2.07
+      };
+      const cirelliPlayer = availablePool.find(p => p.name.includes("Cirelli")) || {
+        name: "Anthony Cirelli", team: "TB", pos: "C", projPts: 201.4, projAvg: 2.69,
+        actAvg: 2.69, l30Avg: 2.69, l15Avg: 2.75, l7Avg: 2.80
+      };
+
+      const bertuzziTrend = getPlayerTrendAnalysis(bertuzziPlayer);
+      const hartmanTrend = getPlayerTrendAnalysis(hartmanPlayer);
+      const cirelliTrend = getPlayerTrendAnalysis(cirelliPlayer);
+
       const card2 = document.createElement('div');
       card2.className = 'strat-card';
       card2.innerHTML = `
@@ -1029,29 +1237,30 @@
         <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #7dd3fc;">
           💡 <strong>League Roster Update:</strong> Carter Verhaeghe was claimed off waivers by Broad Street Bullies. Brock Boeser is already rostered on Dead Lokomotiv. Shifting primary rest-of-week target to <strong>Tyler Bertuzzi (CHI)</strong> for Friday & Sunday off-night volume.
         </div>
+        ${renderSplitsStrip(bertuzziPlayer)}
         <div class="why-section">
           <div class="why-title">🔍 Why Tyler Bertuzzi is the Top Rest-of-Week Move:</div>
           <ul class="why-list">
+            <li><strong>Slow Start Buy-Low Opportunity:</strong> Bertuzzi has averaged 1.72 season PPG (vs 2.62 proj), but remains locked on Chicago's top line with Connor Bedard and top power play. His underlying shot volume (30 projected goals) signals high positive regression.</li>
             <li><strong>Dual Off-Night Alignment:</strong> Chicago plays on <strong>Friday (vs MTL) and Sunday (vs FLA)</strong>. Friday has only 2 games and Sunday only 5 games across the NHL, guaranteeing Bertuzzi active starts with zero bench waste.</li>
-            <li><strong>Top-Line & PP1 Net-Front Presence:</strong> Skates on Chicago's top line alongside Connor Bedard with heavy power-play time (projected for 30 goals, 211.9 fantasy points).</li>
-            <li><strong>Favorable Defensive Matchups:</strong> Montreal ranks in the bottom tier in goals allowed (3.33 GA/G), setting up a high scoring ceiling on Friday.</li>
+            <li><strong>Favorable Defensive Matchups:</strong> Montreal ranks in the bottom tier in goals allowed (3.33 GA/G), setting up a prime scoring ceiling on Friday.</li>
           </ul>
         </div>
         <div class="backups-container">
           <div class="backups-title">🔄 Backup Weekend Choices:</div>
           <div class="backup-item">
             <div class="backup-header">
-              <span class="backup-name">1. Ryan Hartman <span class="pos-pill">C &bull; MIN</span></span>
-              <span class="backup-stat">Sat & Sun &bull; 199.8 Pts</span>
+              <span class="backup-name">1. Ryan Hartman <span class="pos-pill">C &bull; MIN</span> ${hartmanTrend.badge}</span>
+              <span class="backup-stat">Sat & Sun &bull; ${hartmanPlayer.l7Avg != null ? hartmanPlayer.l7Avg + ' L7' : '199.8 Pts'}</span>
             </div>
-            <div class="backup-reason">Minnesota plays Saturday and Sunday finale vs Vancouver. Physical banger floor (hits + blocks) with 22 projected goals.</div>
+            <div class="backup-reason">L7: <strong>${hartmanPlayer.l7Avg != null ? hartmanPlayer.l7Avg : '-'}</strong> | L15: <strong>${hartmanPlayer.l15Avg != null ? hartmanPlayer.l15Avg : '-'}</strong> | Season: <strong>${hartmanPlayer.actAvg != null ? hartmanPlayer.actAvg : '-'}</strong>. Surged to 2.07 PPG over last 7 days. Plays Saturday and Sunday finale vs Vancouver.</div>
           </div>
           <div class="backup-item">
             <div class="backup-header">
-              <span class="backup-name">2. Anthony Cirelli <span class="pos-pill">C &bull; TB</span></span>
+              <span class="backup-name">2. Anthony Cirelli <span class="pos-pill">C &bull; TB</span> ${cirelliTrend.badge}</span>
               <span class="backup-stat">Fri & Sat &bull; 201.4 Pts</span>
             </div>
-            <div class="backup-reason">Plays Friday @ Colorado (off-night) and Saturday @ Vegas. Top-six center with steady point production.</div>
+            <div class="backup-reason">L7: <strong>${cirelliPlayer.l7Avg != null ? cirelliPlayer.l7Avg : '-'}</strong> | L15: <strong>${cirelliPlayer.l15Avg != null ? cirelliPlayer.l15Avg : '-'}</strong>. Steady two-way production playing Friday @ Colorado (off-night) and Saturday @ Vegas.</div>
           </div>
         </div>
         <div class="action-box" style="margin-top: 14px;">
@@ -1074,6 +1283,22 @@
       // ==========================================
       // CARD 3: GOALIE CREASE MANAGEMENT & DEPTH
       // ==========================================
+      const gibsonPlayer = availablePool.find(p => p.name.includes("Gibson")) || {
+        name: "John Gibson", team: "DET", pos: "G", projPts: 220.0, projAvg: 4.23,
+        actAvg: 2.60, l30Avg: 2.60, l15Avg: 2.62, l7Avg: 7.95
+      };
+      const garandPlayer = currentMyRoster.find(p => p.name.includes("Garand")) || {
+        name: "Dylan Garand", team: "NYR", pos: "G", projPts: 137.8, projAvg: 3.36,
+        actAvg: 5.19, l30Avg: 5.19, l15Avg: 4.16, l7Avg: 3.65
+      };
+      const dobesPlayer = availablePool.find(p => p.name.includes("Dobes")) || {
+        name: "Jakub Dobes", team: "MTL", pos: "G", projPts: 207.8, projAvg: 5.20,
+        actAvg: 1.98, l30Avg: 1.98, l15Avg: 0.62, l7Avg: 3.20
+      };
+
+      const gibsonTrend = getPlayerTrendAnalysis(gibsonPlayer);
+      const garandTrend = getPlayerTrendAnalysis(garandPlayer);
+
       const card3 = document.createElement('div');
       card3.className = 'strat-card';
       card3.innerHTML = `
@@ -1085,12 +1310,16 @@
         <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #6ee7b7;">
           🛡️ <strong>Rangers Goalie Starting Update:</strong> Dylan Garand has taken over as the confirmed #1 starter for the NY Rangers with Igor Shesterkin (knee) and Joonas Korpisalo (IR) sidelined. Garand has delivered <strong>36.4 actual points (5.19 PPG)</strong> under your scoring system. <strong>Hold and start Garand tonight vs Toronto.</strong>
         </div>
+        <div style="margin-bottom: 6px; font-size: 0.78rem; font-weight: 700; color: var(--primary);">Dylan Garand Multi-Split Baseline:</div>
+        ${renderSplitsStrip(garandPlayer)}
+        <div style="margin: 12px 0 6px; font-size: 0.78rem; font-weight: 700; color: #f87171;">John Gibson Surge (Available Target):</div>
+        ${renderSplitsStrip(gibsonPlayer)}
         <div class="why-section">
-          <div class="why-title">🔍 Why Add John Gibson for Additional Crease Depth:</div>
+          <div class="why-title">🔍 Trend Analysis & Crease Strategy:</div>
           <ul class="why-list">
-            <li><strong>Workhorse Starting Volume:</strong> With Hellebuyck still sidelined on IR, adding Gibson gives you a 3rd everyday starter alongside Skinner and Garand (+4.0 Win, +0.20 Save, -0.75 GA).</li>
-            <li><strong>Immediate & Weekend Slate:</strong> Detroit plays Thursday @ Vancouver and Saturday @ Calgary, maximizing scoring on heavy game nights.</li>
-            <li><strong>Bench Upgrade:</strong> Darcy Kuemper (1.77 actual PPG) is currently underperforming on your bench; Gibson provides a reliable 4.23 projected average.</li>
+            <li><strong>John Gibson's Massive L7 Spike:</strong> Gibson started the season slow (2.60 avg), but has caught fire over the last 7 days, averaging an explosive <strong>7.95 fantasy pts/game (+5.35 over season avg)</strong>. Detroit plays Thursday @ Vancouver and Saturday @ Calgary.</li>
+            <li><strong>Dylan Garand Must-Start Status:</strong> Garand is holding a 5.19 season average across starts—drastically beating his 3.36 preseason projection. He provides immediate NHL #1 starter security with Shesterkin out.</li>
+            <li><strong>Bench Upgrade:</strong> Darcy Kuemper (1.77 actual PPG) is currently underperforming on your bench; Gibson provides a red-hot volume upgrade if roster flexibility allows.</li>
           </ul>
         </div>
         <div class="backups-container">
@@ -1100,7 +1329,7 @@
               <span class="backup-name">1. Jakub Dobes <span class="pos-pill">G &bull; MTL</span></span>
               <span class="backup-stat">Fri & Sun &bull; 207.8 Pts</span>
             </div>
-            <div class="backup-reason">Starts Montreal's light off-night games Friday @ CHI and Sunday @ WPG; elite off-night alignment with 5.20 avg fantasy pts.</div>
+            <div class="backup-reason">L7: <strong>3.20</strong> | Season: <strong>1.98</strong>. Starts Montreal's light off-night games Friday @ CHI and Sunday @ WPG; elite off-night schedule fit.</div>
           </div>
           <div class="backup-item">
             <div class="backup-header">
@@ -1117,7 +1346,7 @@
           </div>
           <div class="action-row" style="margin-bottom: 6px;">
             <span>Depth Add / Drop:</span>
-            <span class="player-pill" style="color: var(--accent-amber);">Add Gibson &bull; Drop Kuemper (1.77 PPG) or Landeskog</span>
+            <span class="player-pill" style="color: var(--accent-amber);">Add Gibson (7.95 L7) &bull; Drop Kuemper (1.77 PPG) or Landeskog</span>
           </div>
           <div class="action-row">
             <span>Garand Verdict:</span>
@@ -1153,6 +1382,9 @@
                 const sched = fantasyData.nhlSchedule[ptAbbr];
                 const pProj = p.stats ? p.stats.find(s => s.id === '102027') : null;
                 const pAct = p.stats ? p.stats.find(s => s.id === '002027') : null;
+                const pL7 = p.stats ? p.stats.find(s => s.id === '012027') : null;
+                const pL15 = p.stats ? p.stats.find(s => s.id === '022027') : null;
+                const pL30 = p.stats ? p.stats.find(s => s.id === '032027') : null;
 
                 return {
                   id: p.id,
@@ -1166,6 +1398,12 @@
                   projAvg: pProj && pProj.appliedAverage != null ? Math.round(pProj.appliedAverage * 100) / 100 : 0,
                   actPts: pAct && pAct.appliedTotal != null ? Math.round(pAct.appliedTotal * 10) / 10 : 0,
                   actAvg: pAct && pAct.appliedAverage != null ? Math.round(pAct.appliedAverage * 100) / 100 : 0,
+                  l7Pts: pL7 && pL7.appliedTotal != null ? Math.round(pL7.appliedTotal * 10) / 10 : 0,
+                  l7Avg: pL7 && pL7.appliedAverage != null ? Math.round(pL7.appliedAverage * 100) / 100 : 0,
+                  l15Pts: pL15 && pL15.appliedTotal != null ? Math.round(pL15.appliedTotal * 10) / 10 : 0,
+                  l15Avg: pL15 && pL15.appliedAverage != null ? Math.round(pL15.appliedAverage * 100) / 100 : 0,
+                  l30Pts: pL30 && pL30.appliedTotal != null ? Math.round(pL30.appliedTotal * 10) / 10 : 0,
+                  l30Avg: pL30 && pL30.appliedAverage != null ? Math.round(pL30.appliedAverage * 100) / 100 : 0,
                   gamesCount: sched ? sched.GamesCount : 0,
                   schedule: sched ? sched.Days : {}
                 };
@@ -1179,6 +1417,9 @@
                 const sched = fantasyData.nhlSchedule[ptAbbr];
                 const pProj = p.stats ? p.stats.find(s => s.id === '102027') : null;
                 const pAct = p.stats ? p.stats.find(s => s.id === '002027') : null;
+                const pL7 = p.stats ? p.stats.find(s => s.id === '012027') : null;
+                const pL15 = p.stats ? p.stats.find(s => s.id === '022027') : null;
+                const pL30 = p.stats ? p.stats.find(s => s.id === '032027') : null;
 
                 return {
                   id: p.id,
@@ -1192,6 +1433,12 @@
                   projAvg: pProj && pProj.appliedAverage != null ? Math.round(pProj.appliedAverage * 100) / 100 : 0,
                   actPts: pAct && pAct.appliedTotal != null ? Math.round(pAct.appliedTotal * 10) / 10 : 0,
                   actAvg: pAct && pAct.appliedAverage != null ? Math.round(pAct.appliedAverage * 100) / 100 : 0,
+                  l7Pts: pL7 && pL7.appliedTotal != null ? Math.round(pL7.appliedTotal * 10) / 10 : 0,
+                  l7Avg: pL7 && pL7.appliedAverage != null ? Math.round(pL7.appliedAverage * 100) / 100 : 0,
+                  l15Pts: pL15 && pL15.appliedTotal != null ? Math.round(pL15.appliedTotal * 10) / 10 : 0,
+                  l15Avg: pL15 && pL15.appliedAverage != null ? Math.round(pL15.appliedAverage * 100) / 100 : 0,
+                  l30Pts: pL30 && pL30.appliedTotal != null ? Math.round(pL30.appliedTotal * 10) / 10 : 0,
+                  l30Avg: pL30 && pL30.appliedAverage != null ? Math.round(pL30.appliedAverage * 100) / 100 : 0,
                   gamesCount: sched ? sched.GamesCount : 0,
                   schedule: sched ? sched.Days : {}
                 };
@@ -1312,6 +1559,8 @@
         else if (p.injury === 'OUT') injuryBadge = '<span class="badge-status status-out">OUT</span>';
         else if (p.injury === 'DAY_TO_DAY') injuryBadge = '<span class="badge-status" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24;">DTD</span>';
 
+        const trend = getPlayerTrendAnalysis(p);
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="td-mono" style="font-weight: 700; color: var(--primary);">${p.slot}</td>
@@ -1319,8 +1568,11 @@
           <td><span class="pos-pill">${p.pos}</span></td>
           <td class="td-mono">${p.team}</td>
           <td>${injuryBadge}</td>
-          <td class="td-mono"><strong>${p.projPts}</strong> <span style="color:var(--text-dim);">(${p.projAvg})</span></td>
-          <td class="td-mono">${p.actPts > 0 ? p.actPts : '-'} <span style="color:var(--text-dim);">${p.actAvg > 0 ? '(' + p.actAvg + ')' : ''}</span></td>
+          <td class="td-mono" style="color:var(--text-muted);">${p.projAvg}</td>
+          <td class="td-mono"><strong>${p.actAvg > 0 ? p.actAvg : '-'}</strong></td>
+          <td class="td-mono" style="font-weight: 600; color: ${p.l7Avg > p.actAvg ? '#f87171' : 'inherit'};">${p.l7Avg != null && p.l7Avg > 0 ? p.l7Avg : '-'}</td>
+          <td class="td-mono" style="color:var(--text-muted);">${p.l15Avg != null && p.l15Avg > 0 ? p.l15Avg : '-'}</td>
+          <td>${trend.badge}</td>
           <td class="td-mono" style="font-weight: 700;">${p.gamesCount}</td>
           <td>${schedHtml}</td>
         `;
@@ -1346,16 +1598,20 @@
         else if (p.injury === 'OUT') injuryBadge = '<span class="badge-status status-out">OUT</span>';
         else if (p.injury === 'DAY_TO_DAY') injuryBadge = '<span class="badge-status" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24;">DTD</span>';
 
+        const trend = getPlayerTrendAnalysis(p);
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td class="td-player">${p.name}</td>
           <td><span class="pos-pill">${p.elig || p.pos}</span></td>
           <td class="td-mono">${p.team}</td>
           <td>${injuryBadge}</td>
-          <td class="td-mono"><strong>${p.projPts}</strong></td>
           <td class="td-mono" style="color:var(--text-muted);">${p.projAvg}</td>
-          <td class="td-mono">${p.actPts > 0 ? p.actPts : '-'}</td>
-          <td class="td-mono" style="color:var(--text-muted);">${p.actAvg > 0 ? p.actAvg : '-'}</td>
+          <td class="td-mono"><strong>${p.actAvg > 0 ? p.actAvg : '-'}</strong></td>
+          <td class="td-mono" style="font-weight: 700; color: ${p.l7Avg > p.actAvg ? '#f87171' : 'inherit'};">${p.l7Avg != null && p.l7Avg > 0 ? p.l7Avg : '-'}</td>
+          <td class="td-mono" style="color:var(--text-muted);">${p.l15Avg != null && p.l15Avg > 0 ? p.l15Avg : '-'}</td>
+          <td class="td-mono" style="color:var(--text-muted);">${p.l30Avg != null && p.l30Avg > 0 ? p.l30Avg : '-'}</td>
+          <td>${trend.badge}</td>
           <td class="td-mono" style="font-weight: 700; color: ${p.gamesCount === 4 ? 'var(--accent-green)' : 'inherit'};">${p.gamesCount}</td>
           <td>${schedHtml}</td>
           <td class="td-mono">${p.ownedPct}%</td>
@@ -1367,6 +1623,7 @@
     function filterFreeAgents() {
       const q = document.getElementById('faSearch').value.toLowerCase();
       const pool = getAvailableFreeAgents();
+      const currentDay = daysOfWeek[todayIndex];
 
       let list = pool.filter(p => {
         const matchesQuery = p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q);
@@ -1374,14 +1631,22 @@
 
         if (currentPosFilter === 'ALL') return true;
         if (currentPosFilter === 'TONIGHT') {
-          return p.schedule && p.schedule[daysOfWeek[todayIndex]];
+          return p.schedule && p.schedule[currentDay];
+        }
+        if (currentPosFilter === 'HOT') {
+          const t = getPlayerTrendAnalysis(p);
+          return t.status === 'HEATING_UP' || t.status === 'ELITE' || (p.l7Avg > p.actAvg && p.l7Avg > 2.0);
         }
         if (currentPosFilter === 'G') return p.pos === 'G';
         if (currentPosFilter === 'D') return p.pos === 'D';
         return (p.elig && p.elig.includes(currentPosFilter)) || p.pos === currentPosFilter;
       });
 
-      list.sort((a, b) => b.projPts - a.projPts);
+      if (currentPosFilter === 'HOT') {
+        list.sort((a, b) => (b.l7Avg || 0) - (a.l7Avg || 0));
+      } else {
+        list.sort((a, b) => b.projPts - a.projPts);
+      }
       renderFreeAgents(list);
     }
 
