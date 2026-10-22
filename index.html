@@ -129,6 +129,82 @@
       padding: 6px;
     }
 
+    .auto-refresh-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 5px 12px;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+
+    .auto-refresh-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .auto-pulse-icon {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 8px #34d399;
+      display: inline-block;
+      animation: pulseGreen 2s infinite;
+    }
+
+    .auto-pulse-icon.paused {
+      background: var(--text-muted);
+      box-shadow: none;
+      animation: none;
+    }
+
+    @keyframes pulseGreen {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+      70% { transform: scale(1.15); box-shadow: 0 0 0 6px rgba(52, 211, 153, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+    }
+
+    .auto-refresh-select {
+      background: #0f172a;
+      color: #f8fafc;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    .auto-refresh-select:hover, .auto-refresh-select:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+    }
+
+    .countdown-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 2px 7px;
+      border-radius: 4px;
+      min-width: 42px;
+      text-align: center;
+    }
+
     .refresh-btn {
       background: linear-gradient(135deg, #10b981, #059669);
       border: 1px solid rgba(52, 211, 153, 0.4);
@@ -1020,6 +1096,20 @@
         </select>
       </div>
 
+      <div class="auto-refresh-box">
+        <label for="autoRefreshSelect" class="auto-refresh-label">
+          <span class="auto-pulse-icon" id="autoPulseDot"></span>
+          <span>Auto-Sync:</span>
+        </label>
+        <select id="autoRefreshSelect" class="auto-refresh-select" onchange="onAutoRefreshChange(this.value)">
+          <option value="0">Off (Manual)</option>
+          <option value="60">Every 60s (Live)</option>
+          <option value="120">Every 2m</option>
+          <option value="300" selected>Every 5m</option>
+        </select>
+        <span id="countdownBadge" class="countdown-badge" title="Time until next live sync">5:00</span>
+      </div>
+
       <div class="live-status">
         <span class="status-dot"></span>
         <span id="lastUpdatedText">Live Sync Ready</span>
@@ -1235,6 +1325,83 @@
     let todayIndex = getCurrentDayIndex();
     let currentPosFilter = 'ALL';
     let liveRosteredPlayerIds = new Set();
+
+    // Auto-Refresh & Background Polling State
+    let autoRefreshIntervalSeconds = 300; // default 5 minutes
+    let autoRefreshRemainingSeconds = 300;
+    let autoRefreshTimer = null;
+
+    function setupAutoRefresh() {
+      try {
+        const saved = localStorage.getItem('auto_refresh_seconds');
+        if (saved !== null && !isNaN(Number(saved))) {
+          autoRefreshIntervalSeconds = Number(saved);
+        }
+      } catch (e) {}
+
+      const select = document.getElementById('autoRefreshSelect');
+      if (select) {
+        select.value = String(autoRefreshIntervalSeconds);
+      }
+      resetAutoRefreshTimer();
+    }
+
+    function onAutoRefreshChange(val) {
+      autoRefreshIntervalSeconds = Number(val);
+      try {
+        localStorage.setItem('auto_refresh_seconds', String(autoRefreshIntervalSeconds));
+      } catch (e) {}
+      resetAutoRefreshTimer();
+    }
+
+    function resetAutoRefreshTimer() {
+      if (autoRefreshTimer) {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+
+      const dot = document.getElementById('autoPulseDot');
+      const badge = document.getElementById('countdownBadge');
+
+      if (autoRefreshIntervalSeconds <= 0) {
+        if (dot) dot.classList.add('paused');
+        if (badge) {
+          badge.textContent = 'Off';
+          badge.style.color = 'var(--text-muted)';
+        }
+        return;
+      }
+
+      if (dot) dot.classList.remove('paused');
+      autoRefreshRemainingSeconds = autoRefreshIntervalSeconds;
+      updateCountdownDisplay();
+
+      autoRefreshTimer = setInterval(() => {
+        autoRefreshRemainingSeconds--;
+        if (autoRefreshRemainingSeconds <= 0) {
+          autoRefreshRemainingSeconds = autoRefreshIntervalSeconds;
+          updateCountdownDisplay();
+          refreshLeagueData(true);
+        } else {
+          updateCountdownDisplay();
+        }
+      }, 1000);
+    }
+
+    function updateCountdownDisplay() {
+      const badge = document.getElementById('countdownBadge');
+      if (!badge) return;
+      if (autoRefreshIntervalSeconds <= 0) {
+        badge.textContent = 'Off';
+        badge.style.color = 'var(--text-muted)';
+        return;
+      }
+
+      const m = Math.floor(autoRefreshRemainingSeconds / 60);
+      const s = autoRefreshRemainingSeconds % 60;
+      badge.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+      badge.style.color = '#38bdf8';
+    }
 
     // League Teams & Roleplay State
     let allLeagueTeams = (typeof fantasyData !== 'undefined' && fantasyData.teams) 
@@ -2204,11 +2371,11 @@
     }
 
     // Live League API Sync
-    async function refreshLeagueData() {
+    async function refreshLeagueData(isSilent = false) {
       const btn = document.getElementById('refreshBtn');
       const statusText = document.getElementById('lastUpdatedText');
-      btn.classList.add('spinning');
-      statusText.innerText = "Syncing with ESPN API...";
+      if (btn) btn.classList.add('spinning');
+      if (statusText && !isSilent) statusText.innerText = "Syncing with ESPN API...";
 
       try {
         const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/2027/segments/0/leagues/82784331?view=mRoster&view=mTeam&view=mTransactions2&view=mMatchup&view=mScoreboard`;
@@ -2326,16 +2493,23 @@
         const activeTeam = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
         let alertMsg = `Live sync verified with ESPN API! ${allLeagueTeams.length} league teams updated. Active lineup: ${activeTeam.name} (${currentMyRoster.length} players).`;
 
-        document.getElementById('txAlert').style.display = 'flex';
-        document.getElementById('txAlertText').innerText = alertMsg;
+        if (!isSilent) {
+          document.getElementById('txAlert').style.display = 'flex';
+          document.getElementById('txAlertText').innerText = alertMsg;
+        }
 
-        statusText.innerText = "Synced: " + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+        const syncTimeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+        statusText.innerText = (isSilent ? "Auto-Synced: " : "Synced: ") + syncTimeStr;
       } catch (err) {
         console.warn("Live API sync fallback:", err);
         statusText.innerText = "Active (Cached Mode)";
         recalculateStrategy();
       } finally {
-        btn.classList.remove('spinning');
+        if (btn) btn.classList.remove('spinning');
+        if (!isSilent) {
+          autoRefreshRemainingSeconds = autoRefreshIntervalSeconds;
+          updateCountdownDisplay();
+        }
       }
     }
 
@@ -2519,6 +2693,7 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       populateTeamDropdown();
+      setupAutoRefresh();
       switchRoleplayTeam(currentTeamId, false);
       refreshLeagueData();
     });
