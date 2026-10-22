@@ -107,6 +107,10 @@ function Extract-Roster($tObj) {
 
 # Schedule matching for matchupPeriod 4
 $opponentMap = @{}
+$matchupScoresMap = @{}
+$pointsByDayMap = @{}
+$matchupsData = @()
+
 if ($leagueData.schedule) {
     foreach ($m in $leagueData.schedule) {
         if ($m.matchupPeriodId -eq 4) {
@@ -114,6 +118,39 @@ if ($leagueData.schedule) {
             $aId = [int]$m.away.teamId
             $opponentMap[$hId] = $aId
             $opponentMap[$aId] = $hId
+
+            $hPts = if ($m.home.totalPoints -ne $null) { [math]::Round([double]$m.home.totalPoints, 2) } else { 0 }
+            $aPts = if ($m.away.totalPoints -ne $null) { [math]::Round([double]$m.away.totalPoints, 2) } else { 0 }
+
+            $matchupScoresMap[$hId] = $hPts
+            $matchupScoresMap[$aId] = $aPts
+
+            $hByDay = [ordered]@{}
+            if ($m.home.pointsByScoringPeriod) {
+                foreach ($spKey in $m.home.pointsByScoringPeriod.psobject.properties.Name) {
+                    $dayName = if ($spDays.Contains($spKey)) { $spDays[$spKey] } else { $spKey }
+                    $hByDay[$dayName] = [math]::Round([double]$m.home.pointsByScoringPeriod.$spKey, 2)
+                }
+            }
+            $pointsByDayMap[$hId] = $hByDay
+
+            $aByDay = [ordered]@{}
+            if ($m.away.pointsByScoringPeriod) {
+                foreach ($spKey in $m.away.pointsByScoringPeriod.psobject.properties.Name) {
+                    $dayName = if ($spDays.Contains($spKey)) { $spDays[$spKey] } else { $spKey }
+                    $aByDay[$dayName] = [math]::Round([double]$m.away.pointsByScoringPeriod.$spKey, 2)
+                }
+            }
+            $pointsByDayMap[$aId] = $aByDay
+
+            $matchupsData += [ordered]@{
+                homeId = $hId
+                homePts = $hPts
+                homeByDay = $hByDay
+                awayId = $aId
+                awayPts = $aPts
+                awayByDay = $aByDay
+            }
         }
     }
 }
@@ -124,6 +161,8 @@ foreach ($t in $leagueData.teams) {
     $tRec = if ($t.record -and $t.record.overall) { "$($t.record.overall.wins)-$($t.record.overall.losses)" } else { "0-0" }
     $tRoster = Extract-Roster $t
     $oppId = if ($opponentMap.ContainsKey($tId)) { $opponentMap[$tId] } else { $null }
+    $livePts = if ($matchupScoresMap.ContainsKey($tId)) { $matchupScoresMap[$tId] } else { 0 }
+    $ptsByDay = if ($pointsByDayMap.ContainsKey($tId)) { $pointsByDayMap[$tId] } else { @{} }
     
     $allTeams += [ordered]@{
         id = $tId
@@ -131,6 +170,8 @@ foreach ($t in $leagueData.teams) {
         abbrev = $t.abbrev
         record = $tRec
         opponentId = $oppId
+        livePoints = $livePts
+        pointsByDay = $ptsByDay
         roster = $tRoster
     }
 }
@@ -262,6 +303,7 @@ $dataExport = [ordered]@{
     weekName = "Week 4 (Oct 19 - Oct 25, 2026)"
     activeTeamId = 7
     teams = $allTeams
+    matchups = $matchupsData
     myTeam = [ordered]@{
         name = "Dead Lokomotiv"
         abbrev = "DEAD"

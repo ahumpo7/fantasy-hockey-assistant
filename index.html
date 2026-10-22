@@ -270,9 +270,264 @@
 
     .team-stats { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted); margin-top: 6px; }
 
-    .vs-box { text-align: center; padding: 0 32px; border-left: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); }
-    .vs-text { font-size: 1.4rem; font-weight: 800; color: var(--text-dim); letter-spacing: 0.1em; }
-    .matchup-week { font-size: 0.8rem; font-weight: 600; color: var(--primary); margin-top: 4px; background: rgba(56, 189, 248, 0.1); padding: 3px 10px; border-radius: 20px; display: inline-block; }
+    .vs-box {
+      text-align: center;
+      padding: 0 32px;
+      border-left: 1px solid var(--border-subtle);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .hero-live-score {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hero-score-divider { color: var(--text-dim); font-size: 1.3rem; font-weight: 400; }
+    .hero-winner-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--accent-green);
+      border: 1px solid rgba(52, 211, 153, 0.4);
+    }
+    .vs-text { font-size: 0.75rem; font-weight: 800; color: var(--text-dim); letter-spacing: 0.15em; text-transform: uppercase; }
+    .matchup-week { font-size: 0.75rem; font-weight: 600; color: var(--primary); background: rgba(56, 189, 248, 0.1); padding: 2px 8px; border-radius: 20px; display: inline-block; }
+
+    /* Matchup Win Predictor Widget */
+    .predictor-card {
+      background: linear-gradient(135deg, rgba(24, 34, 52, 0.95), rgba(15, 23, 42, 0.98));
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      position: relative;
+    }
+
+    .predictor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .predictor-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .predictor-badges {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pred-winner-pill {
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 5px 12px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.25));
+      color: #34d399;
+      border: 1px solid rgba(52, 211, 153, 0.45);
+      box-shadow: 0 0 12px rgba(52, 211, 153, 0.2);
+    }
+
+    .pred-margin-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    /* Win Probability Bar */
+    .prob-bar-container {
+      margin-bottom: 22px;
+    }
+
+    .prob-bar-labels {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .prob-label-my {
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .prob-label-opp {
+      color: #fb7185;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .prob-track {
+      width: 100%;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    .prob-fill-my {
+      background: linear-gradient(90deg, #0284c7, #38bdf8);
+      height: 100%;
+      transition: width 0.5s ease-in-out;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
+
+    .prob-fill-opp {
+      background: linear-gradient(90deg, #f43f5e, #e11d48);
+      height: 100%;
+      transition: width 0.5s ease-in-out;
+      box-shadow: 0 0 10px rgba(244, 63, 94, 0.5);
+    }
+
+    /* 4-Card Comparison Grid */
+    .pred-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .pred-stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 550px) {
+      .pred-stats-grid { grid-template-columns: 1fr; }
+    }
+
+    .pred-stat-box {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .pred-stat-label {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .pred-stat-scores {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    .pred-stat-val-my {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+
+    .pred-stat-val-opp {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fb7185;
+    }
+
+    .pred-stat-sub {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+
+    /* Day-by-Day Trajectory Table */
+    .pred-trajectory-box {
+      background: rgba(11, 15, 25, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+
+    .pred-traj-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .pred-traj-row {
+      display: grid;
+      grid-template-columns: 70px 1fr 1fr 90px;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+
+    .pred-traj-row:nth-child(even) {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .pred-traj-row.today-row {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+
+    .pred-intel-box {
+      background: rgba(56, 189, 248, 0.06);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      line-height: 1.55;
+    }
 
     .section-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; color: #fff; }
     .section-title span { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; }
@@ -802,7 +1057,13 @@
       </div>
 
       <div class="vs-box">
-        <div class="vs-text">VS</div>
+        <div id="heroScoreLive" class="hero-live-score">
+          <span style="color:#38bdf8;">81.8</span>
+          <span class="hero-score-divider">-</span>
+          <span style="color:#fb7185;">54.6</span>
+        </div>
+        <div class="vs-text">LIVE SCORE</div>
+        <div id="heroWinnerBadge" class="hero-winner-badge">🏆 DEAD 89% Win Prob</div>
         <div id="matchupWeekLabel" class="matchup-week">Week 4 (Oct 19 - Oct 25)</div>
       </div>
 
@@ -813,6 +1074,11 @@
           <div id="heroOppStats" class="team-stats">Record: 2-1-0 &bull; Led by MacKinnon, Johnston, Marner</div>
         </div>
       </div>
+    </div>
+
+    <!-- Matchup Outcome & Win Predictor Widget -->
+    <div id="matchupPredictorCard" class="predictor-card">
+      <!-- Populated dynamically by JS -->
     </div>
 
     <!-- TAB 1: Strategy & Recommended Moves -->
@@ -1072,6 +1338,262 @@
       }
     }
 
+    // Matchup Win Predictor & Score Projection Engine
+    function getMatchupProjection(myTeam, oppTeam) {
+      if (!myTeam || !oppTeam) return null;
+
+      const allDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const realToday = getCurrentDayIndex();
+
+      function projectTeam(team) {
+        const livePts = Number(team.livePoints || 0);
+        const dayActuals = team.pointsByDay || {};
+        let remainingPts = 0;
+        let remainingStarts = 0;
+        let dailyBreakdown = {};
+
+        allDays.forEach((d, idx) => {
+          const isPast = (idx < realToday);
+
+          if (isPast) {
+            const actDayPts = (dayActuals[d] != null) ? Number(dayActuals[d]) : 0;
+            dailyBreakdown[d] = {
+              starts: '-',
+              pts: actDayPts,
+              isActual: true
+            };
+          } else {
+            const goalies = [];
+            const skaters = [];
+
+            (team.roster || []).forEach(p => {
+              if (p.slot !== 'IR' && p.schedule && p.schedule[d]) {
+                const exp = (p.actAvg > 0 ? (p.actAvg * 0.45 + (p.l7Avg || p.actAvg) * 0.35 + (p.projAvg || 0) * 0.20) : (p.projAvg || 2.0));
+                if (p.pos === 'G') goalies.push({ ...p, exp });
+                else skaters.push({ ...p, exp });
+              }
+            });
+
+            goalies.sort((a,b) => b.exp - a.exp);
+            skaters.sort((a,b) => b.exp - a.exp);
+
+            const activeG = goalies.slice(0, 2);
+            const activeS = skaters.slice(0, 12);
+            const dayStarts = activeG.length + activeS.length;
+            const dayExpPts = [...activeG, ...activeS].reduce((s, p) => s + p.exp, 0);
+
+            remainingStarts += dayStarts;
+            remainingPts += dayExpPts;
+
+            dailyBreakdown[d] = {
+              starts: dayStarts,
+              pts: Math.round(dayExpPts * 10) / 10,
+              isActual: false
+            };
+          }
+        });
+
+        const finalProj = Math.round((livePts + remainingPts) * 10) / 10;
+        return {
+          livePts,
+          remainingPts: Math.round(remainingPts * 10) / 10,
+          remainingStarts,
+          finalProj,
+          dailyBreakdown
+        };
+      }
+
+      const myProj = projectTeam(myTeam);
+      const oppProj = projectTeam(oppTeam);
+
+      const diff = myProj.finalProj - oppProj.finalProj;
+      const myWinProb = Math.min(99, Math.max(1, Math.round(100 / (1 + Math.exp(-diff / 15)))));
+      const oppWinProb = 100 - myWinProb;
+
+      const isMyProjectedWinner = (myProj.finalProj >= oppProj.finalProj);
+      const winnerTeam = isMyProjectedWinner ? myTeam : oppTeam;
+      const winnerProb = isMyProjectedWinner ? myWinProb : oppWinProb;
+      const margin = Math.abs(diff).toFixed(1);
+
+      return {
+        myTeam,
+        oppTeam,
+        myProj,
+        oppProj,
+        diff,
+        myWinProb,
+        oppWinProb,
+        isMyProjectedWinner,
+        winnerTeam,
+        winnerProb,
+        margin
+      };
+    }
+
+    function renderMatchupPredictor() {
+      const container = document.getElementById('matchupPredictorCard');
+      if (!container) return;
+
+      const myTeam = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0] || fantasyData.myTeam;
+      const oppTeam = allLeagueTeams.find(t => t.id === currentOpponentId) || allLeagueTeams.find(t => t.id !== myTeam.id) || fantasyData.oppTeam;
+
+      const pred = getMatchupProjection(myTeam, oppTeam);
+      if (!pred) return;
+
+      // Update Hero live score & winner badge in Matchup Banner
+      const heroLive = document.getElementById('heroScoreLive');
+      if (heroLive) {
+        heroLive.innerHTML = `
+          <span style="color:#38bdf8;">${pred.myProj.livePts}</span>
+          <span class="hero-score-divider">-</span>
+          <span style="color:#fb7185;">${pred.oppProj.livePts}</span>
+        `;
+      }
+      const heroBadge = document.getElementById('heroWinnerBadge');
+      if (heroBadge) {
+        heroBadge.innerHTML = `🏆 ${pred.winnerTeam.abbrev} Proj: ${pred.winnerProb}% Win (${pred.isMyProjectedWinner ? '+' : '-'}${pred.margin} pts)`;
+        heroBadge.style.borderColor = pred.isMyProjectedWinner ? 'rgba(52, 211, 153, 0.45)' : 'rgba(244, 63, 94, 0.45)';
+        heroBadge.style.color = pred.isMyProjectedWinner ? 'var(--accent-green)' : '#fb7185';
+      }
+
+      // Determine status labels
+      const liveLead = Math.round((pred.myProj.livePts - pred.oppProj.livePts) * 10) / 10;
+      const liveLeadText = liveLead >= 0 ? `+${liveLead} pt Lead` : `${liveLead} pt Deficit`;
+
+      const startDiff = pred.myProj.remainingStarts - pred.oppProj.remainingStarts;
+      const startDiffText = startDiff >= 0 ? `+${startDiff} Start Edge` : `${startDiff} Starts Deficit`;
+
+      const remPtsDiff = Math.round((pred.myProj.remainingPts - pred.oppProj.remainingPts) * 10) / 10;
+      const remPtsDiffText = remPtsDiff >= 0 ? `+${remPtsDiff} pts Edge` : `${remPtsDiff} pts Trailing`;
+
+      let strengthLabel = "Strong Favorite";
+      if (pred.winnerProb < 60) strengthLabel = "Toss-Up / Slight Edge";
+      else if (pred.winnerProb < 75) strengthLabel = "Moderate Favorite";
+
+      let intelAnalysis = "";
+      if (pred.isMyProjectedWinner) {
+        intelAnalysis = `<strong>${myTeam.name}</strong> holds a <strong>${pred.winnerProb}% win probability</strong> with a projected final margin of <strong>+${pred.margin} points</strong>. Live score currently sits at <strong>${pred.myProj.livePts} to ${pred.oppProj.livePts}</strong> (${liveLeadText}). Across the remaining days through Sunday, ${myTeam.name} commands <strong>${pred.myProj.remainingStarts} starting opportunities</strong> against ${pred.oppProj.remainingStarts} for ${oppTeam.name}. Maintain active starter locks on high-volume days to seal the matchup.`;
+      } else {
+        intelAnalysis = `<strong>${oppTeam.name}</strong> is currently projected to take Week 4 with a <strong>${pred.winnerProb}% win probability</strong> and a <strong>+${pred.margin} point</strong> projected margin. ${myTeam.name} commands <strong>${pred.myProj.remainingStarts} remaining starts</strong> vs ${pred.oppProj.remainingStarts} for ${oppTeam.name}. Stream available players on light off-nights (e.g. Friday and Sunday) to close the scoring gap.`;
+      }
+
+      const daysList = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+      const realToday = getCurrentDayIndex();
+
+      let trajRowsHtml = "";
+      daysList.forEach((d, idx) => {
+        const isPast = (idx < realToday);
+        const isToday = (idx === realToday);
+        const myDay = pred.myProj.dailyBreakdown[d];
+        const oppDay = pred.oppProj.dailyBreakdown[d];
+        const dayDiff = Math.round((myDay.pts - oppDay.pts) * 10) / 10;
+        const dayDiffStr = dayDiff >= 0 ? `+${dayDiff}` : `${dayDiff}`;
+
+        trajRowsHtml += `
+          <div class="pred-traj-row ${isToday ? 'today-row' : ''}">
+            <div><strong>${d}</strong> ${isPast ? '<span style="font-size:0.65rem; color:var(--text-muted);">(Act)</span>' : '<span style="font-size:0.65rem; color:var(--primary);">(Proj)</span>'}</div>
+            <div class="td-mono" style="color:#38bdf8; font-weight:700;">${myDay.pts} pts ${!isPast ? `<span style="font-size:0.7rem; color:var(--text-muted);">(${myDay.starts} gms)</span>` : ''}</div>
+            <div class="td-mono" style="color:#fb7185; font-weight:700;">${oppDay.pts} pts ${!isPast ? `<span style="font-size:0.7rem; color:var(--text-muted);">(${oppDay.starts} gms)</span>` : ''}</div>
+            <div class="td-mono" style="font-weight:700; color:${dayDiff >= 0 ? 'var(--accent-green)' : '#f87171'}; text-align:right;">${dayDiffStr}</div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = `
+        <div class="predictor-header">
+          <div class="predictor-title">
+            <span>🔮 Week 4 Matchup Win Predictor</span>
+            <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">(Rest of Week Scoring Model)</span>
+          </div>
+          <div class="predictor-badges">
+            <span class="pred-winner-pill">🏆 ${pred.winnerTeam.name} Projected to Win (${pred.winnerProb}% • ${strengthLabel})</span>
+            <span class="pred-margin-pill">Projected Margin: +${pred.margin} pts</span>
+          </div>
+        </div>
+
+        <!-- Win Probability Bar -->
+        <div class="prob-bar-container">
+          <div class="prob-bar-labels">
+            <span class="prob-label-my">
+              <strong>${myTeam.name} (${myTeam.abbrev})</strong>: ${pred.myWinProb}% Win Probability
+            </span>
+            <span class="prob-label-opp">
+              ${pred.oppWinProb}% Win Probability: <strong>${oppTeam.name} (${oppTeam.abbrev})</strong>
+            </span>
+          </div>
+          <div class="prob-track">
+            <div class="prob-fill-my" style="width: ${pred.myWinProb}%;"></div>
+            <div class="prob-fill-opp" style="width: ${pred.oppWinProb}%;"></div>
+          </div>
+        </div>
+
+        <!-- 4-Card Comparison Grid -->
+        <div class="pred-stats-grid">
+          <div class="pred-stat-box">
+            <div class="pred-stat-label">Live Matchup Score</div>
+            <div class="pred-stat-scores">
+              <span class="pred-stat-val-my">${pred.myProj.livePts}</span>
+              <span style="color:var(--text-dim); font-size:0.9rem;">vs</span>
+              <span class="pred-stat-val-opp">${pred.oppProj.livePts}</span>
+            </div>
+            <div class="pred-stat-sub" style="color:${liveLead >= 0 ? 'var(--accent-green)' : '#f87171'}; font-weight:700;">
+              ${liveLeadText}
+            </div>
+          </div>
+
+          <div class="pred-stat-box">
+            <div class="pred-stat-label">Remaining Active Starts (Thu-Sun)</div>
+            <div class="pred-stat-scores">
+              <span class="pred-stat-val-my">${pred.myProj.remainingStarts} starts</span>
+              <span style="color:var(--text-dim); font-size:0.9rem;">vs</span>
+              <span class="pred-stat-val-opp">${pred.oppProj.remainingStarts} starts</span>
+            </div>
+            <div class="pred-stat-sub" style="color:${startDiff >= 0 ? 'var(--accent-green)' : '#f87171'}; font-weight:700;">
+              ${startDiffText}
+            </div>
+          </div>
+
+          <div class="pred-stat-box">
+            <div class="pred-stat-label">Remaining Projected Scoring</div>
+            <div class="pred-stat-scores">
+              <span class="pred-stat-val-my">+${pred.myProj.remainingPts}</span>
+              <span style="color:var(--text-dim); font-size:0.9rem;">vs</span>
+              <span class="pred-stat-val-opp">+${pred.oppProj.remainingPts}</span>
+            </div>
+            <div class="pred-stat-sub" style="color:${remPtsDiff >= 0 ? 'var(--accent-green)' : '#f87171'}; font-weight:700;">
+              ${remPtsDiffText}
+            </div>
+          </div>
+
+          <div class="pred-stat-box" style="border-color: ${pred.isMyProjectedWinner ? 'rgba(52, 211, 153, 0.4)' : 'rgba(244, 63, 94, 0.4)'}; background: ${pred.isMyProjectedWinner ? 'rgba(52, 211, 153, 0.08)' : 'rgba(244, 63, 94, 0.08)'};">
+            <div class="pred-stat-label" style="color: #fff;">Projected Final Score</div>
+            <div class="pred-stat-scores">
+              <span class="pred-stat-val-my" style="font-size:1.35rem; color:${pred.isMyProjectedWinner ? '#34d399' : '#38bdf8'};">${pred.myProj.finalProj}</span>
+              <span style="color:var(--text-dim); font-size:0.9rem;">vs</span>
+              <span class="pred-stat-val-opp" style="font-size:1.35rem; color:${!pred.isMyProjectedWinner ? '#fb7185' : '#f43f5e'};">${pred.oppProj.finalProj}</span>
+            </div>
+            <div class="pred-stat-sub" style="font-weight:800; color:${pred.isMyProjectedWinner ? 'var(--accent-green)' : '#fb7185'};">
+              ${pred.winnerTeam.abbrev} Projected Win (+${pred.margin})
+            </div>
+          </div>
+        </div>
+
+        <!-- Day by Day Trajectory Breakdown -->
+        <div class="pred-trajectory-box">
+          <div class="pred-traj-title">
+            <span>📅 Day-by-Day Matchup Score Trajectory</span>
+            <span style="font-size:0.75rem; color:var(--text-muted);">${myTeam.abbrev} (Blue) vs ${oppTeam.abbrev} (Red)</span>
+          </div>
+          ${trajRowsHtml}
+        </div>
+
+        <!-- Strategic Intelligence & Swing Factor -->
+        <div class="pred-intel-box">
+          💡 <strong>Matchup Prognosis:</strong> ${intelAnalysis}
+        </div>
+      `;
+    }
+
     function switchRoleplayTeam(teamId, saveStorage = true) {
       currentTeamId = Number(teamId);
       if (saveStorage) {
@@ -1102,6 +1624,7 @@
 
       recalculateStrategy();
       renderPlaybook();
+      renderMatchupPredictor();
       renderRosterTable(currentMyRoster, 'myRosterTable');
       renderRosterTable(currentOppRoster, 'oppRosterTable');
       filterFreeAgents();
@@ -1688,7 +2211,7 @@
       statusText.innerText = "Syncing with ESPN API...";
 
       try {
-        const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/2027/segments/0/leagues/82784331?view=mRoster&view=mTeam&view=mTransactions2`;
+        const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/2027/segments/0/leagues/82784331?view=mRoster&view=mTeam&view=mTransactions2&view=mMatchup&view=mScoreboard`;
         const resp = await fetch(url);
         
         if (!resp.ok) throw new Error("API status " + resp.status);
@@ -1702,6 +2225,8 @@
             const tRec = (t.record && t.record.overall) ? `${t.record.overall.wins}-${t.record.overall.losses}` : '0-0';
             const existing = allLeagueTeams.find(x => x.id === tId);
             const oppId = existing ? existing.opponentId : null;
+            const livePts = existing ? existing.livePoints : 0;
+            const ptsByDay = existing ? existing.pointsByDay : {};
 
             let roster = [];
             if (t.roster && t.roster.entries) {
@@ -1750,12 +2275,52 @@
               abbrev: t.abbrev || (existing ? existing.abbrev : 'TEAM'),
               record: tRec,
               opponentId: oppId,
+              livePoints: livePts,
+              pointsByDay: ptsByDay,
               roster: roster
             };
           });
 
+          // Sync live scores from schedule if available
+          if (data.schedule) {
+            const spDaysMap = { "21":"Mon", "22":"Tue", "23":"Wed", "24":"Thu", "25":"Fri", "26":"Sat", "27":"Sun" };
+            data.schedule.forEach(m => {
+              if (m.matchupPeriodId === 4) {
+                const hId = Number(m.home?.teamId);
+                const aId = Number(m.away?.teamId);
+                const hPts = m.home?.totalPointsLive ?? m.home?.totalPoints;
+                const aPts = m.away?.totalPointsLive ?? m.away?.totalPoints;
+
+                const hTeam = allLeagueTeams.find(t => t.id === hId);
+                if (hTeam && hPts != null) {
+                  hTeam.livePoints = Math.round(Number(hPts) * 100) / 100;
+                  if (m.home?.pointsByScoringPeriod) {
+                    hTeam.pointsByDay = {};
+                    for (const [k, v] of Object.entries(m.home.pointsByScoringPeriod)) {
+                      const dName = spDaysMap[k] || k;
+                      hTeam.pointsByDay[dName] = Math.round(Number(v) * 100) / 100;
+                    }
+                  }
+                }
+
+                const aTeam = allLeagueTeams.find(t => t.id === aId);
+                if (aTeam && aPts != null) {
+                  aTeam.livePoints = Math.round(Number(aPts) * 100) / 100;
+                  if (m.away?.pointsByScoringPeriod) {
+                    aTeam.pointsByDay = {};
+                    for (const [k, v] of Object.entries(m.away.pointsByScoringPeriod)) {
+                      const dName = spDaysMap[k] || k;
+                      aTeam.pointsByDay[dName] = Math.round(Number(v) * 100) / 100;
+                    }
+                  }
+                }
+              }
+            });
+          }
+
           populateTeamDropdown();
           switchRoleplayTeam(currentTeamId, false);
+          renderMatchupPredictor();
         }
 
         const activeTeam = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];

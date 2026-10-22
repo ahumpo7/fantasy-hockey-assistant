@@ -9,6 +9,13 @@
                       "abbrev":  "THRM",
                       "record":  "1-2",
                       "opponentId":  3,
+                      "livePoints":  78.2,
+                      "pointsByDay":  {
+                                          "Mon":  6.95,
+                                          "Tue":  64,
+                                          "Wed":  7.25,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  4352722,
@@ -627,6 +634,13 @@
                       "abbrev":  "PP",
                       "record":  "0-3",
                       "opponentId":  1,
+                      "livePoints":  55.35,
+                      "pointsByDay":  {
+                                          "Mon":  0,
+                                          "Tue":  49,
+                                          "Wed":  6.35,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  3899972,
@@ -1187,6 +1201,13 @@
                       "abbrev":  "Hi",
                       "record":  "1-2",
                       "opponentId":  12,
+                      "livePoints":  40.65,
+                      "pointsByDay":  {
+                                          "Mon":  -0.6,
+                                          "Tue":  40.75,
+                                          "Wed":  0.5,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  3114778,
@@ -1776,6 +1797,13 @@
                       "abbrev":  "Phl",
                       "record":  "1-2",
                       "opponentId":  17,
+                      "livePoints":  63.45,
+                      "pointsByDay":  {
+                                          "Mon":  23.9,
+                                          "Tue":  32.05,
+                                          "Wed":  7.5,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  5206628,
@@ -2394,6 +2422,13 @@
                       "abbrev":  "DEAD",
                       "record":  "2-1",
                       "opponentId":  10,
+                      "livePoints":  81.8,
+                      "pointsByDay":  {
+                                          "Mon":  37.2,
+                                          "Tue":  36.95,
+                                          "Wed":  7.65,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  4024123,
@@ -3012,6 +3047,13 @@
                       "abbrev":  "ICE",
                       "record":  "2-1",
                       "opponentId":  7,
+                      "livePoints":  54.6,
+                      "pointsByDay":  {
+                                          "Mon":  4.15,
+                                          "Tue":  37.6,
+                                          "Wed":  12.85,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  3041969,
@@ -3601,6 +3643,13 @@
                       "abbrev":  "OFD",
                       "record":  "2-1",
                       "opponentId":  5,
+                      "livePoints":  43.25,
+                      "pointsByDay":  {
+                                          "Mon":  15.35,
+                                          "Tue":  22.55,
+                                          "Wed":  5.35,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  3895074,
@@ -4219,6 +4268,13 @@
                       "abbrev":  "BSB",
                       "record":  "2-1",
                       "opponentId":  15,
+                      "livePoints":  67,
+                      "pointsByDay":  {
+                                          "Mon":  18.6,
+                                          "Tue":  39.75,
+                                          "Wed":  8.65,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  4233563,
@@ -4779,6 +4835,13 @@
                       "abbrev":  "TM10",
                       "record":  "2-1",
                       "opponentId":  13,
+                      "livePoints":  72.75,
+                      "pointsByDay":  {
+                                          "Mon":  12.35,
+                                          "Tue":  57.3,
+                                          "Wed":  3.1,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  2976847,
@@ -5339,6 +5402,13 @@
                       "abbrev":  "EHT",
                       "record":  "2-1",
                       "opponentId":  18,
+                      "livePoints":  53.35,
+                      "pointsByDay":  {
+                                          "Mon":  17.85,
+                                          "Tue":  35.5,
+                                          "Wed":  0,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  3114727,
@@ -5957,6 +6027,13 @@
                       "abbrev":  "DDT9",
                       "record":  "2-1",
                       "opponentId":  6,
+                      "livePoints":  48.8,
+                      "pointsByDay":  {
+                                          "Mon":  10.3,
+                                          "Tue":  31.45,
+                                          "Wed":  7.05,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  2563060,
@@ -6488,6 +6565,13 @@
                       "abbrev":  "TATA",
                       "record":  "1-2",
                       "opponentId":  16,
+                      "livePoints":  76.2,
+                      "pointsByDay":  {
+                                          "Mon":  32.8,
+                                          "Tue":  37.8,
+                                          "Wed":  5.6,
+                                          "Thu":  0
+                                      },
                       "roster":  [
                                      {
                                          "id":  4233875,
@@ -7043,6 +7127,116 @@
                                  ]
                   }
               ],
+    "matchups":  [
+                     {
+                         "homeId":  17,
+                         "homePts":  48.8,
+                         "homeByDay":  {
+                                           "Mon":  10.3,
+                                           "Tue":  31.45,
+                                           "Wed":  7.05,
+                                           "Thu":  0
+                                       },
+                         "awayId":  6,
+                         "awayPts":  63.45,
+                         "awayByDay":  {
+                                           "Mon":  23.9,
+                                           "Tue":  32.05,
+                                           "Wed":  7.5,
+                                           "Thu":  0
+                                       }
+                     },
+                     {
+                         "homeId":  3,
+                         "homePts":  55.35,
+                         "homeByDay":  {
+                                           "Mon":  0,
+                                           "Tue":  49,
+                                           "Wed":  6.35,
+                                           "Thu":  0
+                                       },
+                         "awayId":  1,
+                         "awayPts":  78.2,
+                         "awayByDay":  {
+                                           "Mon":  6.95,
+                                           "Tue":  64,
+                                           "Wed":  7.25,
+                                           "Thu":  0
+                                       }
+                     },
+                     {
+                         "homeId":  18,
+                         "homePts":  76.2,
+                         "homeByDay":  {
+                                           "Mon":  32.8,
+                                           "Tue":  37.8,
+                                           "Wed":  5.6,
+                                           "Thu":  0
+                                       },
+                         "awayId":  16,
+                         "awayPts":  53.35,
+                         "awayByDay":  {
+                                           "Mon":  17.85,
+                                           "Tue":  35.5,
+                                           "Wed":  0,
+                                           "Thu":  0
+                                       }
+                     },
+                     {
+                         "homeId":  10,
+                         "homePts":  54.6,
+                         "homeByDay":  {
+                                           "Mon":  4.15,
+                                           "Tue":  37.6,
+                                           "Wed":  12.85,
+                                           "Thu":  0
+                                       },
+                         "awayId":  7,
+                         "awayPts":  81.8,
+                         "awayByDay":  {
+                                           "Mon":  37.2,
+                                           "Tue":  36.95,
+                                           "Wed":  7.65,
+                                           "Thu":  0
+                                       }
+                     },
+                     {
+                         "homeId":  15,
+                         "homePts":  72.75,
+                         "homeByDay":  {
+                                           "Mon":  12.35,
+                                           "Tue":  57.3,
+                                           "Wed":  3.1,
+                                           "Thu":  0
+                                       },
+                         "awayId":  13,
+                         "awayPts":  67,
+                         "awayByDay":  {
+                                           "Mon":  18.6,
+                                           "Tue":  39.75,
+                                           "Wed":  8.65,
+                                           "Thu":  0
+                                       }
+                     },
+                     {
+                         "homeId":  5,
+                         "homePts":  40.65,
+                         "homeByDay":  {
+                                           "Mon":  -0.6,
+                                           "Tue":  40.75,
+                                           "Wed":  0.5,
+                                           "Thu":  0
+                                       },
+                         "awayId":  12,
+                         "awayPts":  43.25,
+                         "awayByDay":  {
+                                           "Mon":  15.35,
+                                           "Tue":  22.55,
+                                           "Wed":  5.35,
+                                           "Thu":  0
+                                       }
+                     }
+                 ],
     "myTeam":  {
                    "name":  "Dead Lokomotiv",
                    "abbrev":  "DEAD",
@@ -8717,7 +8911,7 @@
                            "l30Pts":  15.6,
                            "l30Avg":  2.6,
                            "actGP":  6,
-                           "ownedPct":  57.8,
+                           "ownedPct":  57.9,
                            "gamesCount":  3,
                            "schedule":  {
                                             "Mon":  "",
@@ -8779,7 +8973,7 @@
                            "l30Pts":  10.4,
                            "l30Avg":  1.49,
                            "actGP":  7,
-                           "ownedPct":  48.9,
+                           "ownedPct":  48.8,
                            "gamesCount":  3,
                            "schedule":  {
                                             "Mon":  "",
@@ -8810,7 +9004,7 @@
                            "l30Pts":  0,
                            "l30Avg":  0,
                            "actGP":  0,
-                           "ownedPct":  30.5,
+                           "ownedPct":  30.4,
                            "gamesCount":  2,
                            "schedule":  {
                                             "Mon":  "",
@@ -9182,7 +9376,7 @@
                            "l30Pts":  2.2,
                            "l30Avg":  0.44,
                            "actGP":  5,
-                           "ownedPct":  22.3,
+                           "ownedPct":  22.2,
                            "gamesCount":  2,
                            "schedule":  {
                                             "Mon":  "",
@@ -9213,7 +9407,7 @@
                            "l30Pts":  16.3,
                            "l30Avg":  1.81,
                            "actGP":  9,
-                           "ownedPct":  31.7,
+                           "ownedPct":  31.6,
                            "gamesCount":  3,
                            "schedule":  {
                                             "Mon":  "",
@@ -9430,7 +9624,7 @@
                            "l30Pts":  22.6,
                            "l30Avg":  2.26,
                            "actGP":  10,
-                           "ownedPct":  42.2,
+                           "ownedPct":  42.3,
                            "gamesCount":  3,
                            "schedule":  {
                                             "Mon":  "",
@@ -9585,7 +9779,7 @@
                            "l30Pts":  23.2,
                            "l30Avg":  3.87,
                            "actGP":  6,
-                           "ownedPct":  14.9,
+                           "ownedPct":  15.0,
                            "gamesCount":  3,
                            "schedule":  {
                                             "Mon":  "vs COL",
@@ -9740,7 +9934,7 @@
                            "l30Pts":  26.4,
                            "l30Avg":  2.4,
                            "actGP":  11,
-                           "ownedPct":  36.3,
+                           "ownedPct":  36.4,
                            "gamesCount":  3,
                            "schedule":  {
                                             "Mon":  "",
@@ -9864,7 +10058,7 @@
                            "l30Pts":  29,
                            "l30Avg":  2.9,
                            "actGP":  10,
-                           "ownedPct":  20.6,
+                           "ownedPct":  20.7,
                            "gamesCount":  3,
                            "schedule":  {
                                             "Mon":  "",
@@ -9895,7 +10089,7 @@
                            "l30Pts":  14.2,
                            "l30Avg":  1.78,
                            "actGP":  8,
-                           "ownedPct":  37.0,
+                           "ownedPct":  37.1,
                            "gamesCount":  3,
                            "schedule":  {
                                             "Mon":  "",
@@ -10286,7 +10480,7 @@
                            "l30Pts":  4.7,
                            "l30Avg":  4.7,
                            "actGP":  1,
-                           "ownedPct":  4.7,
+                           "ownedPct":  4.8,
                            "gamesCount":  2,
                            "schedule":  {
                                             "Mon":  "",
@@ -10999,7 +11193,7 @@
                            "l30Pts":  27.7,
                            "l30Avg":  6.93,
                            "actGP":  4,
-                           "ownedPct":  6.8,
+                           "ownedPct":  6.9,
                            "gamesCount":  4,
                            "schedule":  {
                                             "Mon":  "@ TOR",
@@ -11030,7 +11224,7 @@
                            "l30Pts":  17.6,
                            "l30Avg":  1.96,
                            "actGP":  9,
-                           "ownedPct":  8.8,
+                           "ownedPct":  8.9,
                            "gamesCount":  3,
                            "schedule":  {
                                             "Mon":  "",
@@ -11402,7 +11596,7 @@
                            "l30Pts":  19.8,
                            "l30Avg":  2.48,
                            "actGP":  8,
-                           "ownedPct":  13.0,
+                           "ownedPct":  12.9,
                            "gamesCount":  2,
                            "schedule":  {
                                             "Mon":  "",
@@ -11588,7 +11782,7 @@
                            "l30Pts":  31.2,
                            "l30Avg":  2.83,
                            "actGP":  11,
-                           "ownedPct":  20.5,
+                           "ownedPct":  20.7,
                            "gamesCount":  4,
                            "schedule":  {
                                             "Mon":  "vs SJ",
@@ -11681,7 +11875,7 @@
                            "l30Pts":  22.2,
                            "l30Avg":  2.47,
                            "actGP":  9,
-                           "ownedPct":  4.9,
+                           "ownedPct":  5.0,
                            "gamesCount":  3,
                            "schedule":  {
                                             "Mon":  "",
