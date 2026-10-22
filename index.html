@@ -1090,6 +1090,44 @@
       `;
     }
 
+    // Calculate Active Lineup Capacity & Starting Slots for Any Day
+    function getDailyLineupCapacity(day, roster = currentMyRoster) {
+      const activeSkatersWithGames = [];
+      const activeGoaliesWithGames = [];
+
+      roster.forEach(p => {
+        if (p.slot !== 'IR' && p.schedule && p.schedule[day]) {
+          if (p.pos === 'G') activeGoaliesWithGames.push(p);
+          else activeSkatersWithGames.push(p);
+        }
+      });
+
+      const maxGoalieSlots = 2;
+      const maxSkaterSlots = 12; // 2 C + 2 LW + 2 RW + 4 D + 2 UTIL
+      const maxTotalSlots = 14;
+
+      const startingGoaliesCount = Math.min(activeGoaliesWithGames.length, maxGoalieSlots);
+      const startingSkatersCount = Math.min(activeSkatersWithGames.length, maxSkaterSlots);
+      const totalStarters = startingGoaliesCount + startingSkatersCount;
+      const openSkaterSlots = Math.max(0, maxSkaterSlots - activeSkatersWithGames.length);
+      const openGoalieSlots = Math.max(0, maxGoalieSlots - activeGoaliesWithGames.length);
+      const isFull = (totalStarters >= maxTotalSlots);
+
+      return {
+        day,
+        totalPlaying: activeSkatersWithGames.length + activeGoaliesWithGames.length,
+        startingGoaliesCount,
+        startingSkatersCount,
+        totalStarters,
+        openSkaterSlots,
+        openGoalieSlots,
+        totalOpenSlots: openSkaterSlots + openGoalieSlots,
+        isFull,
+        activeSkatersWithGames,
+        activeGoaliesWithGames
+      };
+    }
+
     // Dynamic Live Strategy & Move Generator
     function recalculateStrategy() {
       const container = document.getElementById('stratCardsContainer');
@@ -1105,105 +1143,138 @@
       }
 
       const availablePool = getAvailableFreeAgents();
+      const capacity = getDailyLineupCapacity(currentDay);
 
       // Check current roster state
       const hasBoeserOnRoster = isPlayerOnMyTeam("Brock Boeser") || isPlayerOnMyTeam(PLAYER_IDS.BOESER);
       const hasJennerOnRoster = isPlayerOnMyTeam("Boone Jenner");
       const hasGarandOnRoster = isPlayerOnMyTeam("Dylan Garand") || isPlayerOnMyTeam(PLAYER_IDS.GARAND);
 
-      // Check for active players on bench for currentDay
-      const benchedActiveForDay = currentMyRoster.filter(p => p.slot === 'BENCH' && p.schedule && p.schedule[currentDay]);
-
       // ==========================================
-      // CARD 1: DYNAMIC STREAMER FOR CURRENT DAY
+      // CARD 1: DYNAMIC STREAMER OR CAPACITY LOCK
       // ==========================================
-      const dayStreamers = availablePool.filter(p => p.schedule && p.schedule[currentDay] && p.pos !== 'G')
-        .sort((a, b) => {
-          // Sort by hottest last 7/15 days weighted with projection
-          const aHeat = (a.l7Avg || a.actAvg || 0) * 0.6 + (a.projAvg || 0) * 0.4;
-          const bHeat = (b.l7Avg || b.actAvg || 0) * 0.6 + (b.projAvg || 0) * 0.4;
-          return bHeat - aHeat;
-        });
+      const card1 = document.createElement('div');
+      card1.className = 'strat-card';
 
-      const topStreamer = dayStreamers[0] || {
-        name: "Tyler Bertuzzi", team: "CHI", pos: "LW", projPts: 211.9, projAvg: 2.62,
-        actAvg: 1.72, l30Avg: 1.72, l15Avg: 1.76, l7Avg: 1.52,
-        schedule: { [currentDay]: "Active Game" }
-      };
-      const backupStreamer1 = dayStreamers[1] || {
-        name: "Pavel Zacha", team: "BOS", pos: "C", projPts: 222.0, projAvg: 2.74,
-        actAvg: 2.32, l30Avg: 2.32, l15Avg: 3.24, l7Avg: 3.32,
-        schedule: { [currentDay]: "Active Game" }
-      };
-      const backupStreamer2 = dayStreamers[2] || {
-        name: "Ivan Barbashev", team: "VGK", pos: "LW", projPts: 215.0, projAvg: 2.59,
-        actAvg: 2.59, l30Avg: 2.59, l15Avg: 2.45, l7Avg: 2.50,
-        schedule: { [currentDay]: "Active Game" }
-      };
+      if (capacity.isFull) {
+        // LINEUP IS AT MAXIMUM 100% CAPACITY! DO NOT STREAM TODAY!
+        const benchedWithGame = currentMyRoster.filter(p => p.slot === 'BENCH' && p.schedule && p.schedule[currentDay]);
+        const benchedNames = benchedWithGame.map(p => `${p.name} (${p.pos}, ${p.team} vs ${p.schedule[currentDay]})`).join(', ');
 
-      const streamerTrend = getPlayerTrendAnalysis(topStreamer);
-      const b1Trend = getPlayerTrendAnalysis(backupStreamer1);
-      const b2Trend = getPlayerTrendAnalysis(backupStreamer2);
+        const activePlayingList = currentMyRoster.filter(p => p.slot !== 'BENCH' && p.slot !== 'IR' && p.schedule && p.schedule[currentDay]);
 
-      let benchAlertHtml = '';
-      if (benchedActiveForDay.length > 0) {
-        benchAlertHtml = `
-          <div style="background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #fbbf24;">
-            ⚠️ <strong>Lineup Alert:</strong> ${benchedActiveForDay.map(p => `<strong>${p.name}</strong> (${p.schedule[currentDay]})`).join(', ')} is currently on your <strong>BENCH</strong>. Swap into your active lineup before puck drop!
+        card1.innerHTML = `
+          <div class="strat-header">
+            <span class="strat-badge" style="background: rgba(56, 189, 248, 0.15); color: var(--primary); border: 1px solid rgba(56, 189, 248, 0.35);">🛡️ Move #1: Lineup Locked & Full</span>
+            <span class="badge-rank">Capacity 14/14</span>
+          </div>
+          <h3>${currentDay} Slate: Maximum Active Capacity (0 Open Slots)</h3>
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px; font-size: 0.84rem; color: #fca5a5; line-height: 1.5;">
+            🛑 <strong>DO NOT STREAM FOR ${currentDay.toUpperCase()}!</strong> You already have <strong>${capacity.totalPlaying} active players with games tonight</strong> for only 14 starting spots (2 C, 2 LW, 2 RW, 4 D, 2 UTIL, 2 G). ${benchedWithGame.length > 0 ? `Even <strong>${benchedNames}</strong> is forced to sit on your bench with an active game.` : ''} Any player added for tonight would simply sit on your bench or force you to bench an active starter.
+          </div>
+          <div class="why-section">
+            <div class="why-title">📋 Tonight's Confirmed Starting Lineup (14 / 14 Full):</div>
+            <ul class="why-list" style="columns: 2; column-gap: 16px; margin-top: 8px;">
+              ${activePlayingList.map(p => `
+                <li><strong>${p.slot}:</strong> ${p.name} <span class="td-mono" style="color:var(--text-dim);">(${p.team} vs ${p.schedule[currentDay]})</span></li>
+              `).join('')}
+            </ul>
+          </div>
+          <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 12px; font-size: 0.8rem; color: #7dd3fc;">
+            💡 <strong>Strategic Pivot:</strong> Save your weekly transactions! Focus your waiver adds ahead of <strong>Friday's off-night</strong> (where you only have 2 active players and 12 open starting spots).
+          </div>
+          <div class="action-box" style="margin-top: 14px;">
+            <div class="action-row" style="margin-bottom: 6px;">
+              <span>Today's Recommendation:</span>
+              <span class="player-pill" style="color: var(--primary);">🛡️ STAND PAT &bull; No Streaming Needed</span>
+            </div>
+            <div class="action-row" style="margin-bottom: 6px;">
+              <span>Starting Slots:</span>
+              <span class="player-pill" style="color: var(--accent-green);">14 / 14 Active Starters Playing Tonight</span>
+            </div>
+            <div class="action-row">
+              <span>Next Move:</span>
+              <span class="player-pill" style="color: var(--accent-amber);">Add Tyler Bertuzzi for Friday's Light Slate</span>
+            </div>
+          </div>
+        `;
+      } else {
+        // Lineup has OPEN slots: Recommend top streamer for this day
+        const dayStreamers = availablePool.filter(p => p.schedule && p.schedule[currentDay] && p.pos !== 'G')
+          .sort((a, b) => {
+            const aHeat = (a.l7Avg || a.actAvg || 0) * 0.6 + (a.projAvg || 0) * 0.4;
+            const bHeat = (b.l7Avg || b.actAvg || 0) * 0.6 + (b.projAvg || 0) * 0.4;
+            return bHeat - aHeat;
+          });
+
+        const topStreamer = dayStreamers[0] || {
+          name: "Tyler Bertuzzi", team: "CHI", pos: "LW", projPts: 211.9, projAvg: 2.62,
+          actAvg: 1.72, l30Avg: 1.72, l15Avg: 1.76, l7Avg: 1.52,
+          schedule: { [currentDay]: "Active Game" }
+        };
+        const backupStreamer1 = dayStreamers[1] || {
+          name: "Pavel Zacha", team: "BOS", pos: "C", projPts: 222.0, projAvg: 2.74,
+          actAvg: 2.32, l30Avg: 2.32, l15Avg: 3.24, l7Avg: 3.32,
+          schedule: { [currentDay]: "Active Game" }
+        };
+        const backupStreamer2 = dayStreamers[2] || {
+          name: "Ivan Barbashev", team: "VGK", pos: "LW", projPts: 215.0, projAvg: 2.59,
+          actAvg: 2.59, l30Avg: 2.59, l15Avg: 2.45, l7Avg: 2.50,
+          schedule: { [currentDay]: "Active Game" }
+        };
+
+        const streamerTrend = getPlayerTrendAnalysis(topStreamer);
+        const b1Trend = getPlayerTrendAnalysis(backupStreamer1);
+        const b2Trend = getPlayerTrendAnalysis(backupStreamer2);
+
+        card1.innerHTML = `
+          <div class="strat-header">
+            <span class="strat-badge badge-today">⚡ Move #1: ${isViewingRealToday ? "Today's Streamer" : currentDay + " Streamer"}</span>
+            <span class="badge-rank">${capacity.totalOpenSlots} Open Slots</span>
+          </div>
+          <h3>Stream ${topStreamer.name} (${topStreamer.pos}, ${topStreamer.team}) – ${currentDay}</h3>
+          ${renderSplitsStrip(topStreamer)}
+          <div class="why-section">
+            <div class="why-title">🔍 Multi-Split Analysis & Rationale:</div>
+            <ul class="why-list">
+              <li><strong>Open Slot Utilization:</strong> You have <strong>${capacity.openSkaterSlots} open skater starting slots</strong> on ${currentDay}. ${topStreamer.name} slides right into your active lineup with 0 bench waste.</li>
+              <li><strong>Trajectory & Form (7/15/30 Days):</strong> ${streamerTrend.description}</li>
+              <li><strong>Projection & Ceiling:</strong> Season projection of <strong>${topStreamer.projPts} fantasy pts</strong> (${topStreamer.projAvg} avg) provides dependable scoring.</li>
+            </ul>
+          </div>
+          <div class="backups-container">
+            <div class="backups-title">🔄 Other ${currentDay} Streamer Choices:</div>
+            <div class="backup-item">
+              <div class="backup-header">
+                <span class="backup-name">1. ${backupStreamer1.name} <span class="pos-pill">${backupStreamer1.pos} &bull; ${backupStreamer1.team}</span> ${b1Trend.badge}</span>
+                <span class="backup-stat">${backupStreamer1.schedule[currentDay] || 'Plays'} &bull; ${backupStreamer1.l7Avg != null ? backupStreamer1.l7Avg + ' L7' : backupStreamer1.projAvg + ' Proj'}</span>
+              </div>
+              <div class="backup-reason">L7: <strong>${backupStreamer1.l7Avg != null ? backupStreamer1.l7Avg : '-'}</strong> | L15: <strong>${backupStreamer1.l15Avg != null ? backupStreamer1.l15Avg : '-'}</strong> | Season: <strong>${backupStreamer1.actAvg != null ? backupStreamer1.actAvg : '-'}</strong>. ${b1Trend.description}</div>
+            </div>
+            <div class="backup-item">
+              <div class="backup-header">
+                <span class="backup-name">2. ${backupStreamer2.name} <span class="pos-pill">${backupStreamer2.pos} &bull; ${backupStreamer2.team}</span> ${b2Trend.badge}</span>
+                <span class="backup-stat">${backupStreamer2.schedule[currentDay] || 'Plays'} &bull; ${backupStreamer2.l7Avg != null ? backupStreamer2.l7Avg + ' L7' : backupStreamer2.projAvg + ' Proj'}</span>
+              </div>
+              <div class="backup-reason">L7: <strong>${backupStreamer2.l7Avg != null ? backupStreamer2.l7Avg : '-'}</strong> | L15: <strong>${backupStreamer2.l15Avg != null ? backupStreamer2.l15Avg : '-'}</strong> | Season: <strong>${backupStreamer2.actAvg != null ? backupStreamer2.actAvg : '-'}</strong>. ${b2Trend.description}</div>
+            </div>
+          </div>
+          <div class="action-box" style="margin-top: 14px;">
+            <div class="action-row" style="margin-bottom: 6px;">
+              <span>Target Streamer:</span>
+              <span class="player-pill" style="color: var(--accent-green);">✅ ${topStreamer.name} (${topStreamer.schedule[currentDay]})</span>
+            </div>
+            <div class="action-row" style="margin-bottom: 6px;">
+              <span>Suggested Drop:</span>
+              <span class="player-pill" style="color: var(--accent-rose);">❌ Gabriel Landeskog (COL &bull; 2.35 avg) or open bench spot</span>
+            </div>
+            <div class="action-row">
+              <span>Lineup Slot:</span>
+              <span class="player-pill" style="color: var(--primary);">Active in open slot on ${currentDay}</span>
+            </div>
           </div>
         `;
       }
-
-      const card1 = document.createElement('div');
-      card1.className = 'strat-card';
-      card1.innerHTML = `
-        <div class="strat-header">
-          <span class="strat-badge badge-today">⚡ Move #1: ${isViewingRealToday ? "Today's Streamer" : currentDay + " Streamer"}</span>
-          <span class="badge-rank">Priority 1</span>
-        </div>
-        <h3>Stream ${topStreamer.name} (${topStreamer.pos}, ${topStreamer.team}) – ${currentDay}</h3>
-        ${benchAlertHtml}
-        ${renderSplitsStrip(topStreamer)}
-        <div class="why-section">
-          <div class="why-title">🔍 Multi-Split Analysis & Rationale:</div>
-          <ul class="why-list">
-            <li><strong>Trajectory & Form (7/15/30 Days):</strong> ${streamerTrend.description}</li>
-            <li><strong>Immediate Point Production:</strong> ${topStreamer.team} plays <strong>${topStreamer.schedule[currentDay]}</strong> on ${currentDay}. Steps directly into your active lineup for live scoring vs 0 bench pts.</li>
-            <li><strong>Projection & Ceiling:</strong> Season projection of <strong>${topStreamer.projPts} fantasy pts</strong> (${topStreamer.projAvg} avg) provides a high baseline floor without locking long-term roster flexibility.</li>
-          </ul>
-        </div>
-        <div class="backups-container">
-          <div class="backups-title">🔄 Other ${currentDay} Streamer Choices:</div>
-          <div class="backup-item">
-            <div class="backup-header">
-              <span class="backup-name">1. ${backupStreamer1.name} <span class="pos-pill">${backupStreamer1.pos} &bull; ${backupStreamer1.team}</span> ${b1Trend.badge}</span>
-              <span class="backup-stat">${backupStreamer1.schedule[currentDay] || 'Plays'} &bull; ${backupStreamer1.l7Avg != null ? backupStreamer1.l7Avg + ' L7' : backupStreamer1.projAvg + ' Proj'}</span>
-            </div>
-            <div class="backup-reason">L7: <strong>${backupStreamer1.l7Avg != null ? backupStreamer1.l7Avg : '-'}</strong> | L15: <strong>${backupStreamer1.l15Avg != null ? backupStreamer1.l15Avg : '-'}</strong> | Season: <strong>${backupStreamer1.actAvg != null ? backupStreamer1.actAvg : '-'}</strong>. ${b1Trend.description}</div>
-          </div>
-          <div class="backup-item">
-            <div class="backup-header">
-              <span class="backup-name">2. ${backupStreamer2.name} <span class="pos-pill">${backupStreamer2.pos} &bull; ${backupStreamer2.team}</span> ${b2Trend.badge}</span>
-              <span class="backup-stat">${backupStreamer2.schedule[currentDay] || 'Plays'} &bull; ${backupStreamer2.l7Avg != null ? backupStreamer2.l7Avg + ' L7' : backupStreamer2.projAvg + ' Proj'}</span>
-            </div>
-            <div class="backup-reason">L7: <strong>${backupStreamer2.l7Avg != null ? backupStreamer2.l7Avg : '-'}</strong> | L15: <strong>${backupStreamer2.l15Avg != null ? backupStreamer2.l15Avg : '-'}</strong> | Season: <strong>${backupStreamer2.actAvg != null ? backupStreamer2.actAvg : '-'}</strong>. ${b2Trend.description}</div>
-          </div>
-        </div>
-        <div class="action-box" style="margin-top: 14px;">
-          <div class="action-row" style="margin-bottom: 6px;">
-            <span>Target Streamer:</span>
-            <span class="player-pill" style="color: var(--accent-green);">✅ ${topStreamer.name} (${topStreamer.schedule[currentDay]})</span>
-          </div>
-          <div class="action-row" style="margin-bottom: 6px;">
-            <span>Suggested Drop:</span>
-            <span class="player-pill" style="color: var(--accent-rose);">❌ Gabriel Landeskog (COL &bull; 2.35 avg) or open bench spot</span>
-          </div>
-          <div class="action-row">
-            <span>Goalie Status:</span>
-            <span class="player-pill" style="color: var(--accent-green);">✅ Dylan Garand active starter tonight vs TOR (5.19 PPG)</span>
-          </div>
-        </div>
-      `;
       container.appendChild(card1);
 
       // ==========================================
@@ -1494,10 +1565,10 @@
         "Mon": "(Completed) Low volume slate (4 games). Opening matchup day.",
         "Tue": "(Completed) Heavy slate (11 games). Full lineups for both teams.",
         "Wed": "(Completed) Light slate (2 games). Only 4 teams played.",
-        "Thu": "Mega slate (12 games). Check lineup locks; Boeser plays vs DET (activate off bench!).",
-        "Fri": "Crucial Off-Night (Only 2 games: COL, TB, CHI, MTL). Tyler Bertuzzi & Dobes play.",
+        "Thu": "Mega slate (12 games). Lineup locked at 14/14 capacity (0 open slots). Do not stream!",
+        "Fri": "Crucial Off-Night (Only 2 games). 12 open starting slots! Stream Tyler Bertuzzi or Dobes.",
         "Sat": "Huge Saturday (12 games). Decisive night for goalie starts and peripherals.",
-        "Sun": "Matchup Finale (5 games: FLA, DAL, COL, MIN, WPG, MTL, CHI, NSH, VAN, NYI). Key off-night battle."
+        "Sun": "Matchup Finale (5 games). 9 open starting slots! Tyler Bertuzzi & Dobes play."
       };
 
       daysOfWeek.forEach((day, idx) => {
@@ -1512,6 +1583,7 @@
           if (p.slot !== 'IR' && p.schedule && p.schedule[day]) oppCount++;
         });
 
+        const cap = getDailyLineupCapacity(day);
         const isSelected = (idx === todayIndex);
         const isPast = (idx < realToday);
         const isRealToday = (idx === realToday);
@@ -1528,6 +1600,10 @@
           statusBadge = '<span class="badge-status" style="background:rgba(255,255,255,0.06); color:var(--text-muted); font-size:0.65rem; padding: 1px 5px;">Done</span>';
         }
 
+        let slotBadge = cap.isFull 
+          ? `<span class="count-chip" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-weight:700;">Full (14/14)</span>`
+          : `<span class="count-chip" style="background:rgba(52,211,153,0.15); color:var(--accent-green); border:1px solid rgba(52,211,153,0.3); font-weight:700;">${cap.totalOpenSlots} Open</span>`;
+
         card.innerHTML = `
           <div class="day-header">
             <span class="day-name">${day}</span>
@@ -1535,6 +1611,7 @@
           </div>
           <div class="day-count">Your Active: <span class="count-chip chip-my">${myCount}</span></div>
           <div class="day-count">Opponent: <span class="count-chip chip-opp">${oppCount}</span></div>
+          <div class="day-count">Starting Spots: ${slotBadge}</div>
           <div class="day-tip">${dayTips[day]}</div>
         `;
         container.appendChild(card);
