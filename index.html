@@ -411,6 +411,67 @@
     .player-pill { font-weight: 700; color: #fff; display: inline-flex; align-items: center; gap: 6px; }
     .pos-pill { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; padding: 2px 6px; background: rgba(255, 255, 255, 0.08); border-radius: 4px; color: var(--text-muted); }
 
+    /* Live Intelligence Bar */
+    .intel-tracker-bar {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.85));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .intel-title {
+      font-size: 0.84rem;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1 1 450px;
+    }
+    .intel-badge {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .intel-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .intel-link {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--primary);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .intel-link:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: var(--primary);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
     /* Timeline */
     .timeline-container {
       background: var(--bg-card);
@@ -632,6 +693,28 @@
       <div class="section-title">
         Top 3 Priority Moves for Week 4
         <span id="recsSubtitle">Detailed rationale, schedule fit & statistical reasoning for each move</span>
+      </div>
+
+      <!-- Real-Time Intel & Injury Tracker Bar -->
+      <div class="intel-tracker-bar">
+        <div class="intel-title">
+          <span class="intel-badge">🚨 Verified Live Intel</span>
+          <span><strong>Rangers Goalie Alert:</strong> Dylan Garand is the active NYR starter with Shesterkin & Korpisalo out injured (averaging <strong>5.19 actual PPG</strong>). <strong>Do NOT drop Garand.</strong></span>
+        </div>
+        <div class="intel-links">
+          <a href="https://www.dailyfaceoff.com/nhl-starting-goalies" target="_blank" rel="noopener" class="intel-link" title="Confirmed Daily Faceoff starting goalies">
+            🥅 Daily Faceoff Starters ↗
+          </a>
+          <a href="https://www.dailyfaceoff.com/teams/new-york-rangers/line-combinations" target="_blank" rel="noopener" class="intel-link" title="Daily Faceoff Line Combinations & PP Units">
+            📋 Live Lines & PP1 ↗
+          </a>
+          <a href="https://www.rotowire.com/hockey/injury-report.php" target="_blank" rel="noopener" class="intel-link" title="Rotowire Real-Time NHL Injury Report">
+            🏥 Rotowire Injury Wire ↗
+          </a>
+          <a href="https://www.nhl.com/scores" target="_blank" rel="noopener" class="intel-link" title="Official NHL Gamecenter">
+            🏒 NHL Scores & Gamecenter ↗
+          </a>
+        </div>
       </div>
 
       <!-- Container rendered dynamically by recalculateStrategy() -->
@@ -922,11 +1005,11 @@
           </div>
           <div class="action-row" style="margin-bottom: 6px;">
             <span>Suggested Drop:</span>
-            <span class="player-pill" style="color: var(--accent-rose);">${hasGarandOnRoster ? '❌ Dylan Garand (NYR, G - 0 starts)' : '❌ Lowest projected bench player'}</span>
+            <span class="player-pill" style="color: var(--accent-rose);">❌ Gabriel Landeskog (COL &bull; 2.35 avg) or open bench spot</span>
           </div>
           <div class="action-row">
-            <span>Schedule Slot:</span>
-            <span class="player-pill" style="color: var(--primary);">Active on ${currentDay} slate</span>
+            <span>Goalie Status:</span>
+            <span class="player-pill" style="color: var(--accent-green);">✅ Dylan Garand active starter tonight vs TOR (5.19 PPG)</span>
           </div>
         </div>
       `;
@@ -978,7 +1061,7 @@
           </div>
           <div class="action-row" style="margin-bottom: 6px;">
             <span>Recommended Drop:</span>
-            <span class="player-pill" style="color: var(--accent-rose);">${hasGarandOnRoster ? '❌ Dylan Garand (G, NYR)' : '❌ Open streamer spot after tonight'}</span>
+            <span class="player-pill" style="color: var(--accent-rose);">❌ Open streamer spot after tonight / Landeskog</span>
           </div>
           <div class="action-row">
             <span>Schedule Advantage:</span>
@@ -989,32 +1072,35 @@
       container.appendChild(card2);
 
       // ==========================================
-      // CARD 3: GOALIE CREASE STABILIZATION
+      // CARD 3: GOALIE CREASE MANAGEMENT & DEPTH
       // ==========================================
       const card3 = document.createElement('div');
       card3.className = 'strat-card';
       card3.innerHTML = `
         <div class="strat-header">
-          <span class="strat-badge badge-goalie">🥅 Move #3: Goalie Upgrade</span>
+          <span class="strat-badge badge-goalie">🥅 Move #3: Goalie Crease Management</span>
           <span class="badge-rank">Priority 3</span>
         </div>
-        <h3>Add John Gibson (G, DET) – Everyday Starting Crease</h3>
+        <h3>Crease Report: Garand & Skinner Active | Depth Target: John Gibson</h3>
+        <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #6ee7b7;">
+          🛡️ <strong>Rangers Goalie Starting Update:</strong> Dylan Garand has taken over as the confirmed #1 starter for the NY Rangers with Igor Shesterkin (knee) and Joonas Korpisalo (IR) sidelined. Garand has delivered <strong>36.4 actual points (5.19 PPG)</strong> under your scoring system. <strong>Hold and start Garand tonight vs Toronto.</strong>
+        </div>
         <div class="why-section">
-          <div class="why-title">🔍 Why John Gibson is the Top Goalie Target:</div>
+          <div class="why-title">🔍 Why Add John Gibson for Additional Crease Depth:</div>
           <ul class="why-list">
-            <li><strong>Workhorse Starting Workload:</strong> Undisputed #1 starter for Detroit; projected for 26 wins and massive save volume under your scoring system (+4.0 Win, +0.2 Save, -0.75 GA).</li>
-            <li><strong>Immediate Starts This Week:</strong> Detroit plays Thursday @ Vancouver and Saturday @ Calgary, bolstering your goalie points for the weekend showdown.</li>
-            <li><strong>Replaces Dead Roster Spot:</strong> Dylan Garand is an AHL backup goalie for the Rangers with 0 starts. Dropping Garand for Gibson turns an empty slot into guaranteed weekly points.</li>
+            <li><strong>Workhorse Starting Volume:</strong> With Hellebuyck still sidelined on IR, adding Gibson gives you a 3rd everyday starter alongside Skinner and Garand (+4.0 Win, +0.20 Save, -0.75 GA).</li>
+            <li><strong>Immediate & Weekend Slate:</strong> Detroit plays Thursday @ Vancouver and Saturday @ Calgary, maximizing scoring on heavy game nights.</li>
+            <li><strong>Bench Upgrade:</strong> Darcy Kuemper (1.77 actual PPG) is currently underperforming on your bench; Gibson provides a reliable 4.23 projected average.</li>
           </ul>
         </div>
         <div class="backups-container">
-          <div class="backups-title">🔄 Backup Goalie Choices:</div>
+          <div class="backups-title">🔄 Backup Goalie Targets:</div>
           <div class="backup-item">
             <div class="backup-header">
               <span class="backup-name">1. Jakub Dobes <span class="pos-pill">G &bull; MTL</span></span>
               <span class="backup-stat">Fri & Sun &bull; 207.8 Pts</span>
             </div>
-            <div class="backup-reason">Starts Montreal's light off-night games Friday @ CHI and Sunday @ WPG; great off-night alignment with 5.20 avg fantasy pts.</div>
+            <div class="backup-reason">Starts Montreal's light off-night games Friday @ CHI and Sunday @ WPG; elite off-night alignment with 5.20 avg fantasy pts.</div>
           </div>
           <div class="backup-item">
             <div class="backup-header">
@@ -1026,16 +1112,16 @@
         </div>
         <div class="action-box" style="margin-top: 14px;">
           <div class="action-row" style="margin-bottom: 6px;">
-            <span>Target Goalie:</span>
-            <span class="player-pill" style="color: var(--accent-green);">✅ John Gibson (220.0 Proj Pts)</span>
+            <span>Crease Starters:</span>
+            <span class="player-pill" style="color: var(--accent-green);">✅ Skinner (5.37 PPG) & Garand (5.19 PPG)</span>
           </div>
           <div class="action-row" style="margin-bottom: 6px;">
-            <span>Suggested Drop:</span>
-            <span class="player-pill" style="color: var(--accent-rose);">❌ Dylan Garand (G, NYR - 0 starts)</span>
+            <span>Depth Add / Drop:</span>
+            <span class="player-pill" style="color: var(--accent-amber);">Add Gibson &bull; Drop Kuemper (1.77 PPG) or Landeskog</span>
           </div>
           <div class="action-row">
-            <span>Goalie Need:</span>
-            <span class="player-pill" style="color: var(--accent-amber);">Stabilizes goalie stats with Hellebuyck on IR</span>
+            <span>Garand Verdict:</span>
+            <span class="player-pill" style="color: var(--accent-green);">DO NOT DROP &bull; Active NYR Starter</span>
           </div>
         </div>
       `;
