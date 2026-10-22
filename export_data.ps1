@@ -1,4 +1,4 @@
-﻿$leagueId = "82784331"
+$leagueId = "82784331"
 $seasonId = "2027"
 
 Write-Host "Fetching League and Schedule..."
@@ -210,6 +210,8 @@ $dataExport = [ordered]@{
 }
 
 $dataJson = $dataExport | ConvertTo-Json -Depth 6
-$dataJsPath = "c:\Users\Andrew\Desktop\Projects\fantasy_hockey_data.js"
-"const fantasyData = $dataJson;" | Out-File -FilePath $dataJsPath -Encoding utf8
-Write-Host "Exported fantasy data to $dataJsPath"
+$dest1 = "c:\Users\Andrew\Desktop\Projects\fantasy_hockey_data.js"
+$dest2 = Join-Path $PSScriptRoot "fantasy_hockey_data.js"
+"const fantasyData = $dataJson;" | Out-File -FilePath $dest1 -Encoding utf8
+"const fantasyData = $dataJson;" | Out-File -FilePath $dest2 -Encoding utf8
+Write-Host "Exported fantasy data to $dest1 and $dest2"

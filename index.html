@@ -435,12 +435,27 @@
       display: flex;
       flex-direction: column;
       transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .day-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
     }
 
     .day-card.today {
       border-color: var(--primary);
-      background: rgba(56, 189, 248, 0.06);
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
+      background: rgba(56, 189, 248, 0.08);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.18);
+    }
+
+    .day-card.past {
+      opacity: 0.55;
+      border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .day-card.past:hover {
+      opacity: 0.85;
     }
 
     .day-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px; margin-bottom: 10px; }
@@ -692,7 +707,7 @@
           <input type="text" id="faSearch" class="search-box" placeholder="Search available players by name or team..." oninput="filterFreeAgents()">
           <div class="filter-pills">
             <button class="filter-btn active" onclick="setPosFilter('ALL')">All</button>
-            <button class="filter-btn" onclick="setPosFilter('TONIGHT')">🔥 Plays Tonight (Mon)</button>
+            <button class="filter-btn" id="btnPlaysTonight" onclick="setPosFilter('TONIGHT')">🔥 Plays Tonight</button>
             <button class="filter-btn" onclick="setPosFilter('C')">C</button>
             <button class="filter-btn" onclick="setPosFilter('LW')">LW</button>
             <button class="filter-btn" onclick="setPosFilter('RW')">RW</button>
@@ -728,7 +743,11 @@
   <script src="fantasy_hockey_data.js"></script>
   <script>
     const daysOfWeek = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const todayIndex = 0; // Monday is day 0
+    function getCurrentDayIndex() {
+      const jsDay = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+      return (jsDay === 0) ? 6 : jsDay - 1; // Mon=0, Tue=1, Wed=2, Thu=3, Fri=4, Sat=5, Sun=6
+    }
+    let todayIndex = getCurrentDayIndex();
     let currentPosFilter = 'ALL';
     let liveRosteredPlayerIds = new Set();
     let currentMyRoster = fantasyData.myTeam.roster;
@@ -757,6 +776,15 @@
       event.currentTarget.classList.add('active');
     }
 
+    function selectDay(idx) {
+      todayIndex = idx;
+      recalculateStrategy();
+      renderPlaybook();
+      renderRosterTable(currentMyRoster, 'myRosterTable');
+      renderRosterTable(currentOppRoster, 'oppRosterTable');
+      filterFreeAgents();
+    }
+
     function isPlayerOnMyTeam(nameOrId) {
       return currentMyRoster.some(p => p.id == nameOrId || p.name.toLowerCase() === String(nameOrId).toLowerCase());
     }
@@ -781,293 +809,187 @@
       });
     }
 
-    // Dynamic Live Strategy & Move Generator with Deep "Why That Player" Breakdowns
+    // Dynamic Live Strategy & Move Generator
     function recalculateStrategy() {
       const container = document.getElementById('stratCardsContainer');
       container.innerHTML = '';
 
+      const currentDay = daysOfWeek[todayIndex];
+      const realTodayIdx = getCurrentDayIndex();
+      const isViewingRealToday = (todayIndex === realTodayIdx);
+
+      // Dynamically update the filter button label
+      const btnTonight = document.getElementById('btnPlaysTonight');
+      if (btnTonight) {
+        btnTonight.innerText = `🔥 Plays ${isViewingRealToday ? 'Tonight' : currentDay} (${currentDay})`;
+      }
+
       const availablePool = getAvailableFreeAgents();
-      const hasCrouseOnRoster = isPlayerOnMyTeam("Lawson Crouse") || isPlayerOnMyTeam(PLAYER_IDS.CROUSE);
 
-      // Verify availability of top targets
-      const verhaegheAvail = isPlayerAvailable(PLAYER_IDS.VERHAEGHE) || isPlayerAvailable("Carter Verhaeghe");
-      const boeserAvail = isPlayerAvailable(PLAYER_IDS.BOESER) || isPlayerAvailable("Brock Boeser");
-      const gibsonAvail = isPlayerAvailable(PLAYER_IDS.GIBSON) || isPlayerAvailable("John Gibson");
-      const hartmanAvail = isPlayerAvailable(PLAYER_IDS.HARTMAN) || isPlayerAvailable("Ryan Hartman");
+      // Check current roster state
+      const hasBoeserOnRoster = isPlayerOnMyTeam("Brock Boeser") || isPlayerOnMyTeam(PLAYER_IDS.BOESER);
+      const hasJennerOnRoster = isPlayerOnMyTeam("Boone Jenner");
+      const hasGarandOnRoster = isPlayerOnMyTeam("Dylan Garand") || isPlayerOnMyTeam(PLAYER_IDS.GARAND);
 
-      // Find top forward targets for Move #2 (1 Primary + 2 Backups)
-      const forwardOptions = [];
-      if (verhaegheAvail) {
-        forwardOptions.push({
-          name: "Carter Verhaeghe", team: "FLA", pos: "LW", projPts: 216.7, projAvg: 2.68, gamesCount: 3, scheduleStr: "Wed, Thu, Sun",
-          reasons: [
-            "<strong>Prime Off-Night Alignment:</strong> Florida plays on <strong>Wednesday and Sunday</strong>—two low-volume days across the NHL (only 2 games Wed, 5 games Sun). He steps right into your active lineup with 0% chance of bench conflict.",
-            "<strong>High-Volume Shooting:</strong> Projected for <strong>218 SOG and 25 Goals</strong> (+3.0 pts/Goal, +0.15 pts/SOG), skating top-line minutes with Barkov/Reinhart.",
-            "<strong>Elite Ownership:</strong> 70.9% owned across ESPN; highest-ranked offensive weapon available in free agency."
-          ],
-          quickSummary: "Unlocks Wed & Sun off-nights; heavy goal & shot volume (25 G, 218 SOG)."
-        });
-      }
-      if (boeserAvail) {
-        forwardOptions.push({
-          name: "Brock Boeser", team: "VAN", pos: "RW", projPts: 217.6, projAvg: 2.69, gamesCount: 3, scheduleStr: "Tue, Thu, Sun",
-          reasons: [
-            "<strong>Elite Goal Scoring:</strong> Projected for <strong>27 Goals</strong> (217.6 total fantasy pts). Lethal power-play triggerman on Vancouver's PP1.",
-            "<strong>Sunday Finale Coverage:</strong> Vancouver plays on <strong>Sunday</strong> vs. NY Islanders, giving you a clutch starter for the matchup-deciding finale.",
-            "<strong>Positional RW Fit:</strong> Natural RW eligibility helps balance your forward lineup alongside Holloway and Heineman."
-          ],
-          quickSummary: "PP1 sniper with 27 projected goals and Sunday finale matchup against NYI."
-        });
-      }
-      if (hartmanAvail) {
-        forwardOptions.push({
-          name: "Ryan Hartman", team: "MIN", pos: "C", projPts: 199.8, projAvg: 2.63, gamesCount: 4, scheduleStr: "Tue, Thu, Sat, Sun",
-          reasons: [
-            "<strong>Max 4-Game Volume:</strong> Minnesota is one of only five NHL teams playing 4 games this week.",
-            "<strong>Banger Stat Floor:</strong> Delivers hits (67 proj) and blocks (38 proj) alongside 22 projected goals.",
-            "<strong>Sunday Night Coverage:</strong> Plays Sunday against Chicago to maximize active points before the scoring period locks."
-          ],
-          quickSummary: "Plays 4 games this week including Sunday night; strong physical peripheral floor."
-        });
-      }
-      // Fill additional forward backups if needed (e.g. Tyler Bertuzzi, Pavel Zacha, Jordan Kyrou)
-      if (forwardOptions.length < 3) {
-        forwardOptions.push({
-          name: "Tyler Bertuzzi", team: "CHI", pos: "LW", projPts: 211.9, projAvg: 2.62, gamesCount: 2, scheduleStr: "Fri, Sun",
-          reasons: [
-            "<strong>Pure Off-Night Schedule:</strong> Chicago plays Friday and Sunday—two light nights where you have open starter spots.",
-            "<strong>High Goal Projection:</strong> 30 projected goals with net-front power-play time."
-          ],
-          quickSummary: "Plays Friday & Sunday off-nights; 30 projected goals with heavy net-front time."
-        });
-      }
-      if (forwardOptions.length < 3) {
-        forwardOptions.push({
-          name: "Pavel Zacha", team: "BOS", pos: "C", projPts: 221.9, projAvg: 2.74, gamesCount: 3, scheduleStr: "Tue, Thu, Sat",
-          reasons: [
-            "<strong>High Offensive Projection:</strong> 222 projected points (27 G, 37 A, 64 PTS pace).",
-            "<strong>Top-Six Center Minutes:</strong> Plays key top-line / PP minutes in Boston."
-          ],
-          quickSummary: "64-point pace (27 G, 37 A) playing top-six center minutes in Boston."
-        });
-      }
-
-      const topFwdTarget = forwardOptions[0];
-      const backupFwd1 = forwardOptions[1];
-      const backupFwd2 = forwardOptions[2];
-
-      // Goalie Targets for Move #3 (1 Primary + 2 Backups)
-      const goalieOptions = [];
-      if (gibsonAvail) {
-        goalieOptions.push({
-          name: "John Gibson", team: "DET", projPts: 220.1, projAvg: 4.15, gamesCount: 3,
-          reasons: [
-            "<strong>Starting Goalie Volume:</strong> With Hellebuyck on IR, your goalie stats are hurting. Detroit plays 3 games this week (Tue @ SEA, Thu @ VAN, Sat @ CGY).",
-            "<strong>Scoring System Synergy:</strong> Under your league's scoring (+4.0 Win, +0.2 Save, -0.75 GA), Gibson's 26 projected wins and high shot volume generate elite point ceilings.",
-            "<strong>Everyday #1 Starter:</strong> Dylan Garand has 0 confirmed starts; Gibson provides everyday NHL #1 starter security."
-          ],
-          quickSummary: "Everyday #1 starter in Detroit; 26 projected wins and 3 starts this week."
-        });
-      }
-      goalieOptions.push({
-        name: "Dan Vladar", team: "PHI", projPts: 205.3, projAvg: 4.37, gamesCount: 3,
-        reasons: [
-          "<strong>Wednesday Off-Night Start:</strong> Philadelphia plays Wednesday vs. Columbus, giving you a rare weekday goalie start when only 2 games are on.",
-          "<strong>Strong Rate Stats:</strong> Projected for a 2.67 GAA and .902 SV% with 26 wins pace."
-        ],
-        quickSummary: "Starts Wednesday off-night vs Columbus; steady 2.67 GAA and .902 SV%."
-      });
-      goalieOptions.push({
-        name: "Dustin Wolf", team: "CGY", projPts: 191.5, projAvg: 3.55, gamesCount: 2,
-        reasons: [
-          "<strong>Calgary's Clear Goalie of the Future:</strong> Secures the primary crease with high volume saves (+0.2 pts/save).",
-          "<strong>Weekend Coverage:</strong> Calgary plays Saturday vs Detroit, a key matchup day."
-        ],
-        quickSummary: "High save ceiling in Calgary; locks down Saturday night crease."
-      });
-
-      const topGoalieTarget = goalieOptions[0];
-      const backupGoalie1 = goalieOptions[1];
-      const backupGoalie2 = goalieOptions[2];
-
-      // Tonight Streamer Options (1 Primary + 2 Backups)
-      const tonightOptions = [
-        {
-          name: "Lawson Crouse", team: "UTA", pos: "RW", projPts: 211.2,
-          reasons: [
-            "<strong>Capitalized on Open Slot:</strong> Both of your starting RWs (Holloway, Heineman) were idle tonight. Adding Crouse gives you a live starter vs. 0 pts.",
-            "<strong>Zero Risk Drop:</strong> Dropped Mark Jankowski (CAR), who was designated OUT with 0 projected fantasy points.",
-            "<strong>Favorable Monday Matchup:</strong> Utah hosts the Pittsburgh Penguins at home, facing a defense that allows high shot volume."
-          ],
-          quickSummary: "Power forward facing shaky Pittsburgh defense at home."
-        },
-        {
-          name: "Jack Roslovic", team: "TOR", pos: "C/RW", projPts: 144.0,
-          reasons: [
-            "<strong>Elite Team Matchup:</strong> Toronto hosts San Jose at home, the easiest defensive matchup on Monday's slate.",
-            "<strong>Dual RW Eligibility:</strong> Slides right into your open RW or UTIL slot.",
-            "<strong>Hot Start:</strong> 6 points in 9 games (2.54 avg) on a loaded Maple Leafs roster."
-          ],
-          quickSummary: "High-scoring home matchup against San Jose; dual C/RW eligibility."
-        },
-        {
-          name: "Eeli Tolvanen", team: "NYR", pos: "LW/RW", projPts: 212.7,
-          reasons: [
-            "<strong>Heavy Peripheral Banger:</strong> 212.7 projected points with reliable shot and hit floor (+0.15 SOG, +0.25 hit).",
-            "<strong>Home Game at MSG:</strong> Rangers host Anaheim at Madison Square Garden tonight."
-          ],
-          quickSummary: "High floor banger stats (hits/shots) playing at MSG against Anaheim."
-        }
-      ];
+      // Check for active players on bench for currentDay
+      const benchedActiveForDay = currentMyRoster.filter(p => p.slot === 'BENCH' && p.schedule && p.schedule[currentDay]);
 
       // ==========================================
-      // CARD 1: TONIGHT'S MOVE / STATUS (MONDAY)
+      // CARD 1: DYNAMIC STREAMER FOR CURRENT DAY
       // ==========================================
+      const dayStreamers = availablePool.filter(p => p.schedule && p.schedule[currentDay] && p.pos !== 'G')
+        .sort((a, b) => b.projPts - a.projPts);
+
+      const topStreamer = dayStreamers[0] || {
+        name: "Tyler Bertuzzi", team: "CHI", pos: "LW", projPts: 211.9, projAvg: 2.62,
+        schedule: { [currentDay]: "Active Game" }
+      };
+      const backupStreamer1 = dayStreamers[1] || {
+        name: "Pavel Zacha", team: "BOS", pos: "C", projPts: 222.0, projAvg: 2.74,
+        schedule: { [currentDay]: "Active Game" }
+      };
+      const backupStreamer2 = dayStreamers[2] || {
+        name: "Ivan Barbashev", team: "VGK", pos: "LW", projPts: 215.0, projAvg: 2.59,
+        schedule: { [currentDay]: "Active Game" }
+      };
+
+      let streamerReasons = [];
+      if (topStreamer.name.includes("Sherwood")) {
+        streamerReasons = [
+          `<strong>Elite Peripheral Floor & Matchup:</strong> San Jose visits Ottawa (${topStreamer.schedule[currentDay] || '@ OTT'}). Sherwood provides a 31-goal scoring pace with massive physical hit (+0.25) and shot (+0.15) volume.`,
+          `<strong>Top Point Projection on Slate:</strong> Leads all available free agents playing ${currentDay} with <strong>${topStreamer.projPts} projected points</strong> (3.05 avg/game).`,
+          `<strong>Immediate Starting Utilization:</strong> Steps cleanly into your active starting or UTIL slot with 0% bench risk.`
+        ];
+      } else if (topStreamer.name.includes("Bertuzzi")) {
+        streamerReasons = [
+          `<strong>Prime Off-Night Opportunity:</strong> Chicago plays ${topStreamer.schedule[currentDay] || 'vs MTL'} on a light off-night slate where your starting lineup has open spots.`,
+          `<strong>Top-Line & PP1 Deployment:</strong> Skates alongside Connor Bedard with guaranteed net-front power-play time (30 projected goals).`,
+          `<strong>Weekend Continuity:</strong> Also plays Sunday's matchup finale vs Florida, delivering multi-game value.`
+        ];
+      } else {
+        streamerReasons = [
+          `<strong>Immediate Point Production:</strong> ${topStreamer.team} plays <strong>${topStreamer.schedule[currentDay]}</strong> on ${currentDay}. Steps directly into your active lineup for live scoring vs 0 bench pts.`,
+          `<strong>Strong Baseline:</strong> Projected for <strong>${topStreamer.projPts} fantasy points</strong> (${topStreamer.projAvg} average per game).`,
+          `<strong>Clean Roster Fit:</strong> High-floor streamer option without blocking core starters.`
+        ];
+      }
+
+      let benchAlertHtml = '';
+      if (benchedActiveForDay.length > 0) {
+        benchAlertHtml = `
+          <div style="background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.4); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #fbbf24;">
+            ⚠️ <strong>Lineup Alert:</strong> ${benchedActiveForDay.map(p => `<strong>${p.name}</strong> (${p.schedule[currentDay]})`).join(', ')} is currently on your <strong>BENCH</strong>. Swap into your active lineup before puck drop!
+          </div>
+        `;
+      }
+
       const card1 = document.createElement('div');
       card1.className = 'strat-card';
-
-      if (hasCrouseOnRoster) {
-        card1.innerHTML = `
-          <div class="strat-header">
-            <span class="strat-badge badge-complete">✅ Move #1 Executed</span>
-            <span class="badge-rank">Priority 1</span>
-          </div>
-          <h3>Lawson Crouse (RW, UTA) – Active Tonight</h3>
-          <div class="why-section">
-            <div class="why-title">🔍 Why You Made This Move:</div>
-            <ul class="why-list">
-              <li><strong>Capitalized on Open Slot:</strong> Both of your starting RWs (Holloway, Heineman) were idle tonight. Adding Crouse gives you a live starter vs. 0 pts.</li>
-              <li><strong>Zero Risk Drop:</strong> Dropped Mark Jankowski (CAR), who was designated OUT with 0 projected fantasy points.</li>
-              <li><strong>Favorable Monday Matchup:</strong> Utah hosts Pittsburgh at home, facing a defense that allows high shot volume.</li>
-            </ul>
-          </div>
-          <div class="backups-container">
-            <div class="backups-title">🔄 Other Monday Options Considered:</div>
-            <div class="backup-item">
-              <div class="backup-header">
-                <span class="backup-name">1. Jack Roslovic <span class="pos-pill">C/RW &bull; TOR</span></span>
-                <span class="backup-stat">vs SJ Tonight</span>
-              </div>
-              <div class="backup-reason">Top offensive environment vs San Jose; pure goal-scoring upside but lacks Crouse's physical floor.</div>
+      card1.innerHTML = `
+        <div class="strat-header">
+          <span class="strat-badge badge-today">⚡ Move #1: ${isViewingRealToday ? "Today's Streamer" : currentDay + " Streamer"}</span>
+          <span class="badge-rank">Priority 1</span>
+        </div>
+        <h3>Stream ${topStreamer.name} (${topStreamer.pos}, ${topStreamer.team}) – ${currentDay}</h3>
+        ${benchAlertHtml}
+        <div class="why-section">
+          <div class="why-title">🔍 Why Stream ${topStreamer.name} on ${currentDay}:</div>
+          <ul class="why-list">
+            ${streamerReasons.map(r => `<li>${r}</li>`).join('')}
+          </ul>
+        </div>
+        <div class="backups-container">
+          <div class="backups-title">🔄 Other ${currentDay} Streamer Choices:</div>
+          <div class="backup-item">
+            <div class="backup-header">
+              <span class="backup-name">1. ${backupStreamer1.name} <span class="pos-pill">${backupStreamer1.pos} &bull; ${backupStreamer1.team}</span></span>
+              <span class="backup-stat">${backupStreamer1.schedule[currentDay] || 'Plays'} &bull; ${backupStreamer1.projPts} Pts</span>
             </div>
-            <div class="backup-item">
-              <div class="backup-header">
-                <span class="backup-name">2. Eeli Tolvanen <span class="pos-pill">LW/RW &bull; NYR</span></span>
-                <span class="backup-stat">vs ANA Tonight</span>
-              </div>
-              <div class="backup-reason">Solid secondary banger option with hit/shot volume playing Anaheim at Madison Square Garden.</div>
-            </div>
+            <div class="backup-reason">${backupStreamer1.projAvg} avg fantasy pts/game. High scoring environment in active top-six role.</div>
           </div>
-          <div class="action-box" style="margin-top: 14px;">
-            <div class="action-row" style="margin-bottom: 6px;">
-              <span>Roster Status:</span>
-              <span class="player-pill" style="color: var(--accent-green);">In Active Lineup (UTIL Slot)</span>
+          <div class="backup-item">
+            <div class="backup-header">
+              <span class="backup-name">2. ${backupStreamer2.name} <span class="pos-pill">${backupStreamer2.pos} &bull; ${backupStreamer2.team}</span></span>
+              <span class="backup-stat">${backupStreamer2.schedule[currentDay] || 'Plays'} &bull; ${backupStreamer2.projPts} Pts</span>
             </div>
-            <div class="action-row">
-              <span>Next Action:</span>
-              <span class="player-pill" style="color: var(--accent-amber);">Hold tonight &bull; Swap tomorrow for Move #2</span>
-            </div>
+            <div class="backup-reason">${backupStreamer2.projAvg} avg fantasy pts/game. Top-line / power-play deployment with dependable shooting.</div>
           </div>
-        `;
-      } else {
-        card1.innerHTML = `
-          <div class="strat-header">
-            <span class="strat-badge badge-today">⚡ Move #1: Tonight Streamer</span>
-            <span class="badge-rank">Priority 1</span>
+        </div>
+        <div class="action-box" style="margin-top: 14px;">
+          <div class="action-row" style="margin-bottom: 6px;">
+            <span>Target Streamer:</span>
+            <span class="player-pill" style="color: var(--accent-green);">✅ ${topStreamer.name} (${topStreamer.schedule[currentDay]})</span>
           </div>
-          <h3>Stream Lawson Crouse (RW, UTA) Tonight</h3>
-          <div class="why-section">
-            <div class="why-title">🔍 Why Add Crouse Tonight:</div>
-            <ul class="why-list">
-              <li><strong>Open Starting RW Slot:</strong> Holloway and Heineman are off; Crouse steps directly into your starting lineup with zero bench waste.</li>
-              <li><strong>Matchup Advantage:</strong> Utah faces Pittsburgh at home tonight, a prime scoring environment for power forwards.</li>
-              <li><strong>Clean Drop:</strong> Mark Jankowski (Out / 0 pts) can be safely dropped without losing any fantasy value.</li>
-            </ul>
+          <div class="action-row" style="margin-bottom: 6px;">
+            <span>Suggested Drop:</span>
+            <span class="player-pill" style="color: var(--accent-rose);">${hasGarandOnRoster ? '❌ Dylan Garand (NYR, G - 0 starts)' : '❌ Lowest projected bench player'}</span>
           </div>
-          <div class="backups-container">
-            <div class="backups-title">🔄 Backup Tonight Options:</div>
-            <div class="backup-item">
-              <div class="backup-header">
-                <span class="backup-name">1. Jack Roslovic <span class="pos-pill">C/RW &bull; TOR</span></span>
-                <span class="backup-stat">vs SJ Tonight</span>
-              </div>
-              <div class="backup-reason">Lethal offensive matchup hosting San Jose; great for pure goals and power play scoring.</div>
-            </div>
-            <div class="backup-item">
-              <div class="backup-header">
-                <span class="backup-name">2. Eeli Tolvanen <span class="pos-pill">LW/RW &bull; NYR</span></span>
-                <span class="backup-stat">vs ANA Tonight</span>
-              </div>
-              <div class="backup-reason">Physical peripheral floor with high shot rate hosting Anaheim at MSG.</div>
-            </div>
+          <div class="action-row">
+            <span>Schedule Slot:</span>
+            <span class="player-pill" style="color: var(--primary);">Active on ${currentDay} slate</span>
           </div>
-          <div class="action-box" style="margin-top: 14px;">
-            <div class="action-row" style="margin-bottom: 6px;">
-              <span>Drop:</span>
-              <span class="player-pill" style="color: var(--accent-rose);">❌ Mark Jankowski (C, CAR)</span>
-            </div>
-            <div class="action-row">
-              <span>Primary Add:</span>
-              <span class="player-pill" style="color: var(--accent-green);">✅ Lawson Crouse (RW, UTA)</span>
-            </div>
-          </div>
-        `;
-      }
+        </div>
+      `;
       container.appendChild(card1);
 
       // ==========================================
-      // CARD 2: NEXT PLANNED MOVE (FORWARD UPGRADE)
+      // CARD 2: WEEKEND OFF-NIGHT TARGET (FRI & SUN)
       // ==========================================
       const card2 = document.createElement('div');
       card2.className = 'strat-card';
       card2.innerHTML = `
         <div class="strat-header">
-          <span class="strat-badge badge-long">🎯 Move #2: Rest-of-Week Core</span>
+          <span class="strat-badge badge-long">🎯 Move #2: Weekend Off-Night Weapon</span>
           <span class="badge-rank">Priority 2</span>
         </div>
-        <h3>Add ${topFwdTarget.name} (${topFwdTarget.pos}, ${topFwdTarget.team})</h3>
+        <h3>Add Tyler Bertuzzi (LW, CHI) – Fri & Sun Off-Nights</h3>
+        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #7dd3fc;">
+          💡 <strong>League Roster Update:</strong> Carter Verhaeghe was claimed off waivers by Broad Street Bullies. Brock Boeser is already rostered on Dead Lokomotiv. Shifting primary rest-of-week target to <strong>Tyler Bertuzzi (CHI)</strong> for Friday & Sunday off-night volume.
+        </div>
         <div class="why-section">
-          <div class="why-title">🔍 Why ${topFwdTarget.name}:</div>
+          <div class="why-title">🔍 Why Tyler Bertuzzi is the Top Rest-of-Week Move:</div>
           <ul class="why-list">
-            ${topFwdTarget.reasons.map(r => `<li>${r}</li>`).join('')}
+            <li><strong>Dual Off-Night Alignment:</strong> Chicago plays on <strong>Friday (vs MTL) and Sunday (vs FLA)</strong>. Friday has only 2 games and Sunday only 5 games across the NHL, guaranteeing Bertuzzi active starts with zero bench waste.</li>
+            <li><strong>Top-Line & PP1 Net-Front Presence:</strong> Skates on Chicago's top line alongside Connor Bedard with heavy power-play time (projected for 30 goals, 211.9 fantasy points).</li>
+            <li><strong>Favorable Defensive Matchups:</strong> Montreal ranks in the bottom tier in goals allowed (3.33 GA/G), setting up a high scoring ceiling on Friday.</li>
           </ul>
         </div>
         <div class="backups-container">
-          <div class="backups-title">🔄 Backup Forward Choices:</div>
+          <div class="backups-title">🔄 Backup Weekend Choices:</div>
           <div class="backup-item">
             <div class="backup-header">
-              <span class="backup-name">1. ${backupFwd1.name} <span class="pos-pill">${backupFwd1.pos} &bull; ${backupFwd1.team}</span></span>
-              <span class="backup-stat">${backupFwd1.projPts} Pts</span>
+              <span class="backup-name">1. Ryan Hartman <span class="pos-pill">C &bull; MIN</span></span>
+              <span class="backup-stat">Sat & Sun &bull; 199.8 Pts</span>
             </div>
-            <div class="backup-reason">${backupFwd1.quickSummary}</div>
+            <div class="backup-reason">Minnesota plays Saturday and Sunday finale vs Vancouver. Physical banger floor (hits + blocks) with 22 projected goals.</div>
           </div>
           <div class="backup-item">
             <div class="backup-header">
-              <span class="backup-name">2. ${backupFwd2.name} <span class="pos-pill">${backupFwd2.pos} &bull; ${backupFwd2.team}</span></span>
-              <span class="backup-stat">${backupFwd2.projPts} Pts</span>
+              <span class="backup-name">2. Anthony Cirelli <span class="pos-pill">C &bull; TB</span></span>
+              <span class="backup-stat">Fri & Sat &bull; 201.4 Pts</span>
             </div>
-            <div class="backup-reason">${backupFwd2.quickSummary}</div>
+            <div class="backup-reason">Plays Friday @ Colorado (off-night) and Saturday @ Vegas. Top-six center with steady point production.</div>
           </div>
         </div>
         <div class="action-box" style="margin-top: 14px;">
           <div class="action-row" style="margin-bottom: 6px;">
             <span>Target Player:</span>
-            <span class="player-pill" style="color: var(--accent-green);">✅ ${topFwdTarget.name} (${topFwdTarget.projPts} Proj Pts)</span>
+            <span class="player-pill" style="color: var(--accent-green);">✅ Tyler Bertuzzi (211.9 Proj Pts)</span>
           </div>
           <div class="action-row" style="margin-bottom: 6px;">
             <span>Recommended Drop:</span>
-            <span class="player-pill" style="color: var(--accent-rose);">${hasCrouseOnRoster ? '❌ Lawson Crouse (Tuesday morning)' : '❌ Open streamer slot'}</span>
+            <span class="player-pill" style="color: var(--accent-rose);">${hasGarandOnRoster ? '❌ Dylan Garand (G, NYR)' : '❌ Open streamer spot after tonight'}</span>
           </div>
           <div class="action-row">
-            <span>Schedule Benefit:</span>
-            <span class="player-pill" style="color: var(--primary);">${topFwdTarget.scheduleStr} (${topFwdTarget.gamesCount} Games)</span>
+            <span>Schedule Advantage:</span>
+            <span class="player-pill" style="color: var(--primary);">Fri vs MTL &bull; Sun vs FLA (2 Off-Night Starts)</span>
           </div>
         </div>
       `;
       container.appendChild(card2);
 
       // ==========================================
-      // CARD 3: GOALTENDING CATEGORY STABILIZATION
+      // CARD 3: GOALIE CREASE STABILIZATION
       // ==========================================
       const card3 = document.createElement('div');
       card3.className = 'strat-card';
@@ -1076,42 +998,44 @@
           <span class="strat-badge badge-goalie">🥅 Move #3: Goalie Upgrade</span>
           <span class="badge-rank">Priority 3</span>
         </div>
-        <h3>Add ${topGoalieTarget.name} (G, ${topGoalieTarget.team})</h3>
+        <h3>Add John Gibson (G, DET) – Everyday Starting Crease</h3>
         <div class="why-section">
-          <div class="why-title">🔍 Why ${topGoalieTarget.name}:</div>
+          <div class="why-title">🔍 Why John Gibson is the Top Goalie Target:</div>
           <ul class="why-list">
-            ${topGoalieTarget.reasons.map(r => `<li>${r}</li>`).join('')}
+            <li><strong>Workhorse Starting Workload:</strong> Undisputed #1 starter for Detroit; projected for 26 wins and massive save volume under your scoring system (+4.0 Win, +0.2 Save, -0.75 GA).</li>
+            <li><strong>Immediate Starts This Week:</strong> Detroit plays Thursday @ Vancouver and Saturday @ Calgary, bolstering your goalie points for the weekend showdown.</li>
+            <li><strong>Replaces Dead Roster Spot:</strong> Dylan Garand is an AHL backup goalie for the Rangers with 0 starts. Dropping Garand for Gibson turns an empty slot into guaranteed weekly points.</li>
           </ul>
         </div>
         <div class="backups-container">
           <div class="backups-title">🔄 Backup Goalie Choices:</div>
           <div class="backup-item">
             <div class="backup-header">
-              <span class="backup-name">1. ${backupGoalie1.name} <span class="pos-pill">G &bull; ${backupGoalie1.team}</span></span>
-              <span class="backup-stat">${backupGoalie1.projPts} Pts</span>
+              <span class="backup-name">1. Jakub Dobes <span class="pos-pill">G &bull; MTL</span></span>
+              <span class="backup-stat">Fri & Sun &bull; 207.8 Pts</span>
             </div>
-            <div class="backup-reason">${backupGoalie1.quickSummary}</div>
+            <div class="backup-reason">Starts Montreal's light off-night games Friday @ CHI and Sunday @ WPG; great off-night alignment with 5.20 avg fantasy pts.</div>
           </div>
           <div class="backup-item">
             <div class="backup-header">
-              <span class="backup-name">2. ${backupGoalie2.name} <span class="pos-pill">G &bull; ${backupGoalie2.team}</span></span>
-              <span class="backup-stat">${backupGoalie2.projPts} Pts</span>
+              <span class="backup-name">2. Dan Vladar <span class="pos-pill">G &bull; PHI</span></span>
+              <span class="backup-stat">205.3 Pts &bull; 4.37 Avg</span>
             </div>
-            <div class="backup-reason">${backupGoalie2.quickSummary}</div>
+            <div class="backup-reason">Steady starting goalie volume in Philadelphia with 2.67 GAA and .902 SV% projection.</div>
           </div>
         </div>
         <div class="action-box" style="margin-top: 14px;">
           <div class="action-row" style="margin-bottom: 6px;">
             <span>Target Goalie:</span>
-            <span class="player-pill" style="color: var(--accent-green);">✅ ${topGoalieTarget.name} (${topGoalieTarget.projPts} Proj Pts)</span>
+            <span class="player-pill" style="color: var(--accent-green);">✅ John Gibson (220.0 Proj Pts)</span>
           </div>
           <div class="action-row" style="margin-bottom: 6px;">
             <span>Suggested Drop:</span>
-            <span class="player-pill" style="color: var(--accent-rose);">❌ Dylan Garand (G, NYR)</span>
+            <span class="player-pill" style="color: var(--accent-rose);">❌ Dylan Garand (G, NYR - 0 starts)</span>
           </div>
           <div class="action-row">
             <span>Goalie Need:</span>
-            <span class="player-pill" style="color: var(--accent-amber);">Protects G slots with Hellebuyck on IR</span>
+            <span class="player-pill" style="color: var(--accent-amber);">Stabilizes goalie stats with Hellebuyck on IR</span>
           </div>
         </div>
       `;
@@ -1197,8 +1121,20 @@
           });
         }
 
+        const hasBoeser = isPlayerOnMyTeam("Brock Boeser") || isPlayerOnMyTeam(PLAYER_IDS.BOESER);
+        const hasJenner = isPlayerOnMyTeam("Boone Jenner");
+        
+        let alertMsg = "Live sync verified with ESPN API! ";
+        if (hasBoeser && hasJenner) {
+          alertMsg += "Roster up to date: Brock Boeser & Boone Jenner active on Dead Lokomotiv; Mark Jankowski dropped.";
+        } else if (hasBoeser) {
+          alertMsg += "Roster up to date: Brock Boeser active on Dead Lokomotiv.";
+        } else {
+          alertMsg += `Live league rosters synced (${currentMyRoster.length} players on Dead Lokomotiv).`;
+        }
+
         document.getElementById('txAlert').style.display = 'flex';
-        document.getElementById('txAlertText').innerText = `Live sync verified! Lawson Crouse is active on your roster; Mark Jankowski removed.`;
+        document.getElementById('txAlertText').innerText = alertMsg;
 
         recalculateStrategy();
         renderRosterTable(currentMyRoster, 'myRosterTable');
@@ -1219,15 +1155,16 @@
     function renderPlaybook() {
       const container = document.getElementById('daysGridContainer');
       container.innerHTML = '';
+      const realToday = getCurrentDayIndex();
 
       const dayTips = {
-        "Mon": "Low volume slate (4 games). Lawson Crouse streaming in your lineup tonight!",
-        "Tue": "Heavy slate (11 games). Full lineups for both teams. Bench lower-tier options.",
-        "Wed": "Off-night (2 games). Only FLA, PHI, BUF, OTT play. Verhaeghe will get guaranteed ice time.",
-        "Thu": "Mega slate (12 games). Check lineup locks early; potential bench headaches.",
-        "Fri": "Light night (2 games). COL, TB, CHI, MTL. Landeskog, Hagel & Matheson active.",
+        "Mon": "(Completed) Low volume slate (4 games). Opening matchup day.",
+        "Tue": "(Completed) Heavy slate (11 games). Full lineups for both teams.",
+        "Wed": "(Completed) Light slate (2 games). Only 4 teams played.",
+        "Thu": "Mega slate (12 games). Check lineup locks; Boeser plays vs DET (activate off bench!).",
+        "Fri": "Crucial Off-Night (Only 2 games: COL, TB, CHI, MTL). Tyler Bertuzzi & Dobes play.",
         "Sat": "Huge Saturday (12 games). Decisive night for goalie starts and peripherals.",
-        "Sun": "Matchup finale (5 games). Florida, Dallas, Colorado, Minnesota play. Key off-night battle."
+        "Sun": "Matchup Finale (5 games: FLA, DAL, COL, MIN, WPG, MTL, CHI, NSH, VAN, NYI). Key off-night battle."
       };
 
       daysOfWeek.forEach((day, idx) => {
@@ -1242,13 +1179,26 @@
           if (p.slot !== 'IR' && p.schedule && p.schedule[day]) oppCount++;
         });
 
-        const isToday = (idx === todayIndex);
+        const isSelected = (idx === todayIndex);
+        const isPast = (idx < realToday);
+        const isRealToday = (idx === realToday);
 
         const card = document.createElement('div');
-        card.className = `day-card ${isToday ? 'today' : ''}`;
+        card.className = `day-card ${isSelected ? 'today' : ''} ${isPast ? 'past' : ''}`;
+        card.setAttribute('onclick', `selectDay(${idx})`);
+        card.setAttribute('title', `Click to inspect ${day}'s streamers and matchups`);
+
+        let statusBadge = '';
+        if (isRealToday) {
+          statusBadge = '<span class="badge-status status-active" style="font-size:0.68rem; padding: 2px 6px;">Today</span>';
+        } else if (isPast) {
+          statusBadge = '<span class="badge-status" style="background:rgba(255,255,255,0.06); color:var(--text-muted); font-size:0.65rem; padding: 1px 5px;">Done</span>';
+        }
+
         card.innerHTML = `
           <div class="day-header">
-            <span class="day-name">${day} ${isToday ? '(Today)' : ''}</span>
+            <span class="day-name">${day}</span>
+            ${statusBadge}
           </div>
           <div class="day-count">Your Active: <span class="count-chip chip-my">${myCount}</span></div>
           <div class="day-count">Opponent: <span class="count-chip chip-opp">${oppCount}</span></div>
@@ -1338,7 +1288,7 @@
 
         if (currentPosFilter === 'ALL') return true;
         if (currentPosFilter === 'TONIGHT') {
-          return p.schedule && p.schedule['Mon'];
+          return p.schedule && p.schedule[daysOfWeek[todayIndex]];
         }
         if (currentPosFilter === 'G') return p.pos === 'G';
         if (currentPosFilter === 'D') return p.pos === 'D';
