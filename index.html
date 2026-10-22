@@ -1427,9 +1427,11 @@
 
     // Accurate Player IDs for quick checks
     const PLAYER_IDS = {
+      BERTUZZI: 3114736,
       VERHAEGHE: 3042088,
       BOESER: 3899979,
       GIBSON: 2590824,
+      DOBES: 4697686,
       HARTMAN: 3042063,
       CROUSE: 3899951,
       GARAND: 4697705
@@ -1827,20 +1829,40 @@
     }
 
     function isPlayerAvailable(nameOrId) {
-      // If live IDs set has elements, check by ID or name
-      if (liveRosteredPlayerIds.size > 0) {
-        if (typeof nameOrId === 'number' || !isNaN(nameOrId)) {
-          return !liveRosteredPlayerIds.has(Number(nameOrId)) && !liveRosteredPlayerIds.has(String(nameOrId));
+      if (!nameOrId) return false;
+      const numId = (typeof nameOrId === 'number' || (!isNaN(nameOrId) && !isNaN(parseFloat(nameOrId))))
+        ? Number(nameOrId)
+        : null;
+
+      if (numId != null && liveRosteredPlayerIds.size > 0) {
+        if (liveRosteredPlayerIds.has(numId) || liveRosteredPlayerIds.has(String(numId))) {
+          return false;
         }
       }
-      return getAvailableFreeAgents().some(p => p.name.toLowerCase() === String(nameOrId).toLowerCase() || p.id == nameOrId);
+
+      const nameLower = String(nameOrId).toLowerCase().trim();
+
+      // Check if currently on any league team
+      for (const t of allLeagueTeams) {
+        if (t.roster && t.roster.some(p => (numId != null && p.id === numId) || (p.name && p.name.toLowerCase() === nameLower))) {
+          return false;
+        }
+      }
+
+      // Check available free agents
+      return getAvailableFreeAgents().some(p => (numId != null && p.id === numId) || (p.name && p.name.toLowerCase() === nameLower));
     }
 
     function getAvailableFreeAgents() {
-      return fantasyData.freeAgents.filter(p => {
+      return (fantasyData.freeAgents || []).filter(p => {
         if (isPlayerOnMyTeam(p.id) || isPlayerOnMyTeam(p.name)) return false;
         if (liveRosteredPlayerIds.size > 0) {
-          return !liveRosteredPlayerIds.has(Number(p.id)) && !liveRosteredPlayerIds.has(String(p.id));
+          if (liveRosteredPlayerIds.has(Number(p.id)) || liveRosteredPlayerIds.has(String(p.id))) return false;
+        }
+        for (const t of allLeagueTeams) {
+          if (t.roster && t.roster.some(rp => rp.id === p.id || (rp.name && rp.name.toLowerCase() === p.name.toLowerCase()))) {
+            return false;
+          }
         }
         return p.status !== 'ONTEAM';
       });
@@ -2239,52 +2261,224 @@
       // ==========================================
       // CARD 3: GOALIE CREASE MANAGEMENT & DEPTH
       // ==========================================
+      const isGibsonAvailable = isPlayerAvailable(PLAYER_IDS.GIBSON) && isPlayerAvailable("John Gibson");
+      const gibsonOwnerTeam = allLeagueTeams.find(t => t.roster && t.roster.some(p => p.id === PLAYER_IDS.GIBSON || (p.name && p.name.includes("Gibson"))));
+      const gibsonOwnerName = gibsonOwnerTeam ? gibsonOwnerTeam.name : (!isGibsonAvailable ? "Dan's district 9 Team" : null);
+
+      const availableGoalies = availablePool.filter(p => p.pos === 'G');
+      const dobesPlayer = availablePool.find(p => p.name.includes("Dobes")) || {
+        name: "Jakub Dobes", team: "MTL", pos: "G", projPts: 207.8, projAvg: 3.5,
+        actAvg: 1.98, l30Avg: 1.98, l15Avg: 2.10, l7Avg: 3.20
+      };
       const gibsonPlayer = availablePool.find(p => p.name.includes("Gibson")) || {
         name: "John Gibson", team: "DET", pos: "G", projPts: 220.0, projAvg: 4.23,
         actAvg: 2.60, l30Avg: 2.60, l15Avg: 2.62, l7Avg: 7.95
       };
+
       const teamGoalies = currentMyRoster.filter(p => p.pos === 'G');
       const primaryGoalie = teamGoalies[0] || {
         name: "Dylan Garand", team: "NYR", pos: "G", projPts: 137.8, projAvg: 3.36,
         actAvg: 5.19, l30Avg: 5.19, l15Avg: 4.16, l7Avg: 3.65
       };
-      const gibsonTrend = getPlayerTrendAnalysis(gibsonPlayer);
       const isDeadLokomotiv = (currentTeam.id === 7);
+      const isGibsonOnTeam = currentMyRoster.some(p => p.id === PLAYER_IDS.GIBSON || (p.name && p.name.includes("Gibson")));
 
       const card3 = document.createElement('div');
       card3.className = 'strat-card';
 
       if (isDeadLokomotiv) {
         const garandPlayer = currentMyRoster.find(p => p.name.includes("Garand")) || primaryGoalie;
+        if (isGibsonAvailable) {
+          card3.innerHTML = `
+            <div class="strat-header">
+              <span class="strat-badge badge-goalie">🥅 Move #3: Goalie Crease Management</span>
+              <span class="badge-rank">Priority 3</span>
+            </div>
+            <h3>Crease Report: Garand & Skinner Active | Depth Target: John Gibson</h3>
+            <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #6ee7b7;">
+              🛡️ <strong>Rangers Goalie Starting Update:</strong> Dylan Garand has taken over as the confirmed #1 starter for the NY Rangers with Igor Shesterkin (knee) and Joonas Korpisalo (IR) sidelined. Garand has delivered <strong>36.4 actual points (5.19 PPG)</strong> under your scoring system. <strong>Hold and start Garand tonight vs Toronto.</strong>
+            </div>
+            <div style="margin-bottom: 6px; font-size: 0.78rem; font-weight: 700; color: var(--primary);">Dylan Garand Multi-Split Baseline:</div>
+            ${renderSplitsStrip(garandPlayer)}
+            <div style="margin: 12px 0 6px; font-size: 0.78rem; font-weight: 700; color: #f87171;">John Gibson Surge (Available Target):</div>
+            ${renderSplitsStrip(gibsonPlayer)}
+            <div class="why-section">
+              <div class="why-title">🔍 Trend Analysis & Crease Strategy:</div>
+              <ul class="why-list">
+                <li><strong>John Gibson's Massive L7 Spike:</strong> Gibson started the season slow (2.60 avg), but has caught fire over the last 7 days, averaging an explosive <strong>7.95 fantasy pts/game (+5.35 over season avg)</strong>. Detroit plays Thursday @ Vancouver and Saturday @ Calgary.</li>
+                <li><strong>Dylan Garand Must-Start Status:</strong> Garand is holding a 5.19 season average across starts—drastically beating his 3.36 preseason projection. He provides immediate NHL #1 starter security with Shesterkin out.</li>
+                <li><strong>Bench Upgrade:</strong> Darcy Kuemper (1.77 actual PPG) is currently underperforming on your bench; Gibson provides a red-hot volume upgrade if roster flexibility allows.</li>
+              </ul>
+            </div>
+            <div class="backups-container">
+              <div class="backups-title">🔄 Backup Goalie Targets:</div>
+              <div class="backup-item">
+                <div class="backup-header">
+                  <span class="backup-name">1. Jakub Dobes <span class="pos-pill">G &bull; MTL</span></span>
+                  <span class="backup-stat">Fri & Sun &bull; 207.8 Pts</span>
+                </div>
+                <div class="backup-reason">L7: <strong>3.20</strong> | Season: <strong>1.98</strong>. Starts Montreal's light off-night games Friday @ CHI and Sunday @ WPG; elite off-night schedule fit.</div>
+              </div>
+              <div class="backup-item">
+                <div class="backup-header">
+                  <span class="backup-name">2. Dan Vladar <span class="pos-pill">G &bull; PHI</span></span>
+                  <span class="backup-stat">205.3 Pts &bull; 4.37 Avg</span>
+                </div>
+                <div class="backup-reason">Steady starting goalie volume in Philadelphia with 2.67 GAA and .902 SV% projection.</div>
+              </div>
+            </div>
+            <div class="action-box" style="margin-top: 14px;">
+              <div class="action-row" style="margin-bottom: 6px;">
+                <span>Crease Starters:</span>
+                <span class="player-pill" style="color: var(--accent-green);">✅ Skinner (5.37 PPG) & Garand (5.19 PPG)</span>
+              </div>
+              <div class="action-row" style="margin-bottom: 6px;">
+                <span>Depth Add / Drop:</span>
+                <span class="player-pill" style="color: var(--accent-amber);">Add Gibson (7.95 L7) &bull; Drop Kuemper (1.77 PPG)</span>
+              </div>
+              <div class="action-row">
+                <span>Garand Verdict:</span>
+                <span class="player-pill" style="color: var(--accent-green);">DO NOT DROP &bull; Active NYR Starter</span>
+              </div>
+            </div>
+          `;
+        } else {
+          // Gibson has been CLAIMED!
+          card3.innerHTML = `
+            <div class="strat-header">
+              <span class="strat-badge badge-goalie">🥅 Move #3: Goalie Crease Management</span>
+              <span class="badge-rank">Priority 3</span>
+            </div>
+            <h3>Crease Report: Garand & Skinner Active | Target: Jakub Dobes (MTL)</h3>
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #fca5a5;">
+              ⚠️ <strong>Waiver Wire Claim Notice:</strong> John Gibson was claimed off waivers by <strong>${gibsonOwnerName || "Dan's district 9 Team"}</strong>. Your top available goalie target shifts to <strong>Jakub Dobes (MTL)</strong> for prime off-night starts.
+            </div>
+            <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #6ee7b7;">
+              🛡️ <strong>Rangers Goalie Starting Update:</strong> Dylan Garand has taken over as the confirmed #1 starter for the NY Rangers with Igor Shesterkin (knee) and Joonas Korpisalo (IR) sidelined. Garand has delivered <strong>36.4 actual points (5.19 PPG)</strong> under your scoring system. <strong>Hold and start Garand tonight vs Toronto.</strong>
+            </div>
+            <div style="margin-bottom: 6px; font-size: 0.78rem; font-weight: 700; color: var(--primary);">Dylan Garand Multi-Split Baseline:</div>
+            ${renderSplitsStrip(garandPlayer)}
+            <div style="margin: 12px 0 6px; font-size: 0.78rem; font-weight: 700; color: #38bdf8;">Jakub Dobes Multi-Split Baseline (Available Off-Night Target):</div>
+            ${renderSplitsStrip(dobesPlayer)}
+            <div class="why-section">
+              <div class="why-title">🔍 Trend Analysis & Crease Strategy:</div>
+              <ul class="why-list">
+                <li><strong>Gibson Unavailable:</strong> Gibson was scooped by ${gibsonOwnerName || "Dan's district 9 Team"}. Do not burn roster moves attempting to add him.</li>
+                <li><strong>Jakub Dobes Off-Night Advantage:</strong> Montreal plays on Friday (@ CHI) and Sunday (@ WPG)—both critical off-nights where you have completely open active starting goalie slots. Dobes is projected for 207.8 points and is trending up at 3.20 L7 PPG.</li>
+                <li><strong>Dylan Garand Must-Start Status:</strong> Garand is holding a 5.19 season average across starts—drastically beating his 3.36 preseason projection. He provides immediate NHL #1 starter security with Shesterkin out.</li>
+                <li><strong>Bench Upgrade:</strong> Darcy Kuemper (1.77 actual PPG) is your lowest-producing goalie; if you need off-night crease volume on Friday and Sunday, Dobes is the top available target.</li>
+              </ul>
+            </div>
+            <div class="backups-container">
+              <div class="backups-title">🔄 Top Available Goalie Adds:</div>
+              <div class="backup-item">
+                <div class="backup-header">
+                  <span class="backup-name">1. Jakub Dobes <span class="pos-pill">G &bull; MTL</span></span>
+                  <span class="backup-stat">Fri & Sun &bull; 207.8 Pts</span>
+                </div>
+                <div class="backup-reason">L7: <strong>3.20</strong> | Season: <strong>1.98</strong>. Starts Montreal's light off-night games Friday @ CHI and Sunday @ WPG; elite off-night schedule fit.</div>
+              </div>
+              <div class="backup-item">
+                <div class="backup-header">
+                  <span class="backup-name">2. Dan Vladar <span class="pos-pill">G &bull; PHI</span></span>
+                  <span class="backup-stat">205.3 Pts &bull; 4.37 Avg</span>
+                </div>
+                <div class="backup-reason">Steady starting goalie volume in Philadelphia with 2.67 GAA and .902 SV% projection.</div>
+              </div>
+            </div>
+            <div class="action-box" style="margin-top: 14px;">
+              <div class="action-row" style="margin-bottom: 6px;">
+                <span>Crease Starters:</span>
+                <span class="player-pill" style="color: var(--accent-green);">✅ Skinner (5.37 PPG) & Garand (5.19 PPG)</span>
+              </div>
+              <div class="action-row" style="margin-bottom: 6px;">
+                <span>Off-Night Move:</span>
+                <span class="player-pill" style="color: var(--accent-amber);">Stream Jakub Dobes (Fri/Sun Starts) &bull; Kuemper Drop Candidate</span>
+              </div>
+              <div class="action-row">
+                <span>Garand Verdict:</span>
+                <span class="player-pill" style="color: var(--accent-green);">DO NOT DROP &bull; Active NYR Starter</span>
+              </div>
+            </div>
+          `;
+        }
+      } else if (isGibsonOnTeam) {
+        // Current team owns Gibson (e.g. Dan's district 9 Team)
+        const teamGibson = currentMyRoster.find(p => p.id === PLAYER_IDS.GIBSON || (p.name && p.name.includes("Gibson"))) || gibsonPlayer;
         card3.innerHTML = `
           <div class="strat-header">
             <span class="strat-badge badge-goalie">🥅 Move #3: Goalie Crease Management</span>
             <span class="badge-rank">Priority 3</span>
           </div>
-          <h3>Crease Report: Garand & Skinner Active | Depth Target: John Gibson</h3>
-          <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #6ee7b7;">
-            🛡️ <strong>Rangers Goalie Starting Update:</strong> Dylan Garand has taken over as the confirmed #1 starter for the NY Rangers with Igor Shesterkin (knee) and Joonas Korpisalo (IR) sidelined. Garand has delivered <strong>36.4 actual points (5.19 PPG)</strong> under your scoring system. <strong>Hold and start Garand tonight vs Toronto.</strong>
+          <h3>Crease Report: ${currentTeam.name} | New Addition: John Gibson</h3>
+          <div style="background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.35); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #6ee7b7;">
+            🔥 <strong>New Roster Addition:</strong> You successfully claimed <strong>John Gibson (DET)</strong> via Free Agency! Gibson has caught fire over the last 7 days, averaging an explosive <strong>7.95 fantasy pts/game</strong> (+5.35 over season avg).
           </div>
-          <div style="margin-bottom: 6px; font-size: 0.78rem; font-weight: 700; color: var(--primary);">Dylan Garand Multi-Split Baseline:</div>
-          ${renderSplitsStrip(garandPlayer)}
-          <div style="margin: 12px 0 6px; font-size: 0.78rem; font-weight: 700; color: #f87171;">John Gibson Surge (Available Target):</div>
-          ${renderSplitsStrip(gibsonPlayer)}
+          <div style="margin-bottom: 6px; font-size: 0.78rem; font-weight: 700; color: #f87171;">John Gibson Multi-Split Surge:</div>
+          ${renderSplitsStrip(teamGibson)}
           <div class="why-section">
-            <div class="why-title">🔍 Trend Analysis & Crease Strategy:</div>
+            <div class="why-title">🔍 Crease Strategy for ${currentTeam.name}:</div>
             <ul class="why-list">
-              <li><strong>John Gibson's Massive L7 Spike:</strong> Gibson started the season slow (2.60 avg), but has caught fire over the last 7 days, averaging an explosive <strong>7.95 fantasy pts/game (+5.35 over season avg)</strong>. Detroit plays Thursday @ Vancouver and Saturday @ Calgary.</li>
-              <li><strong>Dylan Garand Must-Start Status:</strong> Garand is holding a 5.19 season average across starts—drastically beating his 3.36 preseason projection. He provides immediate NHL #1 starter security with Shesterkin out.</li>
-              <li><strong>Bench Upgrade:</strong> Darcy Kuemper (1.77 actual PPG) is currently underperforming on your bench; Gibson provides a red-hot volume upgrade if roster flexibility allows.</li>
+              <li><strong>High-Value Claim:</strong> Adding Gibson bolsters your goaltending depth with a starter who is in prime form (7.95 L7 PPG).</li>
+              <li><strong>Upcoming Starts:</strong> Detroit plays Thursday @ Vancouver and Saturday @ Calgary. Ensure Gibson is activated when starting.</li>
+              <li><strong>Crease Rotation:</strong> Manage starts between Gibson and your rostered netminders to maximize games started for Week 4.</li>
+            </ul>
+          </div>
+          <div class="action-box" style="margin-top: 14px;">
+            <div class="action-row" style="margin-bottom: 6px;">
+              <span>New Addition:</span>
+              <span class="player-pill" style="color: var(--accent-green);">✅ John Gibson (7.95 L7 PPG) Roster Confirmed</span>
+            </div>
+            <div class="action-row">
+              <span>Next Start:</span>
+              <span class="player-pill" style="color: var(--primary);">Detroit @ Vancouver &bull; Saturday @ Calgary</span>
+            </div>
+          </div>
+        `;
+      } else {
+        const goalieNames = teamGoalies.map(g => `${g.name} (${g.team} • ${g.actAvg > 0 ? g.actAvg + ' PPG' : '0 starts'})`).join(', ') || 'No rostered goalies';
+        const targetG = isGibsonAvailable ? gibsonPlayer : dobesPlayer;
+        const targetT = getPlayerTrendAnalysis(targetG);
+        card3.innerHTML = `
+          <div class="strat-header">
+            <span class="strat-badge badge-goalie">🥅 Move #3: Goalie Crease Management</span>
+            <span class="badge-rank">Priority 3</span>
+          </div>
+          <h3>Crease Report: ${currentTeam.name} Goalies | Target: ${targetG.name}</h3>
+          <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #7dd3fc;">
+            🛡️ <strong>${currentTeam.name} Goalie Depth:</strong> Rostered goalies: <strong>${goalieNames}</strong>.
+          </div>
+          ${!isGibsonAvailable ? `
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #fca5a5;">
+              ⚠️ <strong>Waiver Update:</strong> John Gibson was claimed by <strong>${gibsonOwnerName || "Dan's district 9 Team"}</strong>. Shifting target to <strong>Jakub Dobes (MTL)</strong>.
+            </div>
+          ` : ''}
+          ${teamGoalies.length > 0 ? `
+            <div style="margin-bottom: 6px; font-size: 0.78rem; font-weight: 700; color: var(--primary);">${primaryGoalie.name} Multi-Split Baseline:</div>
+            ${renderSplitsStrip(primaryGoalie)}
+          ` : ''}
+          <div style="margin: 12px 0 6px; font-size: 0.78rem; font-weight: 700; color: #38bdf8;">${targetG.name} (Top Available Goalie):</div>
+          ${renderSplitsStrip(targetG)}
+          <div class="why-section">
+            <div class="why-title">🔍 Goalie Assessment for ${currentTeam.name}:</div>
+            <ul class="why-list">
+              ${isGibsonAvailable ? `
+                <li><strong>Waiver Surge:</strong> John Gibson (DET) is currently on an explosive 7-day surge averaging <strong>7.95 PPG (+5.35 over season avg)</strong>.</li>
+              ` : `
+                <li><strong>Gibson Unavailable:</strong> Claimed by ${gibsonOwnerName || "Dan's district 9 Team"}.</li>
+                <li><strong>Off-Night Target:</strong> Jakub Dobes (MTL) starts Friday @ CHI and Sunday @ WPG, providing valuable off-night goalie starts.</li>
+              `}
+              <li><strong>Crease Health:</strong> Ensure active starters are locked into starting goalie slots on heavy Thursday and Saturday nights.</li>
             </ul>
           </div>
           <div class="backups-container">
-            <div class="backups-title">🔄 Backup Goalie Targets:</div>
+            <div class="backups-title">🔄 Top Available Goalie Adds:</div>
             <div class="backup-item">
               <div class="backup-header">
-                <span class="backup-name">1. Jakub Dobes <span class="pos-pill">G &bull; MTL</span></span>
-                <span class="backup-stat">Fri & Sun &bull; 207.8 Pts</span>
+                <span class="backup-name">1. ${targetG.name} <span class="pos-pill">G &bull; ${targetG.team}</span> ${targetT.badge}</span>
+                <span class="backup-stat">${targetG.l7Avg} L7 Avg &bull; ${targetG.projPts} Proj</span>
               </div>
-              <div class="backup-reason">L7: <strong>3.20</strong> | Season: <strong>1.98</strong>. Starts Montreal's light off-night games Friday @ CHI and Sunday @ WPG; elite off-night schedule fit.</div>
+              <div class="backup-reason">${targetG.name === 'Jakub Dobes' ? 'Starts Montreal off-night games Friday and Sunday.' : 'Red hot over last 7 days with heavy volume.'}</div>
             </div>
             <div class="backup-item">
               <div class="backup-header">
@@ -2296,69 +2490,12 @@
           </div>
           <div class="action-box" style="margin-top: 14px;">
             <div class="action-row" style="margin-bottom: 6px;">
-              <span>Crease Starters:</span>
-              <span class="player-pill" style="color: var(--accent-green);">✅ Skinner (5.37 PPG) & Garand (5.19 PPG)</span>
-            </div>
-            <div class="action-row" style="margin-bottom: 6px;">
-              <span>Depth Add / Drop:</span>
-              <span class="player-pill" style="color: var(--accent-amber);">Add Gibson (7.95 L7) &bull; Drop Kuemper (1.77 PPG)</span>
-            </div>
-            <div class="action-row">
-              <span>Garand Verdict:</span>
-              <span class="player-pill" style="color: var(--accent-green);">DO NOT DROP &bull; Active NYR Starter</span>
-            </div>
-          </div>
-        `;
-      } else {
-        const goalieNames = teamGoalies.map(g => `${g.name} (${g.team} • ${g.actAvg > 0 ? g.actAvg + ' PPG' : '0 starts'})`).join(', ') || 'No rostered goalies';
-        card3.innerHTML = `
-          <div class="strat-header">
-            <span class="strat-badge badge-goalie">🥅 Move #3: Goalie Crease Management</span>
-            <span class="badge-rank">Priority 3</span>
-          </div>
-          <h3>Crease Report: ${currentTeam.name} Goalies | Target: John Gibson</h3>
-          <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; color: #7dd3fc;">
-            🛡️ <strong>${currentTeam.name} Goalie Depth:</strong> Rostered goalies: <strong>${goalieNames}</strong>.
-          </div>
-          ${teamGoalies.length > 0 ? `
-            <div style="margin-bottom: 6px; font-size: 0.78rem; font-weight: 700; color: var(--primary);">${primaryGoalie.name} Multi-Split Baseline:</div>
-            ${renderSplitsStrip(primaryGoalie)}
-          ` : ''}
-          <div style="margin: 12px 0 6px; font-size: 0.78rem; font-weight: 700; color: #f87171;">John Gibson Surge (Available Waiver Target):</div>
-          ${renderSplitsStrip(gibsonPlayer)}
-          <div class="why-section">
-            <div class="why-title">🔍 Goalie Assessment for ${currentTeam.name}:</div>
-            <ul class="why-list">
-              <li><strong>Waiver Surge:</strong> John Gibson (DET) is currently on an explosive 7-day surge averaging <strong>7.95 PPG (+5.35 over season avg)</strong>.</li>
-              <li><strong>Off-Night Alternative:</strong> Jakub Dobes (MTL) starts Friday @ CHI and Sunday @ WPG, providing valuable off-night goalie starts.</li>
-              <li><strong>Crease Health:</strong> Ensure active starters are locked into starting goalie slots on heavy Thursday and Saturday nights.</li>
-            </ul>
-          </div>
-          <div class="backups-container">
-            <div class="backups-title">🔄 Top Available Goalie Adds:</div>
-            <div class="backup-item">
-              <div class="backup-header">
-                <span class="backup-name">1. John Gibson <span class="pos-pill">G &bull; DET</span> ${gibsonTrend.badge}</span>
-                <span class="backup-stat">7.95 L7 Avg &bull; 220.0 Proj</span>
-              </div>
-              <div class="backup-reason">L7: <strong>7.95</strong> | Season: <strong>2.60</strong>. Red hot over last 7 days with heavy Detroit volume.</div>
-            </div>
-            <div class="backup-item">
-              <div class="backup-header">
-                <span class="backup-name">2. Jakub Dobes <span class="pos-pill">G &bull; MTL</span></span>
-                <span class="backup-stat">Fri & Sun &bull; 207.8 Pts</span>
-              </div>
-              <div class="backup-reason">L7: <strong>3.20</strong> | Season: <strong>1.98</strong>. Starts Montreal's light off-night games Friday and Sunday.</div>
-            </div>
-          </div>
-          <div class="action-box" style="margin-top: 14px;">
-            <div class="action-row" style="margin-bottom: 6px;">
               <span>Primary Goalies:</span>
               <span class="player-pill" style="color: var(--accent-green);">${teamGoalies.map(g => g.name).join(' & ') || 'None'}</span>
             </div>
             <div class="action-row" style="margin-bottom: 6px;">
               <span>Waiver Move:</span>
-              <span class="player-pill" style="color: var(--accent-amber);">Add Gibson (7.95 L7) or Dobes (Off-Nights)</span>
+              <span class="player-pill" style="color: var(--accent-amber);">Add ${targetG.name} (${targetG.team})</span>
             </div>
             <div class="action-row">
               <span>Strategy:</span>
@@ -2448,6 +2585,82 @@
             };
           });
 
+          // Process live executed transactions (claims/drops) to keep availability 100% in sync
+          var recentMoves = [];
+          if (data.transactions) {
+            const executedTx = data.transactions
+              .filter(tx => tx.status === 'EXECUTED')
+              .sort((a, b) => (a.proposedDate || 0) - (b.proposedDate || 0));
+
+            executedTx.forEach(tx => {
+              const team = allLeagueTeams.find(t => t.id === Number(tx.teamId));
+              if (tx.items) {
+                tx.items.forEach(it => {
+                  const pid = Number(it.playerId);
+                  if (it.type === 'ADD' && pid) {
+                    liveRosteredPlayerIds.add(pid);
+                    liveRosteredPlayerIds.add(String(pid));
+
+                    if (team && !team.roster.some(p => p.id === pid)) {
+                      let pInfo = (typeof fantasyData !== 'undefined' && fantasyData.freeAgents)
+                        ? fantasyData.freeAgents.find(p => p.id === pid)
+                        : null;
+
+                      if (pInfo) {
+                        team.roster.push({ ...pInfo, slot: 'BENCH', slotId: 7 });
+                        recentMoves.push({ type: 'ADD', playerName: pInfo.name, teamName: team.name, playerId: pid });
+                      } else if (pid === PLAYER_IDS.GIBSON) {
+                        const detSched = (typeof fantasyData !== 'undefined' && fantasyData.nhlSchedule && fantasyData.nhlSchedule['DET']) || null;
+                        team.roster.push({
+                          id: pid,
+                          name: "John Gibson",
+                          pos: "G",
+                          slot: "BENCH",
+                          slotId: 7,
+                          team: "DET",
+                          injury: "ACTIVE",
+                          projPts: 220.0,
+                          projAvg: 4.23,
+                          actAvg: 2.60,
+                          l7Avg: 7.95,
+                          l15Avg: 2.62,
+                          l30Avg: 2.60,
+                          gamesCount: detSched ? detSched.GamesCount : 2,
+                          schedule: detSched ? detSched.Days : {}
+                        });
+                        recentMoves.push({ type: 'ADD', playerName: "John Gibson", teamName: team.name, playerId: pid });
+                      } else if (pid === 4271575) {
+                        const phiSched = (typeof fantasyData !== 'undefined' && fantasyData.nhlSchedule && fantasyData.nhlSchedule['PHI']) || null;
+                        team.roster.push({
+                          id: pid,
+                          name: "Joseph Woll",
+                          pos: "G",
+                          slot: "BENCH",
+                          slotId: 7,
+                          team: "PHI",
+                          injury: "ACTIVE",
+                          projPts: 177.8,
+                          projAvg: 3.5,
+                          actAvg: 3.87,
+                          l7Avg: 4.30,
+                          gamesCount: phiSched ? phiSched.GamesCount : 2,
+                          schedule: phiSched ? phiSched.Days : {}
+                        });
+                        recentMoves.push({ type: 'ADD', playerName: "Joseph Woll", teamName: team.name, playerId: pid });
+                      }
+                    }
+                  } else if (it.type === 'DROP' && pid) {
+                    liveRosteredPlayerIds.delete(pid);
+                    liveRosteredPlayerIds.delete(String(pid));
+                    if (team) {
+                      team.roster = team.roster.filter(p => p.id !== pid);
+                    }
+                  }
+                });
+              }
+            });
+          }
+
           // Sync live scores from schedule if available
           if (data.schedule) {
             const spDaysMap = { "21":"Mon", "22":"Tue", "23":"Wed", "24":"Thu", "25":"Fri", "26":"Sat", "27":"Sun" };
@@ -2493,9 +2706,14 @@
         const activeTeam = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
         let alertMsg = `Live sync verified with ESPN API! ${allLeagueTeams.length} league teams updated. Active lineup: ${activeTeam.name} (${currentMyRoster.length} players).`;
 
+        if (typeof recentMoves !== 'undefined' && recentMoves.length > 0) {
+          const latest = recentMoves[recentMoves.length - 1];
+          alertMsg = `⚠️ <strong>Live League Move Detected:</strong> <strong>${latest.playerName}</strong> was claimed by <strong>${latest.teamName}</strong>! Strategy cards & free agent availability updated.`;
+        }
+
         if (!isSilent) {
           document.getElementById('txAlert').style.display = 'flex';
-          document.getElementById('txAlertText').innerText = alertMsg;
+          document.getElementById('txAlertText').innerHTML = alertMsg;
         }
 
         const syncTimeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
