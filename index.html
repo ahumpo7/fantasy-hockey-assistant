@@ -1300,6 +1300,193 @@
       .team-hero, .team-hero.right { flex-direction: column; text-align: center; }
       .vs-box { border: none; padding: 10px 0; }
     }
+
+    /* Ask Me: Drop Advisor & Timing Engine */
+    .drop-advisor-card {
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.75));
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      transition: all 0.3s ease;
+    }
+    .drop-advisor-card.highlight-pulse {
+      animation: highlightPulse 1.5s ease-out;
+    }
+    @keyframes highlightPulse {
+      0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.8); }
+      70% { box-shadow: 0 0 0 16px rgba(56, 189, 248, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+    }
+    .advisor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 14px;
+    }
+    .advisor-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+    .quick-drop-pill {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fca5a5;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .advisor-search-container {
+      margin-bottom: 16px;
+    }
+    .advisor-input-wrapper {
+      display: flex;
+      align-items: center;
+      background: rgba(11, 15, 25, 0.7);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: var(--radius-md);
+      padding: 4px 6px;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s ease;
+    }
+    .advisor-input-wrapper:focus-within {
+      border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+    }
+    .advisor-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 0.9rem;
+      padding: 8px 12px;
+    }
+    .advisor-input::placeholder {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+    .advisor-ask-btn {
+      background: linear-gradient(135deg, #0ea5e9, #2563eb);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.82rem;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 16px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+    .advisor-ask-btn:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+    }
+    .advisor-chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .prompt-chip {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: #7dd3fc;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .prompt-chip:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: #38bdf8;
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    .advisor-answer-container {
+      background: rgba(11, 15, 25, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      margin-bottom: 14px;
+      min-height: 80px;
+    }
+    .matrix-toggle-btn {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .matrix-toggle-btn:hover {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+    .roster-drop-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .roster-drop-table th {
+      text-align: left;
+      padding: 8px 10px;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .roster-drop-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    .roster-drop-table tr:hover td {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    /* Strength of Schedule (SOS) Pills */
+    .sos-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .sos-pill.sos-a { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); }
+    .sos-pill.sos-b { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
+    .sos-pill.sos-c { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
+    .sos-pill.sos-d { background: rgba(251, 146, 60, 0.15); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.4); }
+    .sos-pill.sos-f { background: rgba(244, 63, 94, 0.15); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.4); }
   </style>
 </head>
 <body>
@@ -1346,6 +1533,7 @@
 
     <div class="nav-tabs">
       <button class="tab-btn active" onclick="switchTab('insights')">💡 Strategy & Moves</button>
+      <button class="tab-btn" onclick="switchTab('dropadvisor')">🧠 Drop Advisor</button>
       <button class="tab-btn" onclick="switchTab('streamer')">🚀 Streaming Optimizer</button>
       <button class="tab-btn" onclick="switchTab('goalies')">🥅 Goalie Radar</button>
       <button class="tab-btn" onclick="switchTab('trades')">🔄 Trade Analyzer</button>
@@ -1402,6 +1590,65 @@
 
     <!-- TAB 1: Strategy & Recommended Moves -->
     <div id="tab-insights" class="tab-pane active">
+
+      <!-- ASK ME: DROP ADVISOR & TIMING ENGINE -->
+      <div class="drop-advisor-card" id="dropAdvisorCard">
+        <div class="advisor-header">
+          <div>
+            <div class="advisor-badge">🧠 Interactive Drop Advisor</div>
+            <h2 style="font-size: 1.25rem; font-weight: 800; color: #fff; margin: 4px 0 2px;">Who to Drop &amp; When to Do It</h2>
+            <div style="font-size: 0.82rem; color: var(--text-dim);">
+              Powered by opponent Strength of Schedule (SOS), line roles, off-night starts, and ROS projections.
+            </div>
+          </div>
+          <div id="quickDropVerdictPill" class="quick-drop-pill">
+            🎯 Calculating Roster Drops...
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="advisor-search-container">
+          <div class="advisor-input-wrapper">
+            <span style="font-size: 1.1rem; padding-left: 10px;">💬</span>
+            <input type="text" id="dropAdvisorInput" class="advisor-input"
+                   placeholder="Ask me anything: 'Who should I drop right now?', 'When do I drop Kuemper?', 'Compare Cozens vs Jenner'..."
+                   onkeydown="if(event.key === 'Enter') handleDropAdvisorQuery()" />
+            <button class="advisor-ask-btn" onclick="handleDropAdvisorQuery()">
+              Ask Advisor 🚀
+            </button>
+          </div>
+
+          <!-- Quick Prompt Chips -->
+          <div class="advisor-chips-row">
+            <span style="font-size: 0.76rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700; align-self: center; margin-right: 4px;">Quick Prompts:</span>
+            <button class="prompt-chip" onclick="executeQuickPrompt('top_drop')">🎯 Who is my #1 drop right now?</button>
+            <button class="prompt-chip" onclick="executeQuickPrompt('when_drop')">⏰ When exactly should I drop them?</button>
+            <button class="prompt-chip" onclick="executeQuickPrompt('compare_bench')">⚖️ Compare Kuemper vs Cozens vs Jenner</button>
+            <button class="prompt-chip" onclick="executeQuickPrompt('untouchables')">🛡️ Who is 100% UNTOUCHABLE?</button>
+            <button class="prompt-chip" onclick="executeQuickPrompt('streamer_swap')">🔄 Who to drop for Fri/Sun streamers?</button>
+            <button class="prompt-chip" onclick="executeQuickPrompt('sos_breakdown')">📊 Show Roster Schedule Strength (SOS)</button>
+          </div>
+        </div>
+
+        <!-- Dynamic Answer Area -->
+        <div id="dropAdvisorAnswerArea" class="advisor-answer-container">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Full Roster Drop Hierarchy Toggle -->
+        <div class="roster-drop-matrix-section">
+          <div class="matrix-toggle-btn" onclick="toggleDropMatrix()">
+            <span style="font-weight: 700; color: #fff; font-size: 0.88rem;">
+              📋 Complete Roster Drop Priority &amp; SOS Hierarchy (<span id="dropMatrixPlayerCount">21</span> Players)
+            </span>
+            <span id="matrixToggleText" style="color: var(--primary); font-size: 0.82rem; font-weight: 700;">▼ View Roster Drop Scores</span>
+          </div>
+          <div id="dropMatrixTableWrapper" style="display: none; margin-top: 14px; overflow-x: auto;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
       <div class="section-title">
         Top 3 Priority Moves for Week 4
         <span id="recsSubtitle">Detailed rationale, schedule fit & statistical reasoning for each move</span>
@@ -1998,6 +2245,606 @@
       }
     }
 
+    // ========================================================
+    // STRENGTH OF SCHEDULE (SOS) RATINGS & SYSTEM ENGINE
+    // ========================================================
+    const NHL_SOS_DATA = {
+      'SJ':  { skaterMult: 1.25, goalieMult: 1.22, ga: 3.85, gf: 2.20, grade: 'A+', label: 'Cake Matchup' },
+      'CHI': { skaterMult: 1.22, goalieMult: 1.18, ga: 3.75, gf: 2.30, grade: 'A+', label: 'Cake Matchup' },
+      'ANA': { skaterMult: 1.20, goalieMult: 1.16, ga: 3.65, gf: 2.35, grade: 'A',  label: 'Great Matchup' },
+      'CBJ': { skaterMult: 1.18, goalieMult: 1.12, ga: 3.55, gf: 2.50, grade: 'A',  label: 'Great Matchup' },
+      'MTL': { skaterMult: 1.14, goalieMult: 1.08, ga: 3.45, gf: 2.65, grade: 'B+', label: 'Favorable' },
+      'BUF': { skaterMult: 1.10, goalieMult: 1.04, ga: 3.35, gf: 2.80, grade: 'B+', label: 'Favorable' },
+      'CGY': { skaterMult: 1.08, goalieMult: 1.10, ga: 3.30, gf: 2.55, grade: 'B+', label: 'Favorable' },
+      'OTT': { skaterMult: 1.06, goalieMult: 1.02, ga: 3.25, gf: 2.90, grade: 'B',  label: 'Neutral+' },
+      'DET': { skaterMult: 1.05, goalieMult: 1.00, ga: 3.20, gf: 2.85, grade: 'B',  label: 'Neutral+' },
+      'PIT': { skaterMult: 1.04, goalieMult: 1.00, ga: 3.20, gf: 2.90, grade: 'B',  label: 'Neutral' },
+      'PHI': { skaterMult: 1.02, goalieMult: 1.08, ga: 3.15, gf: 2.60, grade: 'B',  label: 'Neutral' },
+      'NYI': { skaterMult: 1.00, goalieMult: 1.12, ga: 3.10, gf: 2.45, grade: 'B',  label: 'Neutral' },
+      'UTA': { skaterMult: 1.00, goalieMult: 1.02, ga: 3.10, gf: 2.80, grade: 'B',  label: 'Neutral' },
+      'STL': { skaterMult: 0.99, goalieMult: 1.00, ga: 3.05, gf: 2.75, grade: 'B',  label: 'Neutral' },
+      'WSH': { skaterMult: 0.98, goalieMult: 0.98, ga: 3.00, gf: 2.90, grade: 'B-', label: 'Neutral' },
+      'SEA': { skaterMult: 0.98, goalieMult: 1.02, ga: 3.00, gf: 2.70, grade: 'B-', label: 'Neutral' },
+      'NSH': { skaterMult: 0.97, goalieMult: 0.98, ga: 2.95, gf: 2.85, grade: 'B-', label: 'Neutral' },
+      'VAN': { skaterMult: 0.96, goalieMult: 0.95, ga: 2.95, gf: 3.10, grade: 'C+', label: 'Tough' },
+      'MIN': { skaterMult: 0.95, goalieMult: 0.97, ga: 2.90, gf: 2.85, grade: 'C+', label: 'Tough' },
+      'TB':  { skaterMult: 0.93, goalieMult: 0.88, ga: 2.85, gf: 3.35, grade: 'C',  label: 'Tough Opponent' },
+      'TOR': { skaterMult: 0.92, goalieMult: 0.86, ga: 2.85, gf: 3.40, grade: 'C',  label: 'Tough Opponent' },
+      'NJ':  { skaterMult: 0.91, goalieMult: 0.90, ga: 2.80, gf: 3.20, grade: 'C-', label: 'Tough Opponent' },
+      'EDM': { skaterMult: 0.90, goalieMult: 0.80, ga: 2.80, gf: 3.60, grade: 'D+', label: 'Offensive Buzzsaw' },
+      'VGK': { skaterMult: 0.89, goalieMult: 0.88, ga: 2.75, gf: 3.30, grade: 'D+', label: 'Defensive Unit' },
+      'LA':  { skaterMult: 0.88, goalieMult: 0.92, ga: 2.70, gf: 3.00, grade: 'D',  label: 'Lockdown Trap' },
+      'COL': { skaterMult: 0.88, goalieMult: 0.78, ga: 2.80, gf: 3.70, grade: 'D',  label: 'Offensive Buzzsaw' },
+      'NYR': { skaterMult: 0.86, goalieMult: 0.88, ga: 2.65, gf: 3.25, grade: 'D',  label: 'Elite Defense' },
+      'FLA': { skaterMult: 0.85, goalieMult: 0.83, ga: 2.60, gf: 3.45, grade: 'D-', label: 'Championship Form' },
+      'DAL': { skaterMult: 0.84, goalieMult: 0.84, ga: 2.55, gf: 3.40, grade: 'D-', label: 'Elite Two-Way' },
+      'CAR': { skaterMult: 0.82, goalieMult: 0.82, ga: 2.50, gf: 3.40, grade: 'F',  label: 'Brutal Gauntlet' },
+      'BOS': { skaterMult: 0.81, goalieMult: 0.88, ga: 2.45, gf: 3.10, grade: 'F',  label: 'Lockdown Wall' },
+      'WPG': { skaterMult: 0.80, goalieMult: 0.87, ga: 2.40, gf: 3.15, grade: 'F',  label: 'Lockdown Wall' }
+    };
+
+    function getSOSDetails(oppAbbr, isGoalie = false, isHome = true) {
+      const cleanAbbr = (oppAbbr || '').replace(/^(vs|@)\s+/, '').trim().toUpperCase();
+      const data = NHL_SOS_DATA[cleanAbbr] || { skaterMult: 1.0, goalieMult: 1.0, ga: 3.0, gf: 3.0, grade: 'B', label: 'Neutral' };
+      const baseMult = isGoalie ? data.goalieMult : data.skaterMult;
+      const homeMod = isHome ? 1.04 : 0.96;
+      const finalMult = Math.round(baseMult * homeMod * 100) / 100;
+
+      let badgeColor = '#38bdf8';
+      let badgeClass = 'sos-b';
+      if (finalMult >= 1.12) { badgeColor = '#34d399'; badgeClass = 'sos-a'; }
+      else if (finalMult >= 1.04) { badgeColor = '#22d3ee'; badgeClass = 'sos-b'; }
+      else if (finalMult >= 0.95) { badgeColor = '#fbbf24'; badgeClass = 'sos-c'; }
+      else if (finalMult >= 0.88) { badgeColor = '#fb923c'; badgeClass = 'sos-d'; }
+      else { badgeColor = '#f87171'; badgeClass = 'sos-f'; }
+
+      return {
+        opp: cleanAbbr,
+        isHome,
+        multiplier: finalMult,
+        grade: data.grade,
+        label: data.label,
+        ga: data.ga,
+        gf: data.gf,
+        color: badgeColor,
+        badgeClass
+      };
+    }
+
+    function getPlayerScheduleStrength(player, daysList = ['Fri', 'Sat', 'Sun']) {
+      let games = [];
+      let totalMult = 0;
+      daysList.forEach(d => {
+        const g = player.schedule ? player.schedule[d] : null;
+        if (g && g.trim() !== '') {
+          const isHome = g.startsWith('vs');
+          const oppAbbr = g.replace(/^(vs|@)\s+/, '').trim();
+          const sos = getSOSDetails(oppAbbr, player.pos === 'G', isHome);
+          games.push({ day: d, game: g, sos });
+          totalMult += sos.multiplier;
+        }
+      });
+
+      const gameCount = games.length;
+      const avgMultiplier = gameCount > 0 ? (totalMult / gameCount) : 1.0;
+      const rounded = Math.round(avgMultiplier * 100) / 100;
+
+      let grade = 'B';
+      let label = 'Balanced';
+      let color = '#38bdf8';
+      if (rounded >= 1.12) { grade = 'A+'; label = 'Cake Matchups'; color = '#34d399'; }
+      else if (rounded >= 1.04) { grade = 'A-'; label = 'Favorable'; color = '#22d3ee'; }
+      else if (rounded >= 0.95) { grade = 'B'; label = 'Balanced'; color = '#fbbf24'; }
+      else if (rounded >= 0.88) { grade = 'C'; label = 'Tough Gauntlet'; color = '#fb923c'; }
+      else { grade = 'D/F'; label = 'Brutal Matchups'; color = '#f87171'; }
+
+      return {
+        gameCount,
+        avgMultiplier: rounded,
+        grade,
+        label,
+        color,
+        games
+      };
+    }
+
+    // ========================================================
+    // FEATURE: INTERACTIVE DROP ADVISOR & TIMING ENGINE
+    // ========================================================
+    function evaluateRosterDrops(roster = currentMyRoster) {
+      const daysRemaining = ['Fri', 'Sat', 'Sun'];
+      const evaluated = [];
+
+      (roster || []).forEach(p => {
+        const isIR = (p.slot === 'IR' || p.injury === 'INJURY_RESERVE');
+        const actAvg = Number(p.actAvg || 0);
+        const l7Avg = Number(p.l7Avg || actAvg);
+        const projAvg = Number(p.projAvg || 2.5);
+
+        const sosData = getPlayerScheduleStrength(p, daysRemaining);
+        const gamesCount = sosData.gameCount;
+        const avgSOS = sosData.avgMultiplier;
+
+        let friSunCount = 0;
+        let satCount = 0;
+        sosData.games.forEach(g => {
+          if (g.day === 'Fri' || g.day === 'Sun') friSunCount++;
+          if (g.day === 'Sat') satCount++;
+        });
+
+        let dropScore = 50;
+        let tier = 'HOLD';
+        let timing = '';
+        let reason = '';
+
+        const isSkaterElite = (p.pos !== 'G' && (actAvg >= 3.6 || (p.projPts && p.projPts >= 280)));
+        const isGoalieElite = (p.pos === 'G' && (actAvg >= 4.0 || p.name.includes('Hellebuyck') || p.name.includes('Garand')));
+        const isIRElite = (isIR && (projAvg >= 3.4 || p.name.includes('Barkov') || p.name.includes('Hellebuyck')));
+
+        if (isSkaterElite || isGoalieElite || isIRElite) {
+          dropScore = 5;
+          tier = 'UNTOUCHABLE';
+          timing = '🛡️ DO NOT DROP (Core Team Anchor)';
+          reason = `Elite anchor (${actAvg > 0 ? actAvg.toFixed(2) + ' Act' : projAvg.toFixed(2) + ' Proj'}). High ceiling foundation.`;
+        } else {
+          if (actAvg < 2.0) dropScore += 24;
+          else if (actAvg < 2.6) dropScore += 12;
+          else if (actAvg > 3.2) dropScore -= 15;
+
+          if (l7Avg > 0 && l7Avg < actAvg - 0.9) dropScore += 12;
+          else if (l7Avg > actAvg + 0.8) dropScore -= 10;
+
+          if (gamesCount === 0) {
+            dropScore += 30;
+          } else if (friSunCount >= 1) {
+            dropScore -= 20;
+          } else if (satCount === 1 && gamesCount === 1) {
+            dropScore += 18;
+          }
+
+          if (avgSOS < 0.90) dropScore += 14;
+          else if (avgSOS >= 1.10) dropScore -= 14;
+
+          if (p.pos === 'G' && actAvg < 2.5) {
+            dropScore += 28;
+          }
+
+          dropScore = Math.max(5, Math.min(99, Math.round(dropScore)));
+
+          if (dropScore >= 75) {
+            tier = 'PRIME_DROP';
+            if (friSunCount === 0) {
+              timing = '🚨 DROP TODAY (Friday before 7 PM EDT lock)';
+            } else {
+              timing = '⏳ HOLD through off-night game, then drop';
+            }
+          } else if (dropScore >= 52) {
+            tier = 'BORDERLINE';
+            timing = '👀 HOLD & MONITOR (Drop if streamer needed)';
+          } else {
+            tier = 'HOLD';
+            timing = '✅ HOLD (Quality active contributor)';
+          }
+
+          reason = `${gamesCount} gms left (Fri/Sun: ${friSunCount}). SOS: ${avgSOS.toFixed(2)}x. Form: ${l7Avg > 0 ? l7Avg.toFixed(2) + ' L7' : '-'} vs ${actAvg.toFixed(2)} Act.`;
+        }
+
+        evaluated.push({
+          player: p,
+          dropScore,
+          tier,
+          timing,
+          reason,
+          gamesCount,
+          friSunCount,
+          satCount,
+          avgSOS,
+          sosData
+        });
+      });
+
+      evaluated.sort((a, b) => b.dropScore - a.dropScore);
+      return evaluated;
+    }
+
+    function renderDropAdvisor(query = '') {
+      const answerArea = document.getElementById('dropAdvisorAnswerArea');
+      const verdictPill = document.getElementById('quickDropVerdictPill');
+      const countEl = document.getElementById('dropMatrixPlayerCount');
+      if (!answerArea) return;
+
+      const drops = evaluateRosterDrops(currentMyRoster);
+      if (countEl) countEl.textContent = drops.length;
+
+      const topDrop = drops[0] || { player: { name: "Bench Skater", pos: "UTIL", team: "NHL" }, dropScore: 80, timing: "Drop Friday", reason: "Lineup clutter" };
+      const secondDrop = drops[1] || null;
+      const untouchables = drops.filter(d => d.tier === 'UNTOUCHABLE');
+
+      if (verdictPill) {
+        verdictPill.innerHTML = `🎯 Top Drop: <strong>${topDrop.player.name}</strong> (${topDrop.timing.replace('🚨 ', '')})`;
+      }
+
+      const pool = getAvailableFreeAgents();
+      const topStreamer = pool.find(p => p.schedule && (p.schedule.Fri || p.schedule.Sun) && p.pos !== 'G') || {
+        name: 'Tyler Bertuzzi', team: 'CHI', pos: 'LW', projPts: 211.9, actAvg: 1.72
+      };
+
+      const q = (query || '').toLowerCase().trim();
+
+      // Check if specific player names from active roster are mentioned
+      const mentioned = currentMyRoster.filter(p => {
+        const fullName = p.name.toLowerCase();
+        const lastName = p.name.split(' ').pop().toLowerCase();
+        return q.includes(fullName) || (lastName.length > 3 && q.includes(lastName));
+      });
+
+      // CASE 1: Comparison between two players
+      if (mentioned.length >= 2 || (q.includes('compare') && (q.includes('vs') || q.includes(' or ')))) {
+        let p1 = mentioned[0] ? drops.find(d => d.player.id === mentioned[0].id) : drops.find(d => d.player.name.includes('Kuemper')) || drops[0];
+        let p2 = mentioned[1] ? drops.find(d => d.player.id === mentioned[1].id) : drops.find(d => d.player.name.includes('Cozens')) || drops[1];
+        if (p1 && p2 && p1.player.id === p2.player.id) {
+          p2 = drops.find(d => d.player.id !== p1.player.id);
+        }
+        const dropPick = (p1 && p2 && p1.dropScore >= p2.dropScore) ? p1 : (p2 || p1);
+        const keepPick = (p1 && p2 && p1.dropScore >= p2.dropScore) ? p2 : p1;
+
+        answerArea.innerHTML = `
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">⚖️ Head-to-Head Drop Decision</span>
+              <span class="quick-drop-pill">Verdict: Drop <strong>${dropPick.player.name}</strong> &bull; Keep <strong>${keepPick.player.name}</strong></span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 12px;">
+              <!-- Drop candidate -->
+              <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <strong>${dropPick.player.name} (${dropPick.player.pos} - ${dropPick.player.team})</strong>
+                  <span class="sos-pill sos-f">Drop Score: ${dropPick.dropScore}/100</span>
+                </div>
+                <div style="font-size: 0.8rem; color: #fca5a5; margin-bottom: 8px;">
+                  ❌ <strong>RECOMMENDED CUT:</strong> ${dropPick.reason}
+                </div>
+                <div style="font-size: 0.76rem; color: var(--text-dim);">
+                  <strong>Upcoming:</strong> ${dropPick.sosData.games.map(g => `${g.day} (${g.game} ${g.sos.grade})`).join(', ') || 'No games left'}
+                </div>
+              </div>
+              <!-- Keep candidate -->
+              <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: var(--radius-sm); padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <strong>${keepPick.player.name} (${keepPick.player.pos} - ${keepPick.player.team})</strong>
+                  <span class="sos-pill sos-a">Drop Score: ${keepPick.dropScore}/100</span>
+                </div>
+                <div style="font-size: 0.8rem; color: #86efac; margin-bottom: 8px;">
+                  ✅ <strong>HOLD:</strong> Higher baseline scoring and superior schedule fit.
+                </div>
+                <div style="font-size: 0.76rem; color: var(--text-dim);">
+                  <strong>Upcoming:</strong> ${keepPick.sosData.games.map(g => `${g.day} (${g.game} ${g.sos.grade})`).join(', ') || 'No games left'}
+                </div>
+              </div>
+            </div>
+            <div style="font-size: 0.82rem; color: var(--text-main); line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
+              💡 <strong>Timing & Execution:</strong> ${dropPick.timing}. Cutting ${dropPick.player.name.split(' ').pop()} opens a roster spot for an off-night streamer without sacrificing active lineup starts.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // CASE 2: Single Player specific inquiry
+      if (mentioned.length === 1) {
+        const item = drops.find(d => d.player.id === mentioned[0].id) || drops[0];
+        const p = item.player;
+        const isUntouchable = item.tier === 'UNTOUCHABLE';
+        const isDrop = item.tier === 'PRIME_DROP';
+
+        answerArea.innerHTML = `
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid ${isDrop ? 'rgba(239, 68, 68, 0.4)' : (isUntouchable ? 'rgba(52, 211, 153, 0.4)' : 'rgba(56, 189, 248, 0.35)')}; border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span class="badge-rank" style="background: ${isDrop ? 'rgba(239, 68, 68, 0.15)' : 'rgba(52, 211, 153, 0.15)'}; color: ${isDrop ? '#f87171' : '#34d399'};">
+                  ${isDrop ? '🚨 Prime Drop Candidate' : (isUntouchable ? '🛡️ Untouchable Anchor' : '👀 Hold & Monitor')}
+                </span>
+                <h3 style="color: #fff; font-size: 1.1rem; margin-top: 4px;">Player Drop Audit: ${p.name} (${p.pos} &bull; ${p.team})</h3>
+              </div>
+              <div style="text-align: right;">
+                <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Drop Risk Score</div>
+                <div style="font-size: 1.35rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: ${isDrop ? '#f87171' : (isUntouchable ? '#34d399' : '#fbbf24')};">
+                  ${item.dropScore}/100
+                </div>
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px; font-size: 0.78rem;">
+              <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
+                <span style="color: var(--text-muted);">Season Actual:</span> <strong>${p.actAvg > 0 ? p.actAvg + ' PPG' : '-'}</strong>
+              </div>
+              <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
+                <span style="color: var(--text-muted);">Last 7d Form:</span> <strong>${p.l7Avg > 0 ? p.l7Avg + ' PPG' : '-'}</strong>
+              </div>
+              <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
+                <span style="color: var(--text-muted);">Remaining Games:</span> <strong>${item.gamesCount} gms</strong> (${item.friSunCount} Off-Nights)
+              </div>
+              <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
+                <span style="color: var(--text-muted);">Opponent SOS:</span> <strong>${item.avgSOS}x (${item.sosData.label})</strong>
+              </div>
+            </div>
+
+            <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text-main); margin-bottom: 10px;">
+              ${isUntouchable ? `<strong>🛡️ VERDICT: DO NOT DROP!</strong> ${p.name} is a core foundation piece. High ceiling, reliable minutes, and top-tier deployment make him a season-long hold.` : (isDrop ? `<strong>🚨 VERDICT: SAFE TO DROP!</strong> ${p.name} has low recent output and zero off-night games. Dropping him opens roster bandwidth for active streamers.` : `<strong>👀 VERDICT: HOLD FOR NOW.</strong> ${p.name} is a solid starter. Only consider dropping if an emergency weekend off-night streamer is required to win your matchup.`)}
+            </div>
+
+            <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.8rem; color: #7dd3fc;">
+              ⏰ <strong>Optimal Timing Window:</strong> ${item.timing}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // CASE 3: When / Timing questions
+      if (q.includes('when') || q.includes('time') || q.includes('day') || q.includes('timeline')) {
+        answerArea.innerHTML = `
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">⏰ Tactical Drop Timing Engine</span>
+              <span class="quick-drop-pill" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.15);">Target: Friday Off-Night Sprint</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 0.84rem; line-height: 1.5;">
+              <div style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid #f87171; padding: 8px 12px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                <strong style="color: #fca5a5;">Window 1 (NOW &bull; Friday before 7:00 PM lock):</strong><br>
+                Execute your drop of <strong>${topDrop.player.name}</strong> (${topDrop.player.pos}) or <strong>${secondDrop ? secondDrop.player.name : 'redundant bench skater'}</strong>. Neither plays Friday or Sunday. Making the move now lets you claim <strong>${topStreamer.name} (${topStreamer.team})</strong> in time for Friday's 2-game light slate.
+              </div>
+              <div style="background: rgba(251, 191, 36, 0.08); border-left: 3px solid #fbbf24; padding: 8px 12px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                <strong style="color: #fde047;">Window 2 (Saturday Night &bull; 10:30 PM post-slate):</strong><br>
+                Review matchup points after Saturday's 12-game monster slate. If trailing by 5-15 points, drop your Saturday-only depth forward (e.g. Will Cuylle or Boone Jenner) for a Sunday streamer playing in the 5-game Sunday finale.
+              </div>
+              <div style="background: rgba(52, 211, 153, 0.08); border-left: 3px solid #34d399; padding: 8px 12px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                <strong style="color: #86efac;">Window 3 (Sunday Morning &bull; 10:00 AM emergency lock):</strong><br>
+                If goalie minimums or point deficit require an emergency starter, pivot to available goalie streamers (e.g. Jakub Dobes @ WPG).
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // CASE 4: Untouchables question
+      if (q.includes('untouchable') || q.includes('keep') || q.includes('safe') || q.includes('stud')) {
+        answerArea.innerHTML = `
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(52, 211, 153, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span class="badge-rank" style="background: rgba(52, 211, 153, 0.15); color: #34d399;">🛡️ Core Untouchable Anchors</span>
+              <span class="tier-pill tier-gold">${untouchables.length} Untouchable Players</span>
+            </div>
+            <div style="font-size: 0.83rem; color: var(--text-main); margin-bottom: 12px; line-height: 1.5;">
+              These players are <strong>100% UNTOUCHABLE</strong>. Dropping any of these players would be catastrophic for your championship equity:
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+              ${untouchables.slice(0, 8).map(d => `
+                <div style="background: rgba(52, 211, 153, 0.05); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: var(--radius-sm); padding: 8px 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong>${d.player.name}</strong>
+                    <span class="pos-pill">${d.player.pos} &bull; ${d.player.team}</span>
+                  </div>
+                  <div style="font-size: 0.74rem; color: var(--text-dim); margin-top: 4px;">
+                    ${d.player.actAvg > 0 ? d.player.actAvg + ' Act PPG' : d.player.projAvg + ' Proj'} &bull; Anchor
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // CASE 5: Streamer Swap query
+      if (q.includes('stream') || q.includes('swap') || q.includes('add') || q.includes('pickup')) {
+        answerArea.innerHTML = `
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">🔄 Optimal Streamer Swap Blueprint</span>
+              <span class="quick-drop-pill" style="color: #34d399; border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.1);">+2 Net Starts &bull; +7.2 Est Pts</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; margin-bottom: 12px;">
+              <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-sm); padding: 12px;">
+                <span style="font-size: 0.72rem; color: #fca5a5; font-weight: 700; text-transform: uppercase;">1. Drop from Team:</span>
+                <div style="font-size: 1rem; font-weight: 700; color: #fff; margin: 4px 0;">${topDrop.player.name}</div>
+                <div style="font-size: 0.76rem; color: var(--text-dim);">${topDrop.player.pos} &bull; ${topDrop.player.team} &bull; 0 Off-Night Starts</div>
+              </div>
+              <div style="font-size: 1.4rem; color: var(--primary); text-align: center;">➔</div>
+              <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: var(--radius-sm); padding: 12px;">
+                <span style="font-size: 0.72rem; color: #86efac; font-weight: 700; text-transform: uppercase;">2. Add from Waivers:</span>
+                <div style="font-size: 1rem; font-weight: 700; color: #fff; margin: 4px 0;">${topStreamer.name}</div>
+                <div style="font-size: 0.76rem; color: var(--text-dim);">${topStreamer.pos} &bull; ${topStreamer.team} &bull; 2 Starts (Fri & Sun)</div>
+              </div>
+            </div>
+            <div style="font-size: 0.82rem; color: var(--text-main); line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <span>💡 <strong>Strategic Margin:</strong> Bypasses Saturday's full lineup bench jam to capture pure off-night production.</span>
+              <a href="https://fantasy.espn.com/hockey/league?leagueId=82784331" target="_blank" rel="noopener" class="load-trade-btn" style="padding: 6px 12px; font-size: 0.76rem; text-decoration: none;">
+                Execute on ESPN ↗
+              </a>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // CASE 6: Schedule Strength (SOS) breakdown query
+      if (q.includes('sos') || q.includes('schedule') || q.includes('strength') || q.includes('opponents')) {
+        answerArea.innerHTML = `
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">📊 Roster Strength of Schedule (SOS) Breakdown</span>
+              <span class="sos-pill sos-b">Upcoming Slate Difficulty</span>
+            </div>
+            <div style="font-size: 0.82rem; color: var(--text-main); margin-bottom: 12px;">
+              Opponent defensive ratings for your active roster across Friday, Saturday, and Sunday:
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px;">
+              ${drops.filter(d => d.gamesCount > 0).slice(0, 8).map(d => `
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: 8px 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong>${d.player.name}</strong>
+                    <span class="sos-pill ${d.sosData.avgMultiplier >= 1.05 ? 'sos-a' : (d.sosData.avgMultiplier >= 0.98 ? 'sos-b' : 'sos-d')}">${d.sosData.avgMultiplier}x (${d.sosData.grade})</span>
+                  </div>
+                  <div style="font-size: 0.74rem; color: var(--text-dim); margin-top: 4px;">
+                    ${d.sosData.games.map(g => `${g.day}: ${g.game} (${g.sos.grade})`).join(' &bull; ')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // DEFAULT CASE: Top Drop Recommendation
+      answerArea.innerHTML = `
+        <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+            <div>
+              <span class="badge-rank" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">🎯 Top Recommended Cut</span>
+              <h3 style="font-size: 1.15rem; color: #fff; margin-top: 4px;">
+                Drop ${topDrop.player.name} (${topDrop.player.pos} &bull; ${topDrop.player.team})
+              </h3>
+              <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 2px;">
+                ${topDrop.reason}
+              </div>
+            </div>
+            <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); padding: 6px 12px; border-radius: var(--radius-sm); text-align: center;">
+              <div style="font-size: 0.68rem; text-transform: uppercase; color: #fca5a5; font-weight: 700;">Drop Score</div>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; font-weight: 800; color: #f87171;">
+                ${topDrop.dropScore} / 100
+              </div>
+            </div>
+          </div>
+
+          <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 12px; font-size: 0.83rem; color: #fca5a5; line-height: 1.5;">
+            ⏰ <strong>Recommended Execution Window:</strong> <strong>${topDrop.timing}</strong>.<br>
+            Dropping ${topDrop.player.name.split(' ').pop()} immediately opens an active roster spot ahead of Friday's 2-game off-night slate.
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; font-size: 0.82rem; margin-bottom: 12px;">
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: 10px 12px;">
+              <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">🔍 Strategic Reasons to Cut:</div>
+              <ul style="margin: 0; padding-left: 18px; line-height: 1.5; color: var(--text-main);">
+                <li><strong>Lineup Congestion:</strong> Only plays Saturday when your active roster is already 100% full (14/14 capacity). Will generate 0 active starts!</li>
+                <li><strong>Opponent SOS Gauntlet:</strong> Upcoming matchup difficulty rating is <strong>${topDrop.avgSOS}x (${topDrop.sosData.label})</strong>.</li>
+                <li><strong>Form & Ceiling:</strong> Season actual of <strong>${topDrop.player.actAvg || 0} PPG</strong> is easily replaceable on waivers.</li>
+              </ul>
+            </div>
+            <div style="background: rgba(52, 211, 153, 0.06); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: var(--radius-sm); padding: 10px 12px;">
+              <div style="font-weight: 700; color: #34d399; margin-bottom: 6px;">🚀 Recommended Free Agent Target:</div>
+              <div style="font-size: 0.85rem; color: #fff; font-weight: 700; margin-bottom: 4px;">
+                ${topStreamer.name} (${topStreamer.pos} &bull; ${topStreamer.team})
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.4; margin-bottom: 8px;">
+                Plays <strong>Friday &amp; Sunday off-nights</strong> with 100% open lineup slots. Adds <strong>+2 net starts</strong> and projected <strong>+7.2 points</strong>!
+              </div>
+              <a href="https://fantasy.espn.com/hockey/league?leagueId=82784331" target="_blank" rel="noopener" class="load-trade-btn" style="padding: 6px 12px; font-size: 0.76rem; text-decoration: none;">
+                Claim ${topStreamer.name.split(' ').pop()} on ESPN ↗
+              </a>
+            </div>
+          </div>
+
+          ${secondDrop ? `
+            <div style="font-size: 0.78rem; color: var(--text-dim); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px;">
+              🔄 <strong>Secondary Drop Option:</strong> <strong>${secondDrop.player.name} (${secondDrop.player.pos} &bull; Score: ${secondDrop.dropScore}/100)</strong> &ndash; ${secondDrop.reason}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function handleDropAdvisorQuery(customQuery) {
+      const input = document.getElementById('dropAdvisorInput');
+      const q = customQuery != null ? customQuery : (input ? input.value : '');
+      if (input && customQuery != null) input.value = customQuery;
+      renderDropAdvisor(q);
+    }
+
+    function executeQuickPrompt(type) {
+      if (type === 'top_drop') handleDropAdvisorQuery('who should i drop right now?');
+      else if (type === 'when_drop') handleDropAdvisorQuery('when should i drop them?');
+      else if (type === 'compare_bench') handleDropAdvisorQuery('compare kuemper vs cozens vs jenner');
+      else if (type === 'untouchables') handleDropAdvisorQuery('who is untouchable?');
+      else if (type === 'streamer_swap') handleDropAdvisorQuery('who to drop for a streamer?');
+      else if (type === 'sos_breakdown') handleDropAdvisorQuery('show schedule strength');
+    }
+
+    let isDropMatrixExpanded = false;
+    function toggleDropMatrix() {
+      const wrapper = document.getElementById('dropMatrixTableWrapper');
+      const toggleText = document.getElementById('matrixToggleText');
+      if (!wrapper) return;
+
+      isDropMatrixExpanded = !isDropMatrixExpanded;
+      if (isDropMatrixExpanded) {
+        wrapper.style.display = 'block';
+        wrapper.innerHTML = generateDropMatrixHTML(currentMyRoster);
+        if (toggleText) toggleText.textContent = '▲ Hide Roster Drop Scores';
+      } else {
+        wrapper.style.display = 'none';
+        if (toggleText) toggleText.textContent = '▼ View Roster Drop Scores';
+      }
+    }
+
+    function generateDropMatrixHTML(roster = currentMyRoster) {
+      const drops = evaluateRosterDrops(roster);
+      return `
+        <table class="roster-drop-table">
+          <thead>
+            <tr>
+              <th>Priority</th>
+              <th>Player</th>
+              <th>Pos</th>
+              <th>Team</th>
+              <th>Actual</th>
+              <th>Last 7d</th>
+              <th>Rem Gms</th>
+              <th>SOS Rating</th>
+              <th>Lineup Fit</th>
+              <th>Drop Score</th>
+              <th>Timing Window</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${drops.map((d, idx) => {
+              const p = d.player;
+              let tierBadge = '<span class="tier-pill tier-gold">Untouchable</span>';
+              if (d.tier === 'PRIME_DROP') tierBadge = '<span class="tier-pill tier-danger">🚨 Prime Cut</span>';
+              else if (d.tier === 'BORDERLINE') tierBadge = '<span class="tier-pill tier-bronze">👀 Borderline</span>';
+              else if (d.tier === 'HOLD') tierBadge = '<span class="tier-pill tier-silver">✅ Solid Hold</span>';
+
+              const fitText = d.friSunCount >= 1 ? `🟢 ${d.friSunCount} Off-Night Starts` : (d.satCount === 1 ? '🔴 Saturday Clog (0 Starts)' : '⚪ Neutral');
+
+              return `
+                <tr>
+                  <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">#${idx + 1}</td>
+                  <td><strong>${p.name}</strong></td>
+                  <td><span class="pos-pill">${p.pos}</span></td>
+                  <td style="font-family: 'JetBrains Mono', monospace;">${p.team}</td>
+                  <td style="font-family: 'JetBrains Mono', monospace;">${p.actAvg > 0 ? p.actAvg : '-'}</td>
+                  <td style="font-family: 'JetBrains Mono', monospace; color: ${p.l7Avg < p.actAvg - 0.5 ? '#f87171' : (p.l7Avg > p.actAvg + 0.5 ? '#34d399' : 'inherit')};">${p.l7Avg > 0 ? p.l7Avg : '-'}</td>
+                  <td style="font-family: 'JetBrains Mono', monospace;">${d.gamesCount}</td>
+                  <td><span class="sos-pill ${d.sosData.avgMultiplier >= 1.05 ? 'sos-a' : (d.sosData.avgMultiplier >= 0.98 ? 'sos-b' : 'sos-d')}">${d.sosData.avgMultiplier}x (${d.sosData.grade})</span></td>
+                  <td style="font-size: 0.76rem;">${fitText}</td>
+                  <td>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: ${d.dropScore >= 75 ? '#f87171' : (d.dropScore <= 20 ? '#34d399' : '#fbbf24')};">
+                      ${d.dropScore}
+                    </span>
+                    <span style="font-size: 0.7rem; color: var(--text-dim);">/100</span>
+                    ${tierBadge}
+                  </td>
+                  <td style="font-size: 0.76rem; color: var(--text-muted);">${d.timing}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
     // Matchup Win Predictor & Score Projection Engine
     function getMatchupProjection(myTeam, oppTeam) {
       if (!myTeam || !oppTeam) return null;
@@ -2011,6 +2858,8 @@
         let remainingPts = 0;
         let remainingStarts = 0;
         let dailyBreakdown = {};
+        let totalSOSMult = 0;
+        let totalSOSCount = 0;
 
         allDays.forEach((d, idx) => {
           const isPast = (idx < realToday);
@@ -2028,9 +2877,17 @@
 
             (team.roster || []).forEach(p => {
               if (p.slot !== 'IR' && p.schedule && p.schedule[d]) {
-                const exp = (p.actAvg > 0 ? (p.actAvg * 0.45 + (p.l7Avg || p.actAvg) * 0.35 + (p.projAvg || 0) * 0.20) : (p.projAvg || 2.0));
-                if (p.pos === 'G') goalies.push({ ...p, exp });
-                else skaters.push({ ...p, exp });
+                const game = p.schedule[d];
+                const isHome = game.startsWith('vs');
+                const oppAbbr = game.replace(/^(vs|@)\s+/, '').trim();
+                const sos = getSOSDetails(oppAbbr, p.pos === 'G', isHome);
+                totalSOSMult += sos.multiplier;
+                totalSOSCount++;
+
+                const baseExp = (p.actAvg > 0 ? (p.actAvg * 0.45 + (p.l7Avg || p.actAvg) * 0.35 + (p.projAvg || 0) * 0.20) : (p.projAvg || 2.0));
+                const exp = Math.round(baseExp * sos.multiplier * 100) / 100;
+                if (p.pos === 'G') goalies.push({ ...p, exp, sos });
+                else skaters.push({ ...p, exp, sos });
               }
             });
 
@@ -2053,13 +2910,15 @@
           }
         });
 
+        const avgSOS = totalSOSCount > 0 ? Math.round((totalSOSMult / totalSOSCount) * 100) / 100 : 1.0;
         const finalProj = Math.round((livePts + remainingPts) * 10) / 10;
         return {
           livePts,
           remainingPts: Math.round(remainingPts * 10) / 10,
           remainingStarts,
           finalProj,
-          dailyBreakdown
+          dailyBreakdown,
+          avgSOS
         };
       }
 
@@ -2247,6 +3106,21 @@
           ${trajRowsHtml}
         </div>
 
+        <!-- Strength of Schedule (SOS) Matchup Factor Banner -->
+        <div style="margin: 12px 0; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 0.8rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span>🛡️ <strong>Matchup Strength of Schedule (SOS):</strong></span>
+            <span class="sos-pill ${pred.myProj.avgSOS >= 1.05 ? 'sos-a' : (pred.myProj.avgSOS >= 0.98 ? 'sos-b' : 'sos-d')}">
+              ${myTeam.abbrev}: ${pred.myProj.avgSOS}x (${pred.myProj.avgSOS >= 1.05 ? 'Cake' : (pred.myProj.avgSOS >= 0.98 ? 'Favorable' : 'Tough')})
+            </span>
+            <span style="color: var(--text-dim);">vs</span>
+            <span class="sos-pill ${pred.oppProj.avgSOS >= 1.05 ? 'sos-a' : (pred.oppProj.avgSOS >= 0.98 ? 'sos-b' : 'sos-d')}">
+              ${oppTeam.abbrev}: ${pred.oppProj.avgSOS}x (${pred.oppProj.avgSOS >= 1.05 ? 'Cake' : (pred.oppProj.avgSOS >= 0.98 ? 'Favorable' : 'Tough')})
+            </span>
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-muted);">Opponent defensive metrics &amp; home/away factored into daily projected output</span>
+        </div>
+
         <!-- Strategic Intelligence & Swing Factor -->
         <div class="pred-intel-box">
           💡 <strong>Matchup Prognosis:</strong> ${intelAnalysis}
@@ -2288,6 +3162,7 @@
       recalculateStrategy();
       renderPlaybook();
       renderMatchupPredictor();
+      renderDropAdvisor();
       renderRosterTable(currentMyRoster, 'myRosterTable');
       renderRosterTable(currentOppRoster, 'oppRosterTable');
       filterFreeAgents();
@@ -2307,6 +3182,21 @@
     }
 
     function switchTab(tabId) {
+      if (tabId === 'dropadvisor') {
+        switchTab('insights');
+        const card = document.getElementById('dropAdvisorCard');
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth' });
+          card.classList.add('highlight-pulse');
+          setTimeout(() => card.classList.remove('highlight-pulse'), 1500);
+        }
+        const inp = document.getElementById('dropAdvisorInput');
+        if (inp) inp.focus();
+        const advisorBtn = document.querySelector(`.tab-btn[onclick*="'dropadvisor'"]`);
+        if (advisorBtn) advisorBtn.classList.add('active');
+        return;
+      }
+
       document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
       const targetPane = document.getElementById('tab-' + tabId);
@@ -3499,6 +4389,8 @@
       pool.forEach(p => {
         let usableStarts = 0;
         let clashStarts = 0;
+        let usablePts = 0;
+        let totalSOSMult = 0;
         const chips = [];
 
         targetDays.forEach(d => {
@@ -3508,7 +4400,13 @@
             const isOpen = (p.pos === 'G') ? (cap.openGoalieSlots > 0) : (cap.openSkaterSlots > 0);
             if (isOpen) {
               usableStarts++;
-              chips.push(`<span class="stream-chip open">✅ ${d} (${game})</span>`);
+              const isHome = game.startsWith('vs');
+              const oppAbbr = game.replace(/^(vs|@)\s+/, '').trim();
+              const sos = getSOSDetails(oppAbbr, p.pos === 'G', isHome);
+              totalSOSMult += sos.multiplier;
+              const valPerGame = (p.l7Avg > 0) ? (p.l7Avg * 0.65 + (p.actAvg || 2.5) * 0.35) : (p.projAvg || 3.0);
+              usablePts += (valPerGame * sos.multiplier);
+              chips.push(`<span class="stream-chip open" style="border-color:${sos.color}">✅ ${d} (${game} <strong style="color:${sos.color}">${sos.grade}</strong>)</span>`);
             } else {
               clashStarts++;
               chips.push(`<span class="stream-chip clash">⛔ ${d} (Lineup Full)</span>`);
@@ -3529,7 +4427,8 @@
         if (q && !p.name.toLowerCase().includes(q) && !p.team.toLowerCase().includes(q)) return;
 
         const valPerGame = (p.l7Avg > 0) ? (p.l7Avg * 0.65 + (p.actAvg || 2.5) * 0.35) : (p.projAvg || 3.0);
-        const estPtsAdded = Math.round(usableStarts * valPerGame * 10) / 10;
+        const estPtsAdded = Math.round(usablePts * 10) / 10;
+        const avgSOS = usableStarts > 0 ? Math.round((totalSOSMult / usableStarts) * 100) / 100 : 1.0;
 
         evaluated.push({
           player: p,
@@ -3538,7 +4437,8 @@
           totalGamesInWindow,
           chips,
           valPerGame: Math.round(valPerGame * 10) / 10,
-          estPtsAdded
+          estPtsAdded,
+          avgSOS
         });
       });
 
@@ -3585,6 +4485,9 @@
           </td>
           <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 800; color: #34d399;">
             +${item.estPtsAdded.toFixed(1)} pts
+            <div style="font-size: 0.7rem; font-weight: 600; margin-top: 2px;">
+              <span class="sos-pill ${item.avgSOS >= 1.05 ? 'sos-a' : (item.avgSOS >= 0.98 ? 'sos-b' : 'sos-d')}">${item.avgSOS}x SOS</span>
+            </div>
           </td>
           <td style="font-size: 0.78rem; color: var(--text-muted);">${dropRec}</td>
           <td>
@@ -4099,6 +5002,18 @@
       const l7B = playersB.reduce((sum, p) => sum + (p.l7Avg || 0), 0);
       const diffL7 = Math.round((l7B - l7A) * 100) / 100;
 
+      let sosMultA = 1.0;
+      let sosMultB = 1.0;
+      if (playersA.length > 0) {
+        const sumA = playersA.reduce((acc, p) => acc + getPlayerScheduleStrength(p).avgMultiplier, 0);
+        sosMultA = Math.round((sumA / playersA.length) * 100) / 100;
+      }
+      if (playersB.length > 0) {
+        const sumB = playersB.reduce((acc, p) => acc + getPlayerScheduleStrength(p).avgMultiplier, 0);
+        sosMultB = Math.round((sumB / playersB.length) * 100) / 100;
+      }
+      const sosDelta = Math.round((sosMultB - sosMultA) * 100);
+
       let verdictClass = 'verdict-fair';
       let verdictBadge = '⚖️ FAIR TRADE / BALANCED';
       let verdictDesc = 'Value is balanced across both rosters with mutual strategic fit.';
@@ -4209,6 +5124,13 @@
             <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 700; color: ${diffL7 >= 0 ? '#34d399' : '#f87171'};">
               ${diffL7 >= 0 ? '+' : ''}${diffL7} PPG
             </div>
+          </div>
+          <div>
+            <span style="color: var(--text-muted);">Schedule (SOS) Shift:</span>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 700; color: ${sosDelta >= 0 ? '#34d399' : '#f87171'};">
+              ${sosDelta >= 0 ? '+' : ''}${sosDelta}% SOS Delta
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; color: var(--text-dim); font-size: 0.74rem;">Out: ${sosMultA}x &bull; In: ${sosMultB}x</div>
           </div>
         </div>
         ${balancerHtml}
@@ -4399,6 +5321,7 @@
       setupAutoRefresh();
       switchRoleplayTeam(currentTeamId, false);
       refreshLeagueData();
+      renderDropAdvisor();
     });
   </script>
 </body>
