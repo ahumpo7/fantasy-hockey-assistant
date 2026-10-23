@@ -1612,7 +1612,7 @@
             <span style="font-size: 1.1rem; padding-left: 10px;">💬</span>
             <input type="text" id="dropAdvisorInput" class="advisor-input"
                    placeholder="Ask me anything: 'Who should I drop right now?', 'When do I drop Kuemper?', 'Compare Cozens vs Jenner'..."
-                   onkeydown="if(event.key === 'Enter') handleDropAdvisorQuery()" />
+                   onkeydown="if(event.key === 'Enter') { event.preventDefault(); handleDropAdvisorQuery(); }" />
             <button class="advisor-ask-btn" onclick="handleDropAdvisorQuery()">
               Ask Advisor 🚀
             </button>
@@ -2447,6 +2447,15 @@
       return evaluated;
     }
 
+    function escapeAdvisorHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function renderDropAdvisor(query = '') {
       const answerArea = document.getElementById('dropAdvisorAnswerArea');
       const verdictPill = document.getElementById('quickDropVerdictPill');
@@ -2456,7 +2465,7 @@
       const drops = evaluateRosterDrops(currentMyRoster);
       if (countEl) countEl.textContent = drops.length;
 
-      const topDrop = drops[0] || { player: { name: "Bench Skater", pos: "UTIL", team: "NHL" }, dropScore: 80, timing: "Drop Friday", reason: "Lineup clutter" };
+      const topDrop = drops[0] || { player: { name: "Dylan Cozens", pos: "C", team: "BUF" }, dropScore: 99, timing: "🚨 DROP TODAY (Friday before 7 PM EDT lock)", reason: "1 gms left. SOS: 0.85x. Form: 1.05 L7 vs 1.77 Act." };
       const secondDrop = drops[1] || null;
       const untouchables = drops.filter(d => d.tier === 'UNTOUCHABLE');
 
@@ -2469,19 +2478,109 @@
         name: 'Tyler Bertuzzi', team: 'CHI', pos: 'LW', projPts: 211.9, actAvg: 1.72
       };
 
-      const q = (query || '').toLowerCase().trim();
+      const cleanQuery = (query || '').trim();
+      const q = cleanQuery.toLowerCase();
+      const qNormalized = ' ' + q.replace(/[^a-z0-9 ]/g, ' ') + ' ';
 
-      // Check if specific player names from active roster are mentioned
-      const mentioned = currentMyRoster.filter(p => {
-        const fullName = p.name.toLowerCase();
-        const lastName = p.name.split(' ').pop().toLowerCase();
-        return q.includes(fullName) || (lastName.length > 3 && q.includes(lastName));
+      const questionHeader = cleanQuery ? `
+        <div style="background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-sm); padding: 8px 14px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 1.1rem;">💬</span>
+            <span style="font-size: 0.88rem; color: #fff;">Answer for: <strong>"${escapeAdvisorHtml(cleanQuery)}"</strong></span>
+          </div>
+          <span class="badge-status status-active" style="font-size: 0.72rem; padding: 3px 8px; background: rgba(52, 211, 153, 0.2); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4);">
+            ⚡ AI Advisor Response
+          </span>
+        </div>
+      ` : '';
+
+      // Match mentioned players on roster
+      const matchedRoster = [];
+      (currentMyRoster || []).forEach(p => {
+        const full = p.name.toLowerCase();
+        const parts = full.split(' ');
+        const first = parts[0];
+        const last = parts[parts.length - 1];
+
+        const hasFull = qNormalized.includes(' ' + full + ' ');
+        const hasLast = last.length >= 3 && qNormalized.includes(' ' + last + ' ');
+        const hasFirst = first.length >= 4 && qNormalized.includes(' ' + first + ' ');
+
+        if (hasFull || hasLast || hasFirst) {
+          matchedRoster.push(p);
+        }
       });
 
-      // CASE 1: Comparison between two players
-      if (mentioned.length >= 2 || (q.includes('compare') && (q.includes('vs') || q.includes(' or ')))) {
-        let p1 = mentioned[0] ? drops.find(d => d.player.id === mentioned[0].id) : drops.find(d => d.player.name.includes('Kuemper')) || drops[0];
-        let p2 = mentioned[1] ? drops.find(d => d.player.id === mentioned[1].id) : drops.find(d => d.player.name.includes('Cozens')) || drops[1];
+      // Match free agent targets
+      const matchedFA = [];
+      pool.forEach(p => {
+        const full = p.name.toLowerCase();
+        const parts = full.split(' ');
+        const last = parts[parts.length - 1];
+
+        const hasFull = qNormalized.includes(' ' + full + ' ');
+        const hasLast = last.length >= 4 && qNormalized.includes(' ' + last + ' ');
+
+        if (hasFull || hasLast) {
+          if (!matchedRoster.some(r => r.id === p.id)) {
+            matchedFA.push(p);
+          }
+        }
+      });
+
+      // CASE 1: Free Agent Pickup Query (e.g., "should I add Bertuzzi?", "can I pick up Dobes?")
+      if (matchedFA.length > 0 && matchedRoster.length === 0 && !q.includes('vs') && !q.includes(' or ')) {
+        const fa = matchedFA[0];
+        const faSchedule = fa.schedule || {};
+        const faGames = ['Fri', 'Sat', 'Sun'].filter(d => faSchedule[d]);
+        const faStarts = faGames.length;
+        const faOpponents = faGames.map(d => `${d}: ${faSchedule[d]}`).join(', ');
+
+        answerArea.innerHTML = `
+          ${questionHeader}
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(52, 211, 153, 0.4); border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <div>
+                <span class="badge-rank" style="background: rgba(52, 211, 153, 0.15); color: #34d399;">📥 Free Agent Claim Blueprint</span>
+                <h3 style="color: #fff; font-size: 1.15rem; margin-top: 4px;">Target: ${fa.name} (${fa.pos} &bull; ${fa.team})</h3>
+              </div>
+              <span class="quick-drop-pill" style="color: #34d399; border-color: rgba(52, 211, 153, 0.4); background: rgba(52, 211, 153, 0.15);">
+                +${faStarts > 0 ? faStarts : 1} Net Starts &bull; High Value Add
+              </span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 12px;">
+              <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: var(--radius-sm); padding: 12px;">
+                <div style="font-size: 0.72rem; color: #86efac; font-weight: 700; text-transform: uppercase;">1. Waiver Claim Candidate:</div>
+                <div style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 4px 0;">${fa.name}</div>
+                <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.4;">
+                  <strong>PPG:</strong> ${fa.actAvg > 0 ? fa.actAvg + ' Act' : fa.projAvg + ' Proj'} &bull; <strong>Upcoming:</strong> ${faOpponents || 'Active slate'}
+                </div>
+              </div>
+              <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-sm); padding: 12px;">
+                <div style="font-size: 0.72rem; color: #fca5a5; font-weight: 700; text-transform: uppercase;">2. Drop from Active Roster:</div>
+                <div style="font-size: 1.05rem; font-weight: 700; color: #fff; margin: 4px 0;">${topDrop.player.name}</div>
+                <div style="font-size: 0.78rem; color: var(--text-dim); line-height: 1.4;">
+                  ${topDrop.player.pos} &bull; ${topDrop.player.team} &bull; Score: <strong>${topDrop.dropScore}/100</strong> (0 off-night starts)
+                </div>
+              </div>
+            </div>
+
+            <div style="font-size: 0.83rem; color: var(--text-main); line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+              <span>💡 <strong>Strategic Verdict:</strong> Yes! Drop ${topDrop.player.name.split(' ').pop()} immediately to claim ${fa.name.split(' ').pop()}. Bypasses bench logjam.</span>
+              <a href="https://fantasy.espn.com/hockey/league?leagueId=82784331" target="_blank" rel="noopener" class="load-trade-btn" style="padding: 6px 12px; font-size: 0.76rem; text-decoration: none;">
+                Claim on ESPN ↗
+              </a>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // CASE 2: Comparison between two players
+      if (matchedRoster.length >= 2 || (matchedRoster.length >= 1 && matchedFA.length >= 1) || (q.includes('compare') && (q.includes('vs') || q.includes(' or ')))) {
+        let p1 = matchedRoster[0] ? drops.find(d => d.player.id === matchedRoster[0].id) : drops.find(d => d.player.name.includes('Kuemper')) || drops[0];
+        let p2 = matchedRoster[1] ? drops.find(d => d.player.id === matchedRoster[1].id) : (matchedFA[0] ? { player: matchedFA[0], dropScore: 25, reason: "Available free agent target", timing: "Add from waivers", sosData: { games: [] } } : drops.find(d => d.player.name.includes('Cozens')) || drops[1]);
         if (p1 && p2 && p1.player.id === p2.player.id) {
           p2 = drops.find(d => d.player.id !== p1.player.id);
         }
@@ -2489,6 +2588,7 @@
         const keepPick = (p1 && p2 && p1.dropScore >= p2.dropScore) ? p2 : p1;
 
         answerArea.innerHTML = `
+          ${questionHeader}
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
               <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">⚖️ Head-to-Head Drop Decision</span>
@@ -2505,7 +2605,7 @@
                   ❌ <strong>RECOMMENDED CUT:</strong> ${dropPick.reason}
                 </div>
                 <div style="font-size: 0.76rem; color: var(--text-dim);">
-                  <strong>Upcoming:</strong> ${dropPick.sosData.games.map(g => `${g.day} (${g.game} ${g.sos.grade})`).join(', ') || 'No games left'}
+                  <strong>Upcoming:</strong> ${dropPick.sosData && dropPick.sosData.games ? dropPick.sosData.games.map(g => `${g.day} (${g.game} ${g.sos.grade})`).join(', ') : 'Bench asset'}
                 </div>
               </div>
               <!-- Keep candidate -->
@@ -2518,7 +2618,7 @@
                   ✅ <strong>HOLD:</strong> Higher baseline scoring and superior schedule fit.
                 </div>
                 <div style="font-size: 0.76rem; color: var(--text-dim);">
-                  <strong>Upcoming:</strong> ${keepPick.sosData.games.map(g => `${g.day} (${g.game} ${g.sos.grade})`).join(', ') || 'No games left'}
+                  <strong>Upcoming:</strong> ${keepPick.sosData && keepPick.sosData.games ? keepPick.sosData.games.map(g => `${g.day} (${g.game} ${g.sos.grade})`).join(', ') : 'Bench asset'}
                 </div>
               </div>
             </div>
@@ -2530,14 +2630,15 @@
         return;
       }
 
-      // CASE 2: Single Player specific inquiry
-      if (mentioned.length === 1) {
-        const item = drops.find(d => d.player.id === mentioned[0].id) || drops[0];
+      // CASE 3: Single Player specific inquiry
+      if (matchedRoster.length === 1) {
+        const item = drops.find(d => d.player.id === matchedRoster[0].id) || drops[0];
         const p = item.player;
         const isUntouchable = item.tier === 'UNTOUCHABLE';
         const isDrop = item.tier === 'PRIME_DROP';
 
         answerArea.innerHTML = `
+          ${questionHeader}
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid ${isDrop ? 'rgba(239, 68, 68, 0.4)' : (isUntouchable ? 'rgba(52, 211, 153, 0.4)' : 'rgba(56, 189, 248, 0.35)')}; border-radius: var(--radius-md); padding: 14px 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
               <div>
@@ -2565,12 +2666,12 @@
                 <span style="color: var(--text-muted);">Remaining Games:</span> <strong>${item.gamesCount} gms</strong> (${item.friSunCount} Off-Nights)
               </div>
               <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
-                <span style="color: var(--text-muted);">Opponent SOS:</span> <strong>${item.avgSOS}x (${item.sosData.label})</strong>
+                <span style="color: var(--text-muted);">Opponent SOS:</span> <strong>${item.avgSOS ? item.avgSOS.toFixed(2) : '1.00'}x (${item.sosData ? item.sosData.label : 'Balanced'})</strong>
               </div>
             </div>
 
             <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text-main); margin-bottom: 10px;">
-              ${isUntouchable ? `<strong>🛡️ VERDICT: DO NOT DROP!</strong> ${p.name} is a core foundation piece. High ceiling, reliable minutes, and top-tier deployment make him a season-long hold.` : (isDrop ? `<strong>🚨 VERDICT: SAFE TO DROP!</strong> ${p.name} has low recent output and zero off-night games. Dropping him opens roster bandwidth for active streamers.` : `<strong>👀 VERDICT: HOLD FOR NOW.</strong> ${p.name} is a solid starter. Only consider dropping if an emergency weekend off-night streamer is required to win your matchup.`)}
+              ${isUntouchable ? `<strong>🛡️ VERDICT: DO NOT DROP!</strong> ${p.name} is a core foundation piece. High ceiling, reliable minutes, and top-tier deployment make him a season-long hold.` : (isDrop ? `<strong>🚨 VERDICT: SAFE TO DROP!</strong> ${p.name} has low recent output and zero off-night games. Dropping him opens roster bandwidth for active streamers.` : `<strong>👀 VERDICT: HOLD FOR NOW.</strong> ${p.name} is a solid contributor. Only consider dropping if an emergency weekend off-night streamer is required to win your matchup.`)}
             </div>
 
             <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.8rem; color: #7dd3fc;">
@@ -2581,9 +2682,141 @@
         return;
       }
 
-      // CASE 3: When / Timing questions
-      if (q.includes('when') || q.includes('time') || q.includes('day') || q.includes('timeline')) {
+      // CASE 4: Goalie Position Inquiry (e.g. "should I drop a goalie?", "which goalie to cut?")
+      if (q.includes('goalie') || q.includes('goalies') || q.includes('netminder') || q.includes('crease') || q.includes('tender')) {
+        const goalies = drops.filter(d => d.player.pos === 'G');
+        const kuemperItem = goalies.find(g => g.player.name.includes('Kuemper')) || goalies[0];
         answerArea.innerHTML = `
+          ${questionHeader}
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">🥅 Goalie Crease Strategy Audit</span>
+              <span class="quick-drop-pill" style="color: #f87171; border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.1);">Verdict: Darcy Kuemper is droppable</span>
+            </div>
+            <div style="font-size: 0.83rem; color: var(--text-main); margin-bottom: 12px; line-height: 1.5;">
+              Here is how your goalies rank in droppability based on performance and starting opportunities:
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 12px;">
+              ${goalies.map(g => `
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid ${g.tier === 'UNTOUCHABLE' ? 'rgba(52, 211, 153, 0.25)' : (g.dropScore >= 75 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255,255,255,0.08)')}; border-radius: var(--radius-sm); padding: 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong>${g.player.name}</strong>
+                    <span class="sos-pill ${g.dropScore >= 75 ? 'sos-f' : 'sos-a'}">${g.dropScore >= 75 ? 'DROP SCORE: ' + g.dropScore : 'KEEP'}</span>
+                  </div>
+                  <div style="font-size: 0.76rem; color: var(--text-dim);">
+                    ${g.player.team} &bull; ${g.player.actAvg > 0 ? g.player.actAvg + ' Act PPG' : 'IR / Reserve'}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            <div style="background: rgba(239, 68, 68, 0.08); border-left: 3px solid #f87171; padding: 10px 12px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 0.82rem; line-height: 1.5;">
+              💡 <strong>Actionable Advice:</strong> <strong>Darcy Kuemper</strong> (1.77 PPG) has split starts and tough matchups. If you need a roster spot for an off-night skater, Kuemper is safe to cut. Keep <strong>Stuart Skinner</strong> and <strong>Dylan Garand</strong> (4.43 PPG).
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // CASE 5: Defense Position Inquiry (e.g. "should I drop a defenseman?", "can I drop a D?")
+      if (q.includes('defense') || q.includes('defenseman') || q.includes('defensemen') || q.includes('d-man') || q.includes('blueline') || q.includes(' d?')) {
+        const dMen = drops.filter(d => d.player.pos === 'D');
+        answerArea.innerHTML = `
+          ${questionHeader}
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(52, 211, 153, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <span class="badge-rank" style="background: rgba(52, 211, 153, 0.15); color: #34d399;">🛡️ Defense Core Audit</span>
+              <span class="tier-pill tier-gold">DO NOT DROP ANY DEFENSEMAN</span>
+            </div>
+            <div style="font-size: 0.84rem; color: var(--text-main); margin-bottom: 12px; line-height: 1.5;">
+              ❌ <strong>DO NOT CUT DEFENSE!</strong> All ${dMen.length} defensemen on your active roster are performing at an elite fantasy clip (&gt;3.65 PPG). Your blue line is your team's greatest scoring advantage:
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 12px;">
+              ${dMen.map(d => `
+                <div style="background: rgba(52, 211, 153, 0.05); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: var(--radius-sm); padding: 10px;">
+                  <div style="font-weight: 700; color: #fff;">${d.player.name} (${d.player.team})</div>
+                  <div style="font-size: 0.76rem; color: #86efac; margin-top: 4px;">
+                    ${d.player.actAvg} Act PPG &bull; Drop Score: ${d.dropScore}/100 (Safe)
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            <div style="font-size: 0.82rem; color: var(--text-dim); line-height: 1.5;">
+              💡 <strong>Strategy:</strong> If you need to make a drop, target forward depth (<strong>Dylan Cozens</strong>) or backup goalie (<strong>Darcy Kuemper</strong>) instead of cutting a blueliner.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // CASE 6: Forward Position Inquiry (e.g. "should I drop a forward?", "which forward to cut?")
+      if (q.includes('forward') || q.includes('forwards') || q.includes('winger') || q.includes('center')) {
+        const fwds = drops.filter(d => ['C', 'LW', 'RW', 'UTIL'].includes(d.player.pos));
+        const fwdDrop = fwds[0] || topDrop;
+        answerArea.innerHTML = `
+          ${questionHeader}
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <span class="badge-rank" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">⚔️ Forward Depth Audit</span>
+              <span class="quick-drop-pill">Top Forward Cut: <strong>${fwdDrop.player.name}</strong></span>
+            </div>
+            <div style="font-size: 0.83rem; color: var(--text-main); margin-bottom: 12px; line-height: 1.5;">
+              Among your forwards, <strong>${fwdDrop.player.name}</strong> is the top candidate to drop due to low scoring and zero off-night games:
+            </div>
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong>${fwdDrop.player.name} (${fwdDrop.player.pos} &bull; ${fwdDrop.player.team})</strong>
+                <span class="sos-pill sos-f">Drop Score: ${fwdDrop.dropScore}/100</span>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-dim); margin-top: 6px;">
+                ${fwdDrop.reason} &bull; ${fwdDrop.timing}
+              </div>
+            </div>
+            <div style="font-size: 0.82rem; color: var(--text-dim); line-height: 1.5;">
+              💡 <strong>Action Plan:</strong> Dropping ${fwdDrop.player.name.split(' ').pop()} frees up a streaming roster slot for <strong>Tyler Bertuzzi</strong> (2 off-night starts).
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // CASE 7: Worst / Coldest / Slumping Player inquiry
+      if (q.includes('worst') || q.includes('lowest') || q.includes('coldest') || q.includes('slump') || q.includes('ice cold') || q.includes('bad')) {
+        const bottom3 = drops.slice(0, 3);
+        answerArea.innerHTML = `
+          ${questionHeader}
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <span class="badge-rank" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">❄️ Ice Cold &amp; Underperforming Players</span>
+              <span class="quick-drop-pill">#1 Slumping Asset: <strong>${topDrop.player.name}</strong></span>
+            </div>
+            <div style="font-size: 0.83rem; color: var(--text-main); margin-bottom: 12px;">
+              Based on recent 7-day scoring and schedule efficiency, here are the lowest-producing players on your roster:
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 12px;">
+              ${bottom3.map((b, idx) => `
+                <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: var(--radius-sm); padding: 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <strong>#${idx + 1}: ${b.player.name} (${b.player.pos})</strong>
+                    <span class="sos-pill sos-f">Score: ${b.dropScore}</span>
+                  </div>
+                  <div style="font-size: 0.76rem; color: var(--text-dim); margin-top: 4px;">
+                    ${b.player.actAvg} Act PPG &bull; ${b.friSunCount} Off-Nights &bull; ${b.timing}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            <div style="font-size: 0.82rem; color: var(--text-main); line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px;">
+              💡 <strong>Takeaway:</strong> ${topDrop.player.name} (1.05 PPG last 7 days) and Darcy Kuemper (1.77 PPG) are your most droppable players right now.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // CASE 8: When / Timing questions
+      if (q.includes('when') || q.includes('time') || q.includes('friday') || q.includes('tonight') || q.includes('weekend') || q.includes('timeline') || q.includes('day')) {
+        answerArea.innerHTML = `
+          ${questionHeader}
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
               <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">⏰ Tactical Drop Timing Engine</span>
@@ -2608,9 +2841,10 @@
         return;
       }
 
-      // CASE 4: Untouchables question
-      if (q.includes('untouchable') || q.includes('keep') || q.includes('safe') || q.includes('stud')) {
+      // CASE 9: Untouchables question
+      if (q.includes('untouchable') || q.includes('keep') || q.includes('safe') || q.includes('stud') || q.includes('best') || q.includes('core')) {
         answerArea.innerHTML = `
+          ${questionHeader}
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(52, 211, 153, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
               <span class="badge-rank" style="background: rgba(52, 211, 153, 0.15); color: #34d399;">🛡️ Core Untouchable Anchors</span>
@@ -2637,9 +2871,10 @@
         return;
       }
 
-      // CASE 5: Streamer Swap query
-      if (q.includes('stream') || q.includes('swap') || q.includes('add') || q.includes('pickup')) {
+      // CASE 10: Streamer Swap query
+      if (q.includes('stream') || q.includes('swap') || q.includes('add') || q.includes('pickup') || q.includes('waiver')) {
         answerArea.innerHTML = `
+          ${questionHeader}
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
               <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">🔄 Optimal Streamer Swap Blueprint</span>
@@ -2669,9 +2904,10 @@
         return;
       }
 
-      // CASE 6: Schedule Strength (SOS) breakdown query
+      // CASE 11: Schedule Strength (SOS) breakdown query
       if (q.includes('sos') || q.includes('schedule') || q.includes('strength') || q.includes('opponents')) {
         answerArea.innerHTML = `
+          ${questionHeader}
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
               <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">📊 Roster Strength of Schedule (SOS) Breakdown</span>
@@ -2685,7 +2921,7 @@
                 <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: 8px 10px;">
                   <div style="display: flex; justify-content: space-between; align-items: center;">
                     <strong>${d.player.name}</strong>
-                    <span class="sos-pill ${d.sosData.avgMultiplier >= 1.05 ? 'sos-a' : (d.sosData.avgMultiplier >= 0.98 ? 'sos-b' : 'sos-d')}">${d.sosData.avgMultiplier}x (${d.sosData.grade})</span>
+                    <span class="sos-pill ${d.sosData.avgMultiplier >= 1.05 ? 'sos-a' : (d.sosData.avgMultiplier >= 0.98 ? 'sos-b' : 'sos-d')}">${d.sosData.avgMultiplier ? d.sosData.avgMultiplier.toFixed(2) : '1.00'}x (${d.sosData.grade})</span>
                   </div>
                   <div style="font-size: 0.74rem; color: var(--text-dim); margin-top: 4px;">
                     ${d.sosData.games.map(g => `${g.day}: ${g.game} (${g.sos.grade})`).join(' &bull; ')}
@@ -2698,8 +2934,9 @@
         return;
       }
 
-      // DEFAULT CASE: Top Drop Recommendation
+      // CASE 12: General Drop & Action Plan (Default for all other inquiries)
       answerArea.innerHTML = `
+        ${questionHeader}
         <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
           <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
             <div>
@@ -2729,7 +2966,7 @@
               <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">🔍 Strategic Reasons to Cut:</div>
               <ul style="margin: 0; padding-left: 18px; line-height: 1.5; color: var(--text-main);">
                 <li><strong>Lineup Congestion:</strong> Only plays Saturday when your active roster is already 100% full (14/14 capacity). Will generate 0 active starts!</li>
-                <li><strong>Opponent SOS Gauntlet:</strong> Upcoming matchup difficulty rating is <strong>${topDrop.avgSOS}x (${topDrop.sosData.label})</strong>.</li>
+                <li><strong>Opponent SOS Gauntlet:</strong> Upcoming matchup difficulty rating is <strong>${topDrop.avgSOS ? topDrop.avgSOS.toFixed(2) : '0.85'}x (${topDrop.sosData ? topDrop.sosData.label : 'Tough'})</strong>.</li>
                 <li><strong>Form & Ceiling:</strong> Season actual of <strong>${topDrop.player.actAvg || 0} PPG</strong> is easily replaceable on waivers.</li>
               </ul>
             </div>
@@ -2760,7 +2997,16 @@
       const input = document.getElementById('dropAdvisorInput');
       const q = customQuery != null ? customQuery : (input ? input.value : '');
       if (input && customQuery != null) input.value = customQuery;
-      renderDropAdvisor(q);
+      const answerArea = document.getElementById('dropAdvisorAnswerArea');
+      if (answerArea) {
+        answerArea.style.opacity = '0.5';
+        setTimeout(() => {
+          renderDropAdvisor(q);
+          answerArea.style.opacity = '1';
+        }, 50);
+      } else {
+        renderDropAdvisor(q);
+      }
     }
 
     function executeQuickPrompt(type) {
