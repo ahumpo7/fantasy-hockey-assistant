@@ -1268,6 +1268,24 @@
       opacity: 0.92;
       transform: scale(1.02);
     }
+    .partner-pill {
+      cursor: pointer;
+      background: rgba(11, 15, 25, 0.65);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-size: 0.78rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .partner-pill:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: #38bdf8;
+      transform: translateY(-1px);
+    }
 
     /* Playoff Planner */
     .playoff-hero {
@@ -1836,11 +1854,48 @@
       </div>
 
       <!-- Auto-Generated Trade Suggestions Matching Selected Level -->
-      <div style="margin-bottom: 24px;">
-        <div class="section-title" style="font-size: 1.05rem; margin-bottom: 12px;">
-          ✨ Auto-Suggested Trade Packages (<span id="suggestionsOpponentName">Opponent</span>)
-          <span id="suggestionsSubtitle">Tailored to your current fairness slider level</span>
+      <div style="margin-bottom: 28px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+          <div>
+            <div class="section-title" style="font-size: 1.1rem; margin-bottom: 2px;">
+              ✨ Auto-Suggested Trade Packages
+            </div>
+            <div id="suggestionsSubtitle" style="font-size: 0.78rem; color: var(--text-muted);">
+              Tailored to your fairness slider, personal projections & league-wide roster needs
+            </div>
+          </div>
         </div>
+
+        <!-- Filter / Anchor Player Controls Bar -->
+        <div class="trade-controls-card" style="background: rgba(17, 24, 39, 0.65); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; align-items: center;">
+          <!-- 1. Player to Include (Anchor) -->
+          <div>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; color: var(--primary); margin-bottom: 6px; letter-spacing: 0.5px;">
+              <span>🎯 Player to Include (Shop from Roster):</span>
+            </label>
+            <select id="suggestPlayerAnchor" class="team-select" style="width: 100%; padding: 8px 12px; font-size: 0.85rem;" onchange="onTradeAnchorPlayerChange(this.value)">
+              <option value="ALL">✨ Any Player (Auto-Match Best League-Wide Deals)</option>
+              <!-- Populated dynamically with myRoster players -->
+            </select>
+          </div>
+
+          <!-- 2. Target Partner Team Mode -->
+          <div>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 0.74rem; font-weight: 700; text-transform: uppercase; color: #38bdf8; margin-bottom: 6px; letter-spacing: 0.5px;">
+              <span>🤝 Trade Partner Mode:</span>
+            </label>
+            <select id="suggestPartnerMode" class="team-select" style="width: 100%; padding: 8px 12px; font-size: 0.85rem;" onchange="onTradePartnerModeChange(this.value)">
+              <option value="BEST_FIT">🏆 Best Suitable Teams (League-Wide Search)</option>
+              <!-- Populated dynamically with all league opponents -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Best Suitable Teams Spotlight Banner -->
+        <div id="bestPartnersBanner" style="display: none; margin-bottom: 16px;">
+          <!-- Rendered dynamically -->
+        </div>
+
         <div id="autoTradeSuggestionsContainer" class="trade-proposal-grid">
           <!-- Populated by JS -->
         </div>
@@ -5173,6 +5228,8 @@
     let tradeSelectedA = new Set();
     let tradeSelectedB = new Set();
     let tradeTeamBId = null;
+    let tradeAnchorPlayerId = 'ALL';
+    let tradePartnerMode = 'BEST_FIT'; // 'BEST_FIT' or specific team id (Number)
 
     function onTradeFairnessChange(val) {
       currentFairnessLevel = Number(val);
@@ -5192,11 +5249,110 @@
       updateTradeEvaluation();
     }
 
+    function onTradeAnchorPlayerChange(val) {
+      tradeAnchorPlayerId = (val === 'ALL') ? 'ALL' : Number(val);
+      generateTradeSuggestions();
+    }
+
+    function onTradePartnerModeChange(val) {
+      tradePartnerMode = (val === 'BEST_FIT') ? 'BEST_FIT' : Number(val);
+      generateTradeSuggestions();
+    }
+
+    function selectSpecificPartner(teamId) {
+      tradePartnerMode = Number(teamId);
+      const select = document.getElementById('suggestPartnerMode');
+      if (select) select.value = tradePartnerMode;
+      generateTradeSuggestions();
+    }
+
+    // ========================================================
+    // FEATURE: TEAM TRADE SUITABILITY & SYNERGY ENGINE
+    // ========================================================
+    function scoreTeamSuitability(partnerTeam, anchorPlayer, myTeam, fairnessLvl) {
+      const oppRoster = partnerTeam.roster || [];
+      const myRoster = myTeam.roster || [];
+
+      // Count positions on each team
+      const oppCounts = { C: 0, LW: 0, RW: 0, D: 0, G: 0 };
+      oppRoster.forEach(p => { if (oppCounts[p.pos] !== undefined) oppCounts[p.pos]++; });
+
+      const myCounts = { C: 0, LW: 0, RW: 0, D: 0, G: 0 };
+      myRoster.forEach(p => { if (myCounts[p.pos] !== undefined) myCounts[p.pos]++; });
+
+      let score = 50;
+      const reasons = [];
+
+      if (anchorPlayer) {
+        const pPos = anchorPlayer.pos;
+        if (pPos === 'LW') {
+          if (oppCounts.LW <= 2) { score += 25; reasons.push(`High need at LW (only ${oppCounts.LW} on roster)`); }
+          else if (oppCounts.LW <= 3) { score += 15; reasons.push(`Thin at LW (${oppCounts.LW} on roster)`); }
+        } else if (pPos === 'RW') {
+          if (oppCounts.RW <= 2) { score += 25; reasons.push(`High need at RW (only ${oppCounts.RW} on roster)`); }
+          else if (oppCounts.RW <= 3) { score += 15; reasons.push(`Thin at RW (${oppCounts.RW} on roster)`); }
+        } else if (pPos === 'C') {
+          if (oppCounts.C <= 3) { score += 20; reasons.push(`Thin at Center (${oppCounts.C} on roster)`); }
+        } else if (pPos === 'D') {
+          if (oppCounts.D <= 5) { score += 20; reasons.push(`Needs Defense depth (${oppCounts.D} on roster)`); }
+        } else if (pPos === 'G') {
+          if (oppCounts.G <= 2) { score += 25; reasons.push(`Needs Goalie depth (only ${oppCounts.G} on roster)`); }
+        }
+
+        // Mutual synergy: does opponent have positions myTeam needs?
+        if (myCounts.RW <= 2 && oppCounts.RW >= 5) {
+          score += 15;
+          reasons.push(`Has surplus RW (${oppCounts.RW}) to balance your roster`);
+        }
+        if (myCounts.D <= 5 && oppCounts.D >= 6) {
+          score += 12;
+          reasons.push(`Has surplus D (${oppCounts.D}) to cover starting slots`);
+        }
+      } else {
+        if (myCounts.RW <= 2 && oppCounts.RW >= 5) {
+          score += 20;
+          reasons.push(`Has surplus RW (${oppCounts.RW}) you need`);
+        }
+        if (oppCounts.C <= 3 && myCounts.C >= 6) {
+          score += 20;
+          reasons.push(`Needs Center depth (you have ${myCounts.C} Cs)`);
+        }
+        if (oppCounts.LW <= 2 && myCounts.LW >= 4) {
+          score += 15;
+          reasons.push(`Thin at LW (${oppCounts.LW} on roster)`);
+        }
+      }
+
+      // Count potential viable swaps within target fairness window
+      let validSwaps = 0;
+      const min = fairnessLvl.minDiff;
+      const max = fairnessLvl.maxDiff;
+      const checkPlayers = anchorPlayer ? [anchorPlayer] : myRoster.slice(0, 8);
+
+      checkPlayers.forEach(a => {
+        oppRoster.forEach(b => {
+          const diff = b.projPts - a.projPts;
+          if (diff >= min && diff <= max) validSwaps++;
+        });
+      });
+
+      if (validSwaps > 0) score += Math.min(20, validSwaps * 4);
+      score = Math.min(99, Math.max(45, score));
+
+      return {
+        team: partnerTeam,
+        score: score,
+        reasons: reasons.slice(0, 2).join(' &bull; ') || 'Balanced roster depth match'
+      };
+    }
+
     function renderTradeAnalyzer() {
       const selectB = document.getElementById('tradeTeamBSelect');
       const teamAName = document.getElementById('tradeTeamAName');
       const listA = document.getElementById('tradeListTeamA');
       const listB = document.getElementById('tradeListTeamB');
+      const anchorSelect = document.getElementById('suggestPlayerAnchor');
+      const partnerModeSelect = document.getElementById('suggestPartnerMode');
       if (!selectB || !listA || !listB) return;
 
       const myTeam = currentTeam || allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
@@ -5213,6 +5369,29 @@
       selectB.innerHTML = oppTeams.map(t => `
         <option value="${t.id}" ${t.id === tradeTeamBId ? 'selected' : ''}>${t.name} (${t.record || '0-0'})</option>
       `).join('');
+
+      // Populate Anchor Player Selector
+      if (anchorSelect) {
+        const sortedMyRoster = [...(currentMyRoster || [])].sort((a, b) => (b.projPts || 0) - (a.projPts || 0));
+        anchorSelect.innerHTML = `
+          <option value="ALL" ${tradeAnchorPlayerId === 'ALL' ? 'selected' : ''}>✨ Any Player (Auto-Match Best League-Wide Deals)</option>
+          ${sortedMyRoster.map(p => `
+            <option value="${p.id}" ${Number(tradeAnchorPlayerId) === Number(p.id) ? 'selected' : ''}>
+              ${p.name} (${p.pos} &bull; ${p.team}) — ${p.projPts != null ? p.projPts : (p.projAvg * 20).toFixed(0)} Proj (${p.actAvg != null ? p.actAvg : 0} PPG)
+            </option>
+          `).join('')}
+        `;
+      }
+
+      // Populate Partner Mode Selector
+      if (partnerModeSelect) {
+        partnerModeSelect.innerHTML = `
+          <option value="BEST_FIT" ${tradePartnerMode === 'BEST_FIT' ? 'selected' : ''}>🏆 Best Suitable Teams (League-Wide Search)</option>
+          ${oppTeams.map(t => `
+            <option value="${t.id}" ${Number(tradePartnerMode) === Number(t.id) ? 'selected' : ''}>${t.name} (${t.record || '0-0'})</option>
+          `).join('')}
+        `;
+      }
 
       const teamB = allLeagueTeams.find(t => t.id === tradeTeamBId) || oppTeams[0];
 
@@ -5251,106 +5430,222 @@
 
     function generateTradeSuggestions() {
       const container = document.getElementById('autoTradeSuggestionsContainer');
-      const oppNameEl = document.getElementById('suggestionsOpponentName');
+      const bannerEl = document.getElementById('bestPartnersBanner');
       if (!container) return;
 
       const myTeam = currentTeam || allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
-      const teamB = allLeagueTeams.find(t => t.id === tradeTeamBId) || allLeagueTeams.find(t => t.id !== myTeam.id) || allLeagueTeams[1];
-      if (!teamB) return;
-
-      if (oppNameEl) oppNameEl.textContent = teamB.name;
-
+      const myRoster = currentMyRoster || myTeam.roster || [];
       const lvl = FAIRNESS_LEVELS[currentFairnessLevel] || FAIRNESS_LEVELS[4];
       const min = lvl.minDiff;
       const max = lvl.maxDiff;
       const mid = (min + max) / 2;
 
+      // Identify selected anchor player (if any)
+      const anchorPlayer = (tradeAnchorPlayerId && tradeAnchorPlayerId !== 'ALL')
+        ? myRoster.find(p => Number(p.id) === Number(tradeAnchorPlayerId))
+        : null;
+
+      // Score all opponent teams for suitability
+      const allOpponents = allLeagueTeams.filter(t => t.id !== myTeam.id);
+      const rankedPartners = allOpponents.map(t => scoreTeamSuitability(t, anchorPlayer, myTeam, lvl))
+        .sort((a, b) => b.score - a.score);
+
+      // Render Best Partners Banner
+      if (bannerEl) {
+        if (tradePartnerMode === 'BEST_FIT') {
+          const topPartners = rankedPartners.slice(0, 3);
+          bannerEl.style.display = 'block';
+          bannerEl.innerHTML = `
+            <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: var(--radius-md); padding: 12px 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <span style="font-weight: 700; font-size: 0.84rem; color: #7dd3fc; display: flex; align-items: center; gap: 6px;">
+                  🏆 Best Trade Partners ${anchorPlayer ? `for <strong>${anchorPlayer.name}</strong> (${anchorPlayer.pos} &bull; ${anchorPlayer.projPts} pts)` : 'Across League'}:
+                </span>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Ranked by positional deficiency, mutual surplus & fairness fit</span>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                ${topPartners.map((p, idx) => `
+                  <div class="partner-pill" onclick="selectSpecificPartner(${p.team.id})" title="Click to filter packages strictly to ${p.team.name}">
+                    <span style="font-weight: 800; color: #38bdf8;">#${idx + 1}</span>
+                    <strong style="color: #fff;">${p.team.name}</strong>
+                    <span class="tier-pill tier-gold" style="font-size: 0.68rem; padding: 2px 7px;">${p.score}% Match</span>
+                    <span style="color: var(--text-dim); font-size: 0.72rem;">&bull; ${p.reasons}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          const specific = rankedPartners.find(r => Number(r.team.id) === Number(tradePartnerMode)) || rankedPartners[0];
+          bannerEl.style.display = 'block';
+          bannerEl.innerHTML = `
+            <div style="background: rgba(168, 85, 247, 0.08); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: var(--radius-md); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <span style="font-weight: 700; font-size: 0.84rem; color: #c084fc;">
+                  Target Partner: <strong>${specific.team.name}</strong> (${specific.team.record || '0-0'})
+                </span>
+                <span class="tier-pill tier-gold" style="font-size: 0.7rem; padding: 2px 8px;">${specific.score}% Match</span>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">&bull; ${specific.reasons}</span>
+              </div>
+              <button onclick="onTradePartnerModeChange('BEST_FIT')" class="load-trade-btn" style="padding: 5px 12px; font-size: 0.72rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4);">
+                🌐 Switch to League-Wide Best Fit
+              </button>
+            </div>
+          `;
+        }
+      }
+
+      // Determine candidate teams to generate trade packages from
+      let candidatePartners = [];
+      if (tradePartnerMode === 'BEST_FIT') {
+        candidatePartners = rankedPartners.slice(0, 4);
+      } else {
+        const specific = rankedPartners.find(r => Number(r.team.id) === Number(tradePartnerMode));
+        if (specific) candidatePartners = [specific];
+        else candidatePartners = [rankedPartners[0]];
+      }
+
       const proposals = [];
-      const myRoster = currentMyRoster || [];
-      const oppRoster = teamB.roster || [];
 
-      // 1. Best 1-for-1 Swap
-      let best1 = null, dist1 = 999;
-      myRoster.forEach(a => {
-        oppRoster.forEach(b => {
-          const diff = b.projPts - a.projPts;
-          if (diff >= min && diff <= max) {
-            const d = Math.abs(diff - mid);
-            if (d < dist1) {
-              dist1 = d;
-              best1 = {
-                title: "1-for-1 Position / Star Swap",
-                a: [a],
-                b: [b],
-                diff: Math.round(diff * 10) / 10,
-                rationale: `Swaps ${a.name} (${a.pos}) for ${b.name} (${b.pos}). Matches target ${lvl.title} balance.`
-              };
-            }
-          }
-        });
-      });
-      if (best1) proposals.push(best1);
+      candidatePartners.forEach(partnerObj => {
+        const partner = partnerObj.team;
+        const oppRoster = partner.roster || [];
+        const suitability = partnerObj;
 
-      // 2. Best 2-for-1 Package
-      let best2 = null, dist2 = 999;
-      myRoster.forEach((a1, i) => {
-        myRoster.slice(i + 1).forEach(a2 => {
+        // 1. 1-for-1 Swap
+        const aPool1 = anchorPlayer ? [anchorPlayer] : myRoster.slice(0, 8);
+        let best1 = null, dist1 = 999;
+        aPool1.forEach(a => {
           oppRoster.forEach(b => {
-            const diff = b.projPts - (a1.projPts + a2.projPts);
+            const diff = b.projPts - a.projPts;
             if (diff >= min && diff <= max) {
               const d = Math.abs(diff - mid);
-              if (d < dist2) {
-                dist2 = d;
-                best2 = {
-                  title: "2-for-1 Consolidation Upgrade",
-                  a: [a1, a2],
+              // Positional bonus: prioritizing positions myTeam needs (RW or D)
+              const bonus = (b.pos === 'RW' || b.pos === 'D') ? -1.5 : 0;
+              if (d + bonus < dist1) {
+                dist1 = d + bonus;
+                best1 = {
+                  title: "1-for-1 Position / Star Swap",
+                  partner: partner,
+                  suitability: suitability,
+                  a: [a],
                   b: [b],
                   diff: Math.round(diff * 10) / 10,
-                  rationale: `Package 2 pieces (${a1.name} & ${a2.name}) for ${b.name}. Opens an active roster spot for streaming!`
+                  rationale: `Swaps ${a.name} (${a.pos}) for ${b.name} (${b.pos}). Matches target ${lvl.title} balance. ${suitability.reasons}.`
                 };
               }
             }
           });
         });
-      });
-      if (best2) proposals.push(best2);
+        if (best1) proposals.push(best1);
 
-      // 3. Best 2-for-2 Balanced Package
-      let best3 = null, dist3 = 999;
-      myRoster.slice(0, 10).forEach((a1, i) => {
-        myRoster.slice(i + 1, 14).forEach(a2 => {
-          oppRoster.slice(0, 10).forEach((b1, j) => {
-            oppRoster.slice(j + 1, 14).forEach(b2 => {
-              const diff = (b1.projPts + b2.projPts) - (a1.projPts + a2.projPts);
+        // 2. 2-for-1 Consolidation Upgrade
+        const aPool2 = anchorPlayer ? [anchorPlayer] : myRoster.slice(0, 6);
+        let best2 = null, dist2 = 999;
+        aPool2.forEach(a1 => {
+          myRoster.filter(x => x.id !== a1.id).slice(0, 8).forEach(a2 => {
+            oppRoster.forEach(b => {
+              const diff = b.projPts - (a1.projPts + a2.projPts);
               if (diff >= min && diff <= max) {
                 const d = Math.abs(diff - mid);
-                if (d < dist3) {
-                  dist3 = d;
-                  best3 = {
-                    title: "2-for-2 Roster Re-alignment",
+                if (d < dist2) {
+                  dist2 = d;
+                  best2 = {
+                    title: "2-for-1 Consolidation Upgrade",
+                    partner: partner,
+                    suitability: suitability,
                     a: [a1, a2],
-                    b: [b1, b2],
+                    b: [b],
                     diff: Math.round(diff * 10) / 10,
-                    rationale: `Multi-asset swap sending ${a1.name} & ${a2.name} for ${b1.name} & ${b2.name}. Balances depth across positions.`
+                    rationale: `Package ${a1.name} & ${a2.name} to acquire star ${b.name}. Opens an active roster slot for waiver streaming!`
                   };
                 }
               }
             });
           });
         });
-      });
-      if (best3) proposals.push(best3);
+        if (best2) proposals.push(best2);
 
-      if (proposals.length === 0) {
+        // 3. 2-for-2 Positional Rebalance
+        let best3 = null, dist3 = 999;
+        aPool2.slice(0, 2).forEach(a1 => {
+          myRoster.filter(x => x.id !== a1.id).slice(0, 5).forEach(a2 => {
+            oppRoster.slice(0, 8).forEach((b1, i) => {
+              oppRoster.slice(i + 1, 12).forEach(b2 => {
+                const diff = (b1.projPts + b2.projPts) - (a1.projPts + a2.projPts);
+                if (diff >= min && diff <= max) {
+                  const d = Math.abs(diff - mid);
+                  if (d < dist3) {
+                    dist3 = d;
+                    best3 = {
+                      title: "2-for-2 Roster Re-alignment",
+                      partner: partner,
+                      suitability: suitability,
+                      a: [a1, a2],
+                      b: [b1, b2],
+                      diff: Math.round(diff * 10) / 10,
+                      rationale: `Multi-asset swap sending ${a1.name} & ${a2.name} for ${b1.name} & ${b2.name}. Balances depth across rosters.`
+                    };
+                  }
+                }
+              });
+            });
+          });
+        });
+        if (best3) proposals.push(best3);
+
+        // 4. 1-for-2 Depth Package (if anchor player is high value >= 265 projPts)
+        if (anchorPlayer && anchorPlayer.projPts >= 265) {
+          let best4 = null, dist4 = 999;
+          oppRoster.slice(0, 8).forEach((b1, i) => {
+            oppRoster.slice(i + 1, 12).forEach(b2 => {
+              const diff = (b1.projPts + b2.projPts) - anchorPlayer.projPts;
+              if (diff >= min && diff <= max) {
+                const d = Math.abs(diff - mid);
+                if (d < dist4) {
+                  dist4 = d;
+                  best4 = {
+                    title: "1-for-2 Star Depth Package",
+                    partner: partner,
+                    suitability: suitability,
+                    a: [anchorPlayer],
+                    b: [b1, b2],
+                    diff: Math.round(diff * 10) / 10,
+                    rationale: `Converts superstar ${anchorPlayer.name} into two every-night starters (${b1.name} & ${b2.name}) for balanced production.`
+                  };
+                }
+              }
+            });
+          });
+          if (best4) proposals.push(best4);
+        }
+      });
+
+      // Sort proposals by partner suitability score descending, then by diff proximity
+      proposals.sort((x, y) => {
+        if (y.suitability.score !== x.suitability.score) {
+          return y.suitability.score - x.suitability.score;
+        }
+        return Math.abs(x.diff - mid) - Math.abs(y.diff - mid);
+      });
+
+      const displayProposals = proposals.slice(0, 6);
+
+      if (displayProposals.length === 0) {
         container.innerHTML = `
           <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 24px; background: rgba(17, 24, 39, 0.5); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
-            No direct trade proposals found between ${myTeam.name} and ${teamB.name} within the <strong>${lvl.title}</strong> target range (${min > 0 ? '+' + min : min} to ${max > 0 ? '+' + max : max} pts). Try adjusting the fairness slider above!
+            No direct trade proposals found ${anchorPlayer ? `including <strong>${anchorPlayer.name}</strong>` : ''} within the <strong>${lvl.title}</strong> target range (${min > 0 ? '+' + min : min} to ${max > 0 ? '+' + max : max} pts).
+            <div style="margin-top: 10px; display: flex; justify-content: center; gap: 10px;">
+              <button class="load-trade-btn" style="padding: 6px 14px; font-size: 0.78rem;" onclick="onTradePartnerModeChange('BEST_FIT')">
+                🏆 Search Best Suitable Teams League-Wide
+              </button>
+            </div>
           </div>
         `;
         return;
       }
 
-      container.innerHTML = proposals.map((p, idx) => {
+      container.innerHTML = displayProposals.map((p, idx) => {
         const sign = p.diff >= 0 ? '+' : '';
         const aIds = p.a.map(x => x.id);
         const bIds = p.b.map(x => x.id);
@@ -5358,23 +5653,44 @@
           <div class="trade-proposal-card">
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Package ${idx + 1}</span>
-                <span class="tier-pill ${lvl.badgeClass}">${p.diff >= 0 ? '+' + p.diff : p.diff} Pts</span>
+                <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Package ${idx + 1} &bull; ${p.title.split(' ')[0]}</span>
+                <span class="tier-pill ${lvl.badgeClass}">${sign}${p.diff} Pts</span>
               </div>
+
+              <!-- Partner Team Header -->
+              <div style="background: rgba(11, 15, 25, 0.55); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: var(--radius-sm); padding: 8px 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 0.72rem; text-transform: uppercase; color: var(--text-muted); font-weight: 700;">Partner:</span>
+                  <strong style="color: #fff; font-size: 0.85rem;">${p.partner.name}</strong>
+                  <span style="font-size: 0.72rem; color: var(--text-dim);">(${p.partner.record || '0-0'})</span>
+                </div>
+                <span class="tier-pill tier-gold" style="font-size: 0.68rem; padding: 2px 7px;">${p.suitability.score}% Match</span>
+              </div>
+
               <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 10px;">${p.title}</h4>
               
               <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.8rem; margin-bottom: 12px;">
                 <div style="background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: var(--radius-sm); padding: 8px 10px;">
                   <span style="color: #fca5a5; font-weight: 700; text-transform: uppercase; font-size: 0.7rem;">You Send:</span>
-                  <div style="color: #fff; font-weight: 600; margin-top: 2px;">
-                    ${p.a.map(x => `${x.name} <span class="pos-pill">${x.pos} &bull; ${x.team}</span> (${x.projPts} pts)`).join('<br>')}
+                  <div style="color: #fff; font-weight: 600; margin-top: 2px; line-height: 1.45;">
+                    ${p.a.map(x => `
+                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                        <span>${x.name} <span class="pos-pill">${x.pos} &bull; ${x.team}</span> ${anchorPlayer && x.id === anchorPlayer.id ? '<span class="tier-pill tier-gold" style="font-size:0.65rem; padding:1px 5px;">🎯 Selected Piece</span>' : ''}</span>
+                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #fca5a5;">${x.projPts} pts</span>
+                      </div>
+                    `).join('')}
                   </div>
                 </div>
 
                 <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: var(--radius-sm); padding: 8px 10px;">
                   <span style="color: #86efac; font-weight: 700; text-transform: uppercase; font-size: 0.7rem;">You Receive:</span>
-                  <div style="color: #fff; font-weight: 600; margin-top: 2px;">
-                    ${p.b.map(x => `${x.name} <span class="pos-pill">${x.pos} &bull; ${x.team}</span> (${x.projPts} pts)`).join('<br>')}
+                  <div style="color: #fff; font-weight: 600; margin-top: 2px; line-height: 1.45;">
+                    ${p.b.map(x => `
+                      <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                        <span>${x.name} <span class="pos-pill">${x.pos} &bull; ${x.team}</span></span>
+                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #86efac;">${x.projPts} pts</span>
+                      </div>
+                    `).join('')}
                   </div>
                 </div>
               </div>
@@ -5384,7 +5700,7 @@
               </div>
             </div>
 
-            <button class="load-trade-btn" style="margin-top: 8px;" onclick="loadTradeProposal([${aIds.join(',')}], [${bIds.join(',')}])">
+            <button class="load-trade-btn" style="margin-top: 8px;" onclick="loadTradeProposal([${aIds.join(',')}], [${bIds.join(',')}], ${p.partner.id})">
               📥 Load into Simulator &bull; ${sign}${p.diff} Pts
             </button>
           </div>
@@ -5392,7 +5708,14 @@
       }).join('');
     }
 
-    function loadTradeProposal(aIds, bIds) {
+    function loadTradeProposal(aIds, bIds, partnerTeamId = null) {
+      if (partnerTeamId != null && partnerTeamId !== tradeTeamBId) {
+        tradeTeamBId = Number(partnerTeamId);
+        const selectB = document.getElementById('tradeTeamBSelect');
+        if (selectB) selectB.value = tradeTeamBId;
+        renderTradeAnalyzer();
+      }
+
       tradeSelectedA.clear();
       tradeSelectedB.clear();
 
