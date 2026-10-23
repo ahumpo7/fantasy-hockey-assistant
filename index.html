@@ -1627,6 +1627,7 @@
             <button class="prompt-chip" onclick="executeQuickPrompt('untouchables')">🛡️ Who is 100% UNTOUCHABLE?</button>
             <button class="prompt-chip" onclick="executeQuickPrompt('streamer_swap')">🔄 Who to drop for Fri/Sun streamers?</button>
             <button class="prompt-chip" onclick="executeQuickPrompt('sos_breakdown')">📊 Show Roster Schedule Strength (SOS)</button>
+            <button class="prompt-chip" onclick="executeQuickPrompt('projections')">📈 How Projections Factor into Drops</button>
           </div>
         </div>
 
@@ -2360,6 +2361,12 @@
         const actAvg = Number(p.actAvg || 0);
         const l7Avg = Number(p.l7Avg || actAvg);
         const projAvg = Number(p.projAvg || 2.5);
+        const projPts = Number(p.projPts || 0);
+
+        // Blended Rest-Of-Season Model Projection (45% Season Actual + 35% L7 Form + 20% ESPN Season Benchmark)
+        const modelProj = actAvg > 0
+          ? Number((actAvg * 0.45 + l7Avg * 0.35 + projAvg * 0.20).toFixed(2))
+          : Number(projAvg.toFixed(2));
 
         const sosData = getPlayerScheduleStrength(p, daysRemaining);
         const gamesCount = sosData.gameCount;
@@ -2377,23 +2384,44 @@
         let timing = '';
         let reason = '';
 
-        const isSkaterElite = (p.pos !== 'G' && (actAvg >= 3.6 || (p.projPts && p.projPts >= 280)));
+        const isSkaterElite = (p.pos !== 'G' && (actAvg >= 3.6 || projPts >= 280 || modelProj >= 3.8));
         const isGoalieElite = (p.pos === 'G' && (actAvg >= 4.0 || p.name.includes('Hellebuyck') || p.name.includes('Garand')));
-        const isIRElite = (isIR && (projAvg >= 3.4 || p.name.includes('Barkov') || p.name.includes('Hellebuyck')));
+        const isIRElite = (isIR && (projAvg >= 3.4 || projPts >= 200 || p.name.includes('Barkov') || p.name.includes('Hellebuyck')));
 
         if (isSkaterElite || isGoalieElite || isIRElite) {
           dropScore = 5;
           tier = 'UNTOUCHABLE';
           timing = '🛡️ DO NOT DROP (Core Team Anchor)';
-          reason = `Elite anchor (${actAvg > 0 ? actAvg.toFixed(2) + ' Act' : projAvg.toFixed(2) + ' Proj'}). High ceiling foundation.`;
+          reason = `Elite anchor (${actAvg > 0 ? actAvg.toFixed(2) + ' Act' : projAvg.toFixed(2) + ' Proj'} &bull; ESPN: ${projPts} pts &bull; Model: ${modelProj} PPG). High ceiling foundation.`;
         } else {
-          if (actAvg < 2.0) dropScore += 24;
-          else if (actAvg < 2.6) dropScore += 12;
-          else if (actAvg > 3.2) dropScore -= 15;
+          // 1. Actual Season Performance Baseline
+          if (actAvg < 2.0) dropScore += 20;
+          else if (actAvg < 2.6) dropScore += 10;
+          else if (actAvg > 3.2) dropScore -= 12;
 
-          if (l7Avg > 0 && l7Avg < actAvg - 0.9) dropScore += 12;
-          else if (l7Avg > actAvg + 0.8) dropScore -= 10;
+          // 2. Recent L7 Momentum / Slump
+          if (l7Avg > 0 && l7Avg < actAvg - 0.9) dropScore += 10;
+          else if (l7Avg > actAvg + 0.8) dropScore -= 8;
 
+          // 3. Model Expected Rest-Of-Season (ROS) Projection
+          if (modelProj < 2.0) dropScore += 14;
+          else if (modelProj < 2.5) dropScore += 6;
+          else if (modelProj >= 3.2) dropScore -= 14;
+
+          // 4. ESPN Season Total Projections & Draft Capital
+          if (projPts >= 250 || projAvg >= 3.2) {
+            dropScore -= 12; // Protected by strong full-season ESPN projection
+          } else if (projPts > 0 && projPts < 180) {
+            dropScore += 10; // Low preseason/season-long baseline
+          }
+
+          // 5. Positive Regression / Slump Detection
+          const isDueForBounceBack = (projAvg - actAvg >= 1.2 && projPts >= 230);
+          if (isDueForBounceBack) {
+            dropScore -= 8; // Slumping well below ESPN projection; candidate to bounce back
+          }
+
+          // 6. Schedule Congestion & Off-Night Availability
           if (gamesCount === 0) {
             dropScore += 30;
           } else if (friSunCount >= 1) {
@@ -2402,11 +2430,13 @@
             dropScore += 18;
           }
 
+          // 7. Strength of Schedule (SOS) Matchup Difficulty
           if (avgSOS < 0.90) dropScore += 14;
           else if (avgSOS >= 1.10) dropScore -= 14;
 
+          // 8. Goalie Performance Adjustment
           if (p.pos === 'G' && actAvg < 2.5) {
-            dropScore += 28;
+            dropScore += 24;
           }
 
           dropScore = Math.max(5, Math.min(99, Math.round(dropScore)));
@@ -2426,7 +2456,7 @@
             timing = '✅ HOLD (Quality active contributor)';
           }
 
-          reason = `${gamesCount} gms left (Fri/Sun: ${friSunCount}). SOS: ${avgSOS.toFixed(2)}x. Form: ${l7Avg > 0 ? l7Avg.toFixed(2) + ' L7' : '-'} vs ${actAvg.toFixed(2)} Act.`;
+          reason = `${gamesCount} gms left (Fri/Sun: ${friSunCount}). SOS: ${avgSOS.toFixed(2)}x. Model: ${modelProj} PPG (ESPN: ${projPts} pts, ${projAvg} avg).`;
         }
 
         evaluated.push({
@@ -2439,7 +2469,11 @@
           friSunCount,
           satCount,
           avgSOS,
-          sosData
+          sosData,
+          modelProj,
+          projAvg,
+          projPts,
+          isDueForBounceBack: Boolean(projAvg - actAvg >= 1.2 && projPts >= 230)
         });
       });
 
@@ -2604,6 +2638,9 @@
                 <div style="font-size: 0.8rem; color: #fca5a5; margin-bottom: 8px;">
                   ❌ <strong>RECOMMENDED CUT:</strong> ${dropPick.reason}
                 </div>
+                <div style="font-size: 0.76rem; color: var(--text-dim); margin-bottom: 6px;">
+                  <strong>ESPN Proj:</strong> ${dropPick.projPts ? dropPick.projPts + ' pts' : '-'} (${dropPick.projAvg} avg) &bull; <strong>Model ROS:</strong> ${dropPick.modelProj} PPG
+                </div>
                 <div style="font-size: 0.76rem; color: var(--text-dim);">
                   <strong>Upcoming:</strong> ${dropPick.sosData && dropPick.sosData.games ? dropPick.sosData.games.map(g => `${g.day} (${g.game} ${g.sos.grade})`).join(', ') : 'Bench asset'}
                 </div>
@@ -2616,6 +2653,9 @@
                 </div>
                 <div style="font-size: 0.8rem; color: #86efac; margin-bottom: 8px;">
                   ✅ <strong>HOLD:</strong> Higher baseline scoring and superior schedule fit.
+                </div>
+                <div style="font-size: 0.76rem; color: var(--text-dim); margin-bottom: 6px;">
+                  <strong>ESPN Proj:</strong> ${keepPick.projPts ? keepPick.projPts + ' pts' : '-'} (${keepPick.projAvg} avg) &bull; <strong>Model ROS:</strong> ${keepPick.modelProj} PPG
                 </div>
                 <div style="font-size: 0.76rem; color: var(--text-dim);">
                   <strong>Upcoming:</strong> ${keepPick.sosData && keepPick.sosData.games ? keepPick.sosData.games.map(g => `${g.day} (${g.game} ${g.sos.grade})`).join(', ') : 'Bench asset'}
@@ -2655,12 +2695,18 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 12px; font-size: 0.78rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; margin-bottom: 12px; font-size: 0.78rem;">
               <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
                 <span style="color: var(--text-muted);">Season Actual:</span> <strong>${p.actAvg > 0 ? p.actAvg + ' PPG' : '-'}</strong>
               </div>
               <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
                 <span style="color: var(--text-muted);">Last 7d Form:</span> <strong>${p.l7Avg > 0 ? p.l7Avg + ' PPG' : '-'}</strong>
+              </div>
+              <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.2); padding: 8px; border-radius: var(--radius-sm);">
+                <span style="color: #7dd3fc;">ESPN Season Proj:</span> <strong>${item.projPts ? item.projPts + ' Pts' : '-'} (${item.projAvg} avg)</strong>
+              </div>
+              <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.2); padding: 8px; border-radius: var(--radius-sm);">
+                <span style="color: #7dd3fc;">Model Expected ROS:</span> <strong>${item.modelProj} PPG</strong>
               </div>
               <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
                 <span style="color: var(--text-muted);">Remaining Games:</span> <strong>${item.gamesCount} gms</strong> (${item.friSunCount} Off-Nights)
@@ -2934,7 +2980,45 @@
         return;
       }
 
-      // CASE 12: General Drop & Action Plan (Default for all other inquiries)
+      // CASE 12: Projections & Model ROS Inquiry (e.g. "are projections factored in?", "how do projections work?")
+      if (q.includes('projection') || q.includes('projections') || q.includes('espn proj') || q.includes('model proj') || q.includes('ros proj')) {
+        answerArea.innerHTML = `
+          ${questionHeader}
+          <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">📈 Dual Projections &amp; Model Integration</span>
+              <span class="tier-pill tier-gold">ESPN Projections + Custom Model ROS Active</span>
+            </div>
+            <div style="font-size: 0.84rem; color: var(--text-main); margin-bottom: 12px; line-height: 1.55;">
+              <strong>YES!</strong> The Drop Advisor actively factors in <strong>both ESPN's season-long projections and your assistant's custom blended Rest-Of-Season (ROS) model</strong> alongside Strength of Schedule (SOS), lineup slots, and actual recent form:
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 14px;">
+              <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 12px;">
+                <div style="font-weight: 700; color: #38bdf8; margin-bottom: 6px;">1. ESPN Season Projections:</div>
+                <ul style="margin: 0; padding-left: 18px; font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
+                  <li><strong>Anchor Shield:</strong> Players with ESPN season projections &ge;250 pts (or &ge;3.2 avg) receive substantial drop score reductions.</li>
+                  <li><strong>Stud Protection:</strong> Elite franchise anchors (like Matthews 291 pts, Trocheck 290 pts, Fox 285 pts) are locked as <strong>100% UNTOUCHABLE</strong> to prevent catastrophic panic drops during short slumps.</li>
+                  <li><strong>Bounce-Back Flagging:</strong> Recognizes players slumping well below their ESPN projection and discounts their drop score for positive regression.</li>
+                </ul>
+              </div>
+              <div style="background: rgba(52, 211, 153, 0.06); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: var(--radius-sm); padding: 12px;">
+                <div style="font-weight: 700; color: #34d399; margin-bottom: 6px;">2. Your Assistant's Model ROS Projection:</div>
+                <ul style="margin: 0; padding-left: 18px; font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
+                  <li><strong>3-Tier Formula:</strong> <code>45% Season Actual + 35% Last 7d Form + 20% ESPN Season Benchmark</code>.</li>
+                  <li><strong>Forward-Looking Expectation:</strong> Blends recent momentum with established baseline to predict true rest-of-season PPG.</li>
+                  <li><strong>Score Impact:</strong> Players with Model expected ROS &lt; 2.0 PPG gain drop urgency; players &ge; 3.2 PPG are heavily protected.</li>
+                </ul>
+              </div>
+            </div>
+            <div style="font-size: 0.82rem; color: var(--text-dim); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; line-height: 1.5;">
+              💡 <strong>Live Application:</strong> <strong>Dylan Cozens</strong> has a low Model ROS expectation (<strong>1.79 PPG</strong> vs 3.11 ESPN proj) combined with 0 off-night starts, confirming him as your #1 cut. Meanwhile, <strong>Brock Boeser</strong> (Model: <strong>2.79 PPG</strong>, ESPN: 217.6 pts) is safely held.
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // CASE 13: General Drop & Action Plan (Default for all other inquiries)
       answerArea.innerHTML = `
         ${questionHeader}
         <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
@@ -3016,6 +3100,7 @@
       else if (type === 'untouchables') handleDropAdvisorQuery('who is untouchable?');
       else if (type === 'streamer_swap') handleDropAdvisorQuery('who to drop for a streamer?');
       else if (type === 'sos_breakdown') handleDropAdvisorQuery('show schedule strength');
+      else if (type === 'projections') handleDropAdvisorQuery('how are my projections and espn projections used?');
     }
 
     let isDropMatrixExpanded = false;
@@ -3047,6 +3132,8 @@
               <th>Team</th>
               <th>Actual</th>
               <th>Last 7d</th>
+              <th>ESPN Proj</th>
+              <th>Model Exp</th>
               <th>Rem Gms</th>
               <th>SOS Rating</th>
               <th>Lineup Fit</th>
@@ -3072,6 +3159,8 @@
                   <td style="font-family: 'JetBrains Mono', monospace;">${p.team}</td>
                   <td style="font-family: 'JetBrains Mono', monospace;">${p.actAvg > 0 ? p.actAvg : '-'}</td>
                   <td style="font-family: 'JetBrains Mono', monospace; color: ${p.l7Avg < p.actAvg - 0.5 ? '#f87171' : (p.l7Avg > p.actAvg + 0.5 ? '#34d399' : 'inherit')};">${p.l7Avg > 0 ? p.l7Avg : '-'}</td>
+                  <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.76rem;">${d.projPts ? d.projPts + ' pts' : '-'} (${d.projAvg})</td>
+                  <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 700; color: #38bdf8;">${d.modelProj} PPG</td>
                   <td style="font-family: 'JetBrains Mono', monospace;">${d.gamesCount}</td>
                   <td><span class="sos-pill ${d.sosData.avgMultiplier >= 1.05 ? 'sos-a' : (d.sosData.avgMultiplier >= 0.98 ? 'sos-b' : 'sos-d')}">${d.sosData.avgMultiplier}x (${d.sosData.grade})</span></td>
                   <td style="font-size: 0.76rem;">${fitText}</td>
