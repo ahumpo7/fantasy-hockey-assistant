@@ -1828,6 +1828,7 @@
       ? allLeagueTeams.find(t => t.id === initialTeam.opponentId) 
       : allLeagueTeams.find(t => t.id !== initialTeam.id) || allLeagueTeams[0];
     let currentOpponentId = initialOpp ? initialOpp.id : 10;
+    let currentTeam = initialTeam || allLeagueTeams[0];
 
     let currentMyRoster = initialTeam ? initialTeam.roster : fantasyData.myTeam.roster;
     let currentOppRoster = initialOpp ? initialOpp.roster : fantasyData.oppTeam.roster;
@@ -2178,6 +2179,9 @@
 
       const team = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
       if (!team) return;
+      currentTeam = team;
+      if (typeof tradeSelectedA !== 'undefined') tradeSelectedA.clear();
+      if (typeof tradeSelectedB !== 'undefined') tradeSelectedB.clear();
 
       let oppTeam = null;
       if (team.opponentId) {
@@ -2231,10 +2235,14 @@
         if (btn) btn.classList.add('active');
       }
 
-      if (tabId === 'streamer') renderStreamerOptimizer();
-      else if (tabId === 'goalies') renderGoalieRadar();
-      else if (tabId === 'trades') renderTradeAnalyzer();
-      else if (tabId === 'playoffs') renderPlayoffPlanner();
+      try {
+        if (tabId === 'streamer') renderStreamerOptimizer();
+        else if (tabId === 'goalies') renderGoalieRadar();
+        else if (tabId === 'trades') renderTradeAnalyzer();
+        else if (tabId === 'playoffs') renderPlayoffPlanner();
+      } catch (err) {
+        console.error("Tab switch error for " + tabId, err);
+      }
     }
 
     function selectDay(idx) {
@@ -3671,43 +3679,50 @@
       const listB = document.getElementById('tradeListTeamB');
       if (!selectB || !listA || !listB) return;
 
-      if (teamAName) teamAName.textContent = `${currentTeam.name} (Sending)`;
+      const myTeam = currentTeam || allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
+      if (teamAName) teamAName.textContent = `${myTeam.name} (Sending)`;
 
       // Populate Opponent Dropdown
-      const oppTeams = allLeagueTeams.filter(t => t.id !== currentTeam.id);
+      const oppTeams = allLeagueTeams.filter(t => t.id !== myTeam.id);
       if (tradeTeamBId == null || !oppTeams.some(t => t.id === tradeTeamBId)) {
-        tradeTeamBId = (currentTeam.opponentId && oppTeams.some(t => t.id === currentTeam.opponentId))
-          ? currentTeam.opponentId
-          : oppTeams[0].id;
+        tradeTeamBId = (myTeam.opponentId && oppTeams.some(t => t.id === myTeam.opponentId))
+          ? myTeam.opponentId
+          : (oppTeams[0] ? oppTeams[0].id : null);
       }
 
       selectB.innerHTML = oppTeams.map(t => `
-        <option value="${t.id}" ${t.id === tradeTeamBId ? 'selected' : ''}>${t.name} (${t.record})</option>
+        <option value="${t.id}" ${t.id === tradeTeamBId ? 'selected' : ''}>${t.name} (${t.record || '0-0'})</option>
       `).join('');
 
       const teamB = allLeagueTeams.find(t => t.id === tradeTeamBId) || oppTeams[0];
 
       // Populate Team A Checkboxes
-      listA.innerHTML = currentMyRoster.map(p => `
-        <label class="trade-item">
-          <input type="checkbox" ${tradeSelectedA.has(p.id) ? 'checked' : ''} onchange="toggleTradePlayer('A', ${p.id})">
-          <div class="trade-item-info">
-            <span class="trade-item-name">${p.name} <span class="pos-pill">${p.pos} &bull; ${p.team}</span></span>
-            <span class="trade-item-stats">${p.projPts} Proj &bull; ${p.actAvg} PPG</span>
+      listA.innerHTML = (currentMyRoster || []).map(p => {
+        const isChecked = tradeSelectedA.has(Number(p.id));
+        return `
+          <div class="trade-item" onclick="toggleTradePlayer('A', ${p.id})">
+            <input type="checkbox" id="chk_A_${p.id}" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleTradePlayer('A', ${p.id});">
+            <div class="trade-item-info">
+              <span class="trade-item-name">${p.name} <span class="pos-pill">${p.pos} &bull; ${p.team}</span></span>
+              <span class="trade-item-stats">${p.projPts != null ? p.projPts : 0} Proj &bull; ${p.actAvg != null ? p.actAvg : 0} PPG</span>
+            </div>
           </div>
-        </label>
-      `).join('');
+        `;
+      }).join('');
 
       // Populate Team B Checkboxes
-      listB.innerHTML = (teamB.roster || []).map(p => `
-        <label class="trade-item">
-          <input type="checkbox" ${tradeSelectedB.has(p.id) ? 'checked' : ''} onchange="toggleTradePlayer('B', ${p.id})">
-          <div class="trade-item-info">
-            <span class="trade-item-name">${p.name} <span class="pos-pill">${p.pos} &bull; ${p.team}</span></span>
-            <span class="trade-item-stats">${p.projPts} Proj &bull; ${p.actAvg} PPG</span>
+      listB.innerHTML = (teamB && teamB.roster ? teamB.roster : []).map(p => {
+        const isChecked = tradeSelectedB.has(Number(p.id));
+        return `
+          <div class="trade-item" onclick="toggleTradePlayer('B', ${p.id})">
+            <input type="checkbox" id="chk_B_${p.id}" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleTradePlayer('B', ${p.id});">
+            <div class="trade-item-info">
+              <span class="trade-item-name">${p.name} <span class="pos-pill">${p.pos} &bull; ${p.team}</span></span>
+              <span class="trade-item-stats">${p.projPts != null ? p.projPts : 0} Proj &bull; ${p.actAvg != null ? p.actAvg : 0} PPG</span>
+            </div>
           </div>
-        </label>
-      `).join('');
+        `;
+      }).join('');
 
       updateTradeEvaluation();
       renderMarketRadar();
@@ -3720,9 +3735,15 @@
     }
 
     function toggleTradePlayer(side, playerId) {
+      const pid = Number(playerId);
       const set = (side === 'A') ? tradeSelectedA : tradeSelectedB;
-      if (set.has(playerId)) set.delete(playerId);
-      else set.add(playerId);
+      if (set.has(pid)) {
+        set.delete(pid);
+      } else {
+        set.add(pid);
+      }
+      const chk = document.getElementById(`chk_${side}_${pid}`);
+      if (chk) chk.checked = set.has(pid);
       updateTradeEvaluation();
     }
 
@@ -3730,15 +3751,16 @@
       const hero = document.getElementById('tradeEvalHero');
       if (!hero) return;
 
-      const teamB = allLeagueTeams.find(t => t.id === tradeTeamBId);
-      const playersA = currentMyRoster.filter(p => tradeSelectedA.has(p.id));
-      const playersB = (teamB && teamB.roster) ? teamB.roster.filter(p => tradeSelectedB.has(p.id)) : [];
+      const myTeam = currentTeam || allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
+      const teamB = allLeagueTeams.find(t => t.id === tradeTeamBId) || allLeagueTeams.find(t => t.id !== myTeam.id) || allLeagueTeams[1];
+      const playersA = (currentMyRoster || []).filter(p => tradeSelectedA.has(Number(p.id)));
+      const playersB = (teamB && teamB.roster) ? teamB.roster.filter(p => tradeSelectedB.has(Number(p.id))) : [];
 
       if (playersA.length === 0 && playersB.length === 0) {
         hero.innerHTML = `
           <div style="text-align: center; color: var(--text-muted); padding: 10px 0;">
             <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 6px;">Interactive 2-Team Trade Simulator</div>
-            <div>Select players from <strong>${currentTeam.name}</strong> and <strong>${teamB ? teamB.name : 'Opponent'}</strong> above to see instant net projected points, momentum shifts, and trade grades.</div>
+            <div>Select players from <strong>${myTeam.name}</strong> and <strong>${teamB ? teamB.name : 'Opponent'}</strong> above to see instant net projected points, momentum shifts, and trade grades.</div>
           </div>
         `;
         return;
