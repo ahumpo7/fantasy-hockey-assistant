@@ -1284,6 +1284,9 @@
       border-radius: 999px;
       text-transform: uppercase;
       letter-spacing: 0.03em;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
     }
     .tier-gold { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.4); }
     .tier-silver { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4); }
@@ -1466,6 +1469,7 @@
     .roster-drop-table td {
       padding: 8px 10px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      white-space: nowrap;
     }
     .roster-drop-table tr:hover td {
       background: rgba(255, 255, 255, 0.03);
@@ -1481,6 +1485,7 @@
       display: inline-flex;
       align-items: center;
       gap: 3px;
+      white-space: nowrap;
     }
     .sos-pill.sos-a { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); }
     .sos-pill.sos-b { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
@@ -2370,10 +2375,39 @@
     }
 
     // ========================================================
+    // FEATURE: SATURDAY LINEUP CAPACITY ENGINE
+    // ========================================================
+    function getSaturdayLineupStatus(roster = currentMyRoster) {
+      const satSkaters = (roster || []).filter(p => p.slot !== 'IR' && p.schedule && p.schedule.Sat && p.pos !== 'G');
+      const satGoalies = (roster || []).filter(p => p.slot !== 'IR' && p.schedule && p.schedule.Sat && p.pos === 'G');
+
+      const dCount = satSkaters.filter(p => p.pos === 'D').length; // Standard: 4 starting D slots
+      const fCount = satSkaters.filter(p => p.pos !== 'D').length; // Standard: 8 starting F slots (2 C, 2 LW, 2 RW, 2 UTIL)
+      const gCount = satGoalies.length; // Standard: 2 starting G slots
+
+      const openD = Math.max(0, 4 - dCount);
+      const openF = Math.max(0, 8 - fCount);
+      const openG = Math.max(0, 2 - gCount);
+      const totalOpen = openD + openF + openG;
+
+      return {
+        dCount,
+        fCount,
+        gCount,
+        openD,
+        openF,
+        openG,
+        totalOpen,
+        satTotal: satSkaters.length + satGoalies.length
+      };
+    }
+
+    // ========================================================
     // FEATURE: INTERACTIVE DROP ADVISOR & TIMING ENGINE
     // ========================================================
     function evaluateRosterDrops(roster = currentMyRoster) {
       const daysRemaining = ['Fri', 'Sat', 'Sun'];
+      const satStatus = getSaturdayLineupStatus(roster);
       const evaluated = [];
 
       (roster || []).forEach(p => {
@@ -2412,6 +2446,14 @@
           if (g.day === 'Sat') satCount++;
         });
 
+        // Determine if player actively starts on Saturday
+        let isSatStarter = false;
+        if (satCount > 0) {
+          if (p.pos === 'D' && satStatus.dCount <= 4) isSatStarter = true;
+          else if (p.pos !== 'G' && p.pos !== 'D' && satStatus.fCount <= 8) isSatStarter = true;
+          else if (p.pos === 'G' && satStatus.gCount <= 2) isSatStarter = true;
+        }
+
         let dropScore = 50;
         let tier = 'HOLD';
         let timing = '';
@@ -2429,9 +2471,10 @@
           reason = `Elite anchor (${actAvg > 0 ? actAvg.toFixed(2) + ' Act' : projAvg.toFixed(2) + ' Proj'} &bull; ${prDisplay} &bull; Model: ${modelProj} PPG). High ceiling foundation.`;
         } else {
           // 1. Actual Season Performance Baseline
-          if (actAvg < 2.0) dropScore += 18;
-          else if (actAvg < 2.6) dropScore += 9;
-          else if (actAvg > 3.2) dropScore -= 12;
+          if (actAvg < 2.0) dropScore += 26;
+          else if (actAvg < 2.6) dropScore += 12;
+          else if (actAvg >= 2.75) dropScore -= 12; // Solid starter protection
+          else if (actAvg >= 3.2) dropScore -= 18;
 
           // 2. Recent L7 Momentum / Slump
           if (l7Avg > 0 && l7Avg < actAvg - 0.9) dropScore += 10;
@@ -2443,18 +2486,17 @@
             else if (personalVORP >= 35) dropScore -= 12; // Personal model flagged high value over replacement
           }
           if (personalRank != null) {
-            if (personalRank <= 65) dropScore -= 10; // Top-tier personal rank protection
+            if (personalRank <= 40) dropScore -= 14; // Elite personal rank protection
             else if (personalRank >= 220) dropScore += 8; // Deep draft tier
           }
 
           // 4. Model Expected Rest-Of-Season (ROS) Projection
-          if (modelProj < 2.0) dropScore += 12;
-          else if (modelProj < 2.5) dropScore += 5;
-          else if (modelProj >= 3.2) dropScore -= 12;
+          if (modelProj < 2.2) dropScore += 14;
+          else if (modelProj >= 3.2) dropScore -= 14;
 
           // 5. ESPN Season Total Projections & Draft Capital
           if (projPts >= 250 || projAvg >= 3.2) {
-            dropScore -= 10; // Protected by strong full-season ESPN projection
+            dropScore -= 8; // Protected by strong full-season ESPN projection
           } else if (projPts > 0 && projPts < 180) {
             dropScore += 8; // Low preseason/season-long baseline
           }
@@ -2462,16 +2504,20 @@
           // 6. Positive Regression / Slump Detection
           const isDueForBounceBack = (projAvg - actAvg >= 1.2 && projPts >= 230);
           if (isDueForBounceBack) {
-            dropScore -= 8; // Slumping well below ESPN projection; candidate to bounce back
+            dropScore -= 6; // Slumping well below ESPN projection; candidate to bounce back
           }
 
-          // 7. Schedule Congestion & Off-Night Availability
+          // 7. Schedule & Accurate Saturday Lineup Status
           if (gamesCount === 0) {
-            dropScore += 30;
+            dropScore += 30; // 0 games remaining
           } else if (friSunCount >= 1) {
-            dropScore -= 20;
-          } else if (satCount === 1 && gamesCount === 1) {
-            dropScore += 18;
+            dropScore -= 20; // High value off-night game
+          } else if (satCount > 0 && isSatStarter) {
+            // Player actively starts on Saturday (not a bench clog!)
+            dropScore -= 6;
+          } else if (satCount > 0 && !isSatStarter) {
+            // Player is genuinely benched behind full capacity
+            dropScore += 20;
           }
 
           // 8. Strength of Schedule (SOS) Matchup Difficulty
@@ -2501,7 +2547,8 @@
           }
 
           const customNote = personalPR ? `Personal PR: ${personalPR} (VORP: ${personalVORP > 0 ? '+' : ''}${personalVORP.toFixed(1)})` : `ESPN: ${projPts} pts`;
-          reason = `${gamesCount} gms left (Fri/Sun: ${friSunCount}). SOS: ${avgSOS.toFixed(2)}x. Model: ${modelProj} PPG (${customNote}).`;
+          const satStarterNote = (satCount > 0 && isSatStarter) ? 'Active Sat Starter' : (satCount > 0 ? 'Sat Bench' : '');
+          reason = `${gamesCount} gms left (Fri/Sun: ${friSunCount}${satStarterNote ? ', ' + satStarterNote : ''}). SOS: ${avgSOS.toFixed(2)}x. Model: ${modelProj} PPG (${customNote}).`;
         }
 
         evaluated.push({
@@ -2513,6 +2560,7 @@
           gamesCount,
           friSunCount,
           satCount,
+          isSatStarter,
           avgSOS,
           sosData,
           modelProj,
@@ -2546,6 +2594,7 @@
       if (!answerArea) return;
 
       const drops = evaluateRosterDrops(currentMyRoster);
+      const satStatus = getSaturdayLineupStatus(currentMyRoster);
       if (countEl) countEl.textContent = drops.length;
 
       const topDrop = drops[0] || { player: { name: "Dylan Cozens", pos: "C", team: "BUF" }, dropScore: 99, timing: "🚨 DROP TODAY (Friday before 7 PM EDT lock)", reason: "1 gms left. SOS: 0.85x. Form: 1.05 L7 vs 1.77 Act." };
@@ -2680,9 +2729,9 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 12px;">
               <!-- Drop candidate -->
               <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); padding: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 8px;">
                   <strong>${dropPick.player.name} (${dropPick.player.pos} - ${dropPick.player.team})</strong>
-                  <span class="sos-pill sos-f">Drop Score: ${dropPick.dropScore}/100</span>
+                  <span class="sos-pill sos-f" style="white-space: nowrap; flex-shrink: 0;">Drop Score: ${dropPick.dropScore}/100</span>
                 </div>
                 <div style="font-size: 0.8rem; color: #fca5a5; margin-bottom: 8px;">
                   ❌ <strong>RECOMMENDED CUT:</strong> ${dropPick.reason}
@@ -2696,9 +2745,9 @@
               </div>
               <!-- Keep candidate -->
               <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: var(--radius-sm); padding: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 8px;">
                   <strong>${keepPick.player.name} (${keepPick.player.pos} - ${keepPick.player.team})</strong>
-                  <span class="sos-pill sos-a">Drop Score: ${keepPick.dropScore}/100</span>
+                  <span class="sos-pill sos-a" style="white-space: nowrap; flex-shrink: 0;">Drop Score: ${keepPick.dropScore}/100</span>
                 </div>
                 <div style="font-size: 0.8rem; color: #86efac; margin-bottom: 8px;">
                   ✅ <strong>HOLD:</strong> Higher baseline scoring and superior schedule fit.
@@ -2736,10 +2785,10 @@
                 </span>
                 <h3 style="color: #fff; font-size: 1.1rem; margin-top: 4px;">Player Drop Audit: ${p.name} (${p.pos} &bull; ${p.team})</h3>
               </div>
-              <div style="text-align: right;">
-                <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase;">Drop Risk Score</div>
-                <div style="font-size: 1.35rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: ${isDrop ? '#f87171' : (isUntouchable ? '#34d399' : '#fbbf24')};">
-                  ${item.dropScore}/100
+              <div style="text-align: right; min-width: 105px; white-space: nowrap; flex-shrink: 0;">
+                <div style="font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; white-space: nowrap;">Drop Risk Score</div>
+                <div style="font-size: 1.35rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: ${isDrop ? '#f87171' : (isUntouchable ? '#34d399' : '#fbbf24')}; white-space: nowrap; line-height: 1.2; margin-top: 2px;">
+                  ${item.dropScore}<span style="font-size: 0.85rem; font-weight: 600; opacity: 0.8;">/100</span>
                 </div>
               </div>
             </div>
@@ -2770,8 +2819,14 @@
             </div>
 
             <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text-main); margin-bottom: 10px;">
-              ${isUntouchable ? `<strong>🛡️ VERDICT: DO NOT DROP!</strong> ${p.name} is a core foundation piece. High ceiling, reliable minutes, and top-tier deployment make him a season-long hold.` : (isDrop ? `<strong>🚨 VERDICT: SAFE TO DROP!</strong> ${p.name} has low recent output and zero off-night games. Dropping him opens roster bandwidth for active streamers.` : `<strong>👀 VERDICT: HOLD FOR NOW.</strong> ${p.name} is a solid contributor. Only consider dropping if an emergency weekend off-night streamer is required to win your matchup.`)}
+              ${isUntouchable ? `<strong>🛡️ VERDICT: DO NOT DROP!</strong> ${p.name} is a core foundation piece. High ceiling, reliable minutes, and top-tier deployment make him a season-long hold.` : (isDrop ? `<strong>🚨 VERDICT: SAFE TO DROP!</strong> ${p.name} has low recent output and zero off-night games. Dropping him opens roster bandwidth for active streamers.` : `<strong>👀 VERDICT: HOLD FOR NOW.</strong> ${p.name} is a quality active contributor (${p.actAvg > 0 ? p.actAvg + ' Act PPG' : ''}). ${item.isSatStarter ? `Slotted as an <strong>active starter</strong> in Saturday's lineup.` : ''} Only consider dropping if an emergency off-night streamer is required.`)}
             </div>
+
+            ${satStatus.openD > 0 && p.pos !== 'D' ? `
+              <div style="background: rgba(251, 191, 36, 0.08); border-left: 3px solid #fbbf24; padding: 8px 12px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-size: 0.8rem; margin-bottom: 10px; color: #fde047; line-height: 1.4;">
+                ⚠️ <strong>Saturday Lineup Alert:</strong> Your roster has <strong>${satStatus.openD} open Defenseman slot</strong> on Saturday (3/4 D playing). Dropping ${p.name} (a ${p.pos}) will still leave your D slot vacant! If you want to maximize Saturday starts, stream an active <strong>Defenseman</strong> instead of dropping an active forward.
+              </div>
+            ` : ''}
 
             <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.8rem; color: #7dd3fc;">
               ⏰ <strong>Optimal Timing Window:</strong> ${item.timing}
@@ -2862,9 +2917,9 @@
               Among your forwards, <strong>${fwdDrop.player.name}</strong> is the top candidate to drop due to low scoring and zero off-night games:
             </div>
             <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                 <strong>${fwdDrop.player.name} (${fwdDrop.player.pos} &bull; ${fwdDrop.player.team})</strong>
-                <span class="sos-pill sos-f">Drop Score: ${fwdDrop.dropScore}/100</span>
+                <span class="sos-pill sos-f" style="white-space: nowrap; flex-shrink: 0;">Drop Score: ${fwdDrop.dropScore}/100</span>
               </div>
               <div style="font-size: 0.78rem; color: var(--text-dim); margin-top: 6px;">
                 ${fwdDrop.reason} &bull; ${fwdDrop.timing}
@@ -3090,10 +3145,10 @@
                 ${topDrop.reason}
               </div>
             </div>
-            <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); padding: 6px 12px; border-radius: var(--radius-sm); text-align: center;">
-              <div style="font-size: 0.68rem; text-transform: uppercase; color: #fca5a5; font-weight: 700;">Drop Score</div>
-              <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; font-weight: 800; color: #f87171;">
-                ${topDrop.dropScore} / 100
+            <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.35); padding: 6px 14px; border-radius: var(--radius-sm); text-align: center; min-width: 105px; white-space: nowrap; flex-shrink: 0;">
+              <div style="font-size: 0.68rem; text-transform: uppercase; color: #fca5a5; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap;">Drop Score</div>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 1.35rem; font-weight: 800; color: #f87171; white-space: nowrap; line-height: 1.2; margin-top: 2px;">
+                ${topDrop.dropScore}<span style="font-size: 0.85rem; font-weight: 600; opacity: 0.8;">/100</span>
               </div>
             </div>
           </div>
@@ -3107,9 +3162,9 @@
             <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: 10px 12px;">
               <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">🔍 Strategic Reasons to Cut:</div>
               <ul style="margin: 0; padding-left: 18px; line-height: 1.5; color: var(--text-main);">
-                <li><strong>Lineup Congestion:</strong> Only plays Saturday when your active roster is already 100% full (14/14 capacity). Will generate 0 active starts!</li>
+                <li><strong>Lineup Context:</strong> ${topDrop.isSatStarter ? `${topDrop.player.name} is slotted as an active starter on Saturday, but dropping them captures +2 pure off-night starts (Fri &amp; Sun).` : `Scheduled for Saturday bench jam.`} ${satStatus.openD > 0 ? `Note: Your Saturday roster currently has <strong>${satStatus.openD} open Defenseman slot</strong> (3/4 D playing)—dropping a Forward will not fill that open D slot!` : ''}</li>
                 <li><strong>Opponent SOS Gauntlet:</strong> Upcoming matchup difficulty rating is <strong>${topDrop.avgSOS ? topDrop.avgSOS.toFixed(2) : '0.85'}x (${topDrop.sosData ? topDrop.sosData.label : 'Tough'})</strong>.</li>
-                <li><strong>Form & Ceiling:</strong> Season actual of <strong>${topDrop.player.actAvg || 0} PPG</strong> is easily replaceable on waivers.</li>
+                <li><strong>Form & Ceiling:</strong> Season actual of <strong>${topDrop.player.actAvg || 0} PPG</strong> (Last 7d: <strong>${topDrop.player.l7Avg || '-'} PPG</strong>) is easily replaceable on waivers.</li>
               </ul>
             </div>
             <div style="background: rgba(52, 211, 153, 0.06); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: var(--radius-sm); padding: 10px 12px;">
@@ -3209,7 +3264,12 @@
               else if (d.tier === 'BORDERLINE') tierBadge = '<span class="tier-pill tier-bronze">👀 Borderline</span>';
               else if (d.tier === 'HOLD') tierBadge = '<span class="tier-pill tier-silver">✅ Solid Hold</span>';
 
-              const fitText = d.friSunCount >= 1 ? `🟢 ${d.friSunCount} Off-Night Starts` : (d.satCount === 1 ? '🔴 Saturday Clog (0 Starts)' : '⚪ Neutral');
+              const satStatus = getSaturdayLineupStatus(roster);
+              const fitText = d.friSunCount >= 1 
+                ? `🟢 ${d.friSunCount} Off-Night Starts` 
+                : (d.isSatStarter 
+                    ? `🟢 Active Sat Starter${satStatus.openD > 0 && d.player.pos !== 'D' ? ` (${satStatus.openD} Open D)` : ''}` 
+                    : (d.satCount === 1 ? '🔴 Saturday Clog (0 Starts)' : '⚪ Neutral'));
 
               return `
                 <tr>
@@ -3226,12 +3286,14 @@
                   <td style="font-family: 'JetBrains Mono', monospace;">${d.gamesCount}</td>
                   <td><span class="sos-pill ${d.sosData.avgMultiplier >= 1.05 ? 'sos-a' : (d.sosData.avgMultiplier >= 0.98 ? 'sos-b' : 'sos-d')}">${d.sosData.avgMultiplier}x (${d.sosData.grade})</span></td>
                   <td style="font-size: 0.76rem;">${fitText}</td>
-                  <td>
-                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: ${d.dropScore >= 75 ? '#f87171' : (d.dropScore <= 20 ? '#34d399' : '#fbbf24')};">
-                      ${d.dropScore}
-                    </span>
-                    <span style="font-size: 0.7rem; color: var(--text-dim);">/100</span>
-                    ${tierBadge}
+                  <td style="white-space: nowrap;">
+                    <div style="display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;">
+                      <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: ${d.dropScore >= 75 ? '#f87171' : (d.dropScore <= 20 ? '#34d399' : '#fbbf24')};">
+                        ${d.dropScore}
+                      </span>
+                      <span style="font-size: 0.7rem; color: var(--text-dim); margin-right: 4px;">/100</span>
+                      ${tierBadge}
+                    </div>
                   </td>
                   <td style="font-size: 0.76rem; color: var(--text-muted);">${d.timing}</td>
                 </tr>
