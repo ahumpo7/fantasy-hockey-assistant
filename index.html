@@ -1650,7 +1650,7 @@
             <button class="prompt-chip" onclick="executeQuickPrompt('untouchables')">🛡️ Who is 100% UNTOUCHABLE?</button>
             <button class="prompt-chip" onclick="executeQuickPrompt('streamer_swap')">🔄 Who to drop for Fri/Sun streamers?</button>
             <button class="prompt-chip" onclick="executeQuickPrompt('sos_breakdown')">📊 Show Roster Schedule Strength (SOS)</button>
-            <button class="prompt-chip" onclick="executeQuickPrompt('projections')">📈 How Projections Factor into Drops</button>
+            <button class="prompt-chip" onclick="executeQuickPrompt('projections')">🧠 Unified 7-Factor Formula Breakdown</button>
           </div>
         </div>
 
@@ -2458,7 +2458,7 @@
     }
 
     // ========================================================
-    // FEATURE: INTERACTIVE DROP ADVISOR & TIMING ENGINE
+    // FEATURE: INTERACTIVE DROP ADVISOR & UNIFIED 7-FACTOR ENGINE
     // ========================================================
     function evaluateRosterDrops(roster = currentMyRoster) {
       const daysRemaining = ['Fri', 'Sat', 'Sun'];
@@ -2469,30 +2469,62 @@
         const isIR = (p.slot === 'IR' || p.injury === 'INJURY_RESERVE');
         const actAvg = Number(p.actAvg || 0);
         const l7Avg = Number(p.l7Avg || actAvg);
+        const l15Avg = Number(p.l15Avg || actAvg);
+        const l30Avg = Number(p.l30Avg || actAvg);
         const projAvg = Number(p.projAvg || 2.5);
         const projPts = Number(p.projPts || 0);
 
-        // Fetch User Personal Projections from Google Sheet model (PR, VORP, Rank)
+        // Fetch User Personal Projections from Google Sheet model (PR, VORP, ONG, Rank)
         const customP = getUserPersonalProjection(p);
-        const personalPR = customP ? customP.pr : null;
-        const personalVORP = customP ? customP.vorp : null;
-        const personalRank = customP ? customP.rank : null;
-        const personalAvg = personalPR != null ? Number((personalPR / 82).toFixed(2)) : null;
+        const personalPR = customP && customP.pr != null ? customP.pr : null;
+        const personalVORP = customP && customP.vorp != null ? customP.vorp : null;
+        const personalONG = customP && customP.ong != null ? customP.ong : null;
+        const personalRank = customP && customP.rank != null ? customP.rank : null;
 
-        // Blended Rest-Of-Season Model Projection:
-        // When personal projection is available: 40% Season Act + 25% L7 Form + 25% Personal Model + 10% ESPN Baseline
-        let modelProj = 0;
-        if (personalAvg != null && actAvg > 0) {
-          modelProj = Number((actAvg * 0.40 + l7Avg * 0.25 + personalAvg * 0.25 + projAvg * 0.10).toFixed(2));
-        } else if (actAvg > 0) {
-          modelProj = Number((actAvg * 0.45 + l7Avg * 0.35 + projAvg * 0.20).toFixed(2));
+        // 1. FACTOR 1: VORP INDEX (Weight: 20%)
+        // Measures points above/below positional waiver replacement level (-75 to +140)
+        const vorpVal = (personalVORP != null) ? personalVORP : 0;
+        const vorpIndex = Math.max(0, Math.min(100, ((vorpVal + 75) / 150) * 100));
+
+        // 2. FACTOR 2 & 3: PROJECTIONS INDEX (Weight: 20%)
+        // Blends User's Google Sheet PR (60%) with ESPN Preseason/Season Baseline (40%)
+        const prPPG = personalPR != null ? (personalPR / 82) : (projPts > 0 ? projPts / 75 : 2.5);
+        const espnPPG = projAvg > 0 ? projAvg : (projPts > 0 ? projPts / 75 : 2.5);
+        const blendedExpPPG = (prPPG * 0.60) + (espnPPG * 0.40);
+        const projIndex = Math.max(0, Math.min(100, ((blendedExpPPG - 1.8) / (4.5 - 1.8)) * 100));
+
+        // 3. FACTOR 6: ACTUAL STATS INDEX (Weight: 20%)
+        // Evaluates ground-truth PPG production actually delivered this season (1.4 to 4.8)
+        let actIndex = 0;
+        if (isIR && actAvg < 1.0) {
+          actIndex = projIndex; // Protected IR stars don't get zeroed out
         } else {
-          modelProj = personalAvg || projAvg;
+          actIndex = Math.max(0, Math.min(100, ((actAvg - 1.4) / (4.8 - 1.4)) * 100));
         }
 
+        // 4. FACTOR 7: MULTI-WINDOW MOMENTUM INDEX (L7, L15, L30) (Weight: 15%)
+        // Captures immediate acute slumps (50% L7) vs bi-weekly trends (30% L15) vs monthly baseline (20% L30)
+        let momentumIndex = 0;
+        const l7 = (l7Avg > 0) ? l7Avg : actAvg;
+        const l15 = (l15Avg > 0) ? l15Avg : actAvg;
+        const l30 = (l30Avg > 0) ? l30Avg : actAvg;
+        const recentPPG = (l7 * 0.50) + (l15 * 0.30) + (l30 * 0.20);
+        if (isIR && actAvg < 1.0) {
+          momentumIndex = projIndex;
+        } else {
+          momentumIndex = Math.max(0, Math.min(100, ((recentPPG - 1.0) / (4.6 - 1.0)) * 100));
+        }
+
+        // 5. FACTOR 5: ONG (OFF-NIGHT GAMES) INDEX (Weight: 10%)
+        // Off-Night schedule density from Google Sheet (22 to 42 games). Higher ONG prevents bench waste.
+        const ongVal = (personalONG != null) ? personalONG : 30;
+        const ongIndex = Math.max(0, Math.min(100, ((ongVal - 22) / (42 - 22)) * 100));
+
+        // 6. FACTOR 4: SCHEDULE & SOS MATCHUP INDEX (Weight: 15%)
+        // Upcoming weekend schedule volume + Saturday active starting status + SOS defensive difficulty
         const sosData = getPlayerScheduleStrength(p, daysRemaining);
         const gamesCount = sosData.gameCount;
-        const avgSOS = sosData.avgMultiplier;
+        const avgSOS = sosData.avgMultiplier || 1.0;
 
         let friSunCount = 0;
         let satCount = 0;
@@ -2509,101 +2541,79 @@
           else if (p.pos === 'G' && satStatus.gCount <= 2) isSatStarter = true;
         }
 
+        let scheduleIndex = 50;
+        if (friSunCount >= 1) scheduleIndex += (22 * friSunCount);
+        else if (satCount > 0 && isSatStarter) scheduleIndex += 5;
+        else if (satCount > 0 && !isSatStarter) scheduleIndex -= 20;
+        else scheduleIndex -= 15;
+        // Factor in SOS matchup difficulty multiplier (typically 0.80x to 1.20x)
+        scheduleIndex += ((avgSOS - 1.00) * 40);
+        scheduleIndex = Math.max(0, Math.min(100, scheduleIndex));
+
+        // ========================================================
+        // COMPOSITE RETAINABILITY QUALITY (0 to 100)
+        // Weighted synthesis of all 7 critical dimensions
+        // ========================================================
+        const compositeQuality = (vorpIndex * 0.20) + 
+                                 (projIndex * 0.20) + 
+                                 (actIndex * 0.20) + 
+                                 (momentumIndex * 0.15) + 
+                                 (scheduleIndex * 0.15) + 
+                                 (ongIndex * 0.10);
+
+        // Inverse Quality into Raw Drop Score & Calibrate Contrast Slope (1.85)
+        const rawDrop = 100 - compositeQuality;
+        const calibratedDrop = 50 + ((rawDrop - 50) * 1.85);
+
+        // Core Cornerstone Anchor Protection
+        const isCoreElite = (
+          (personalRank != null && personalRank <= 30) ||
+          (personalVORP != null && personalVORP >= 65) ||
+          (actAvg >= 4.0 && (p.gamesCount || 3) > 1) ||
+          (p.name.includes('Matthews') || p.name.includes('Fox') || p.name.includes('Seider') || p.name.includes('Hellebuyck') || p.name.includes('Barkov'))
+        );
+
         let dropScore = 50;
+        if (isCoreElite) {
+          dropScore = 5;
+        } else {
+          dropScore = Math.round(Math.max(8, Math.min(95, calibratedDrop)));
+        }
+
         let tier = 'HOLD';
         let timing = '';
         let reason = '';
 
-        const isSkaterElite = (p.pos !== 'G' && (actAvg >= 3.6 || projPts >= 280 || modelProj >= 3.6 || (personalRank != null && personalRank <= 35) || (personalVORP != null && personalVORP >= 50)));
-        const isGoalieElite = (p.pos === 'G' && (actAvg >= 4.0 || p.name.includes('Hellebuyck') || p.name.includes('Garand') || (personalRank != null && personalRank <= 50)));
-        const isIRElite = (isIR && (projAvg >= 3.4 || projPts >= 200 || p.name.includes('Barkov') || p.name.includes('Hellebuyck') || (personalRank != null && personalRank <= 35)));
-
-        if (isSkaterElite || isGoalieElite || isIRElite) {
-          dropScore = 5;
+        if (dropScore >= 70) {
+          tier = 'PRIME_DROP';
+          if (friSunCount === 0) {
+            timing = '🚨 DROP TODAY (Friday before 7 PM EDT lock)';
+          } else {
+            timing = '⏳ HOLD through off-night game, then drop';
+          }
+        } else if (dropScore >= 52) {
+          tier = 'BORDERLINE';
+          timing = '👀 HOLD & MONITOR (Streamer cut candidate)';
+        } else if (isCoreElite || dropScore <= 15) {
           tier = 'UNTOUCHABLE';
           timing = '🛡️ DO NOT DROP (Core Team Anchor)';
-          const prDisplay = personalPR ? `Personal PR: ${personalPR} (VORP: ${personalVORP > 0 ? '+' : ''}${personalVORP.toFixed(1)})` : `ESPN: ${projPts} pts`;
-          reason = `Elite anchor (${actAvg > 0 ? actAvg.toFixed(2) + ' Act' : projAvg.toFixed(2) + ' Proj'} &bull; ${prDisplay} &bull; Model: ${modelProj} PPG). High ceiling foundation.`;
         } else {
-          // 1. Actual Season Performance Baseline
-          if (actAvg < 2.0) dropScore += 26;
-          else if (actAvg < 2.6) dropScore += 12;
-          else if (actAvg >= 2.75) dropScore -= 12; // Solid starter protection
-          else if (actAvg >= 3.2) dropScore -= 18;
+          tier = 'HOLD';
+          timing = '✅ SOLID HOLD (High value contributor)';
+        }
 
-          // 2. Recent L7 Momentum / Slump
-          if (l7Avg > 0 && l7Avg < actAvg - 0.9) dropScore += 10;
-          else if (l7Avg > actAvg + 0.8) dropScore -= 8;
+        // Clear multi-factor strategic rationale explaining why this score was assigned
+        const vorpText = personalVORP != null ? `VORP: ${personalVORP > 0 ? '+' : ''}${personalVORP.toFixed(1)}` : 'VORP: 0.0';
+        const prText = personalPR != null ? `PR: ${personalPR} (#${personalRank || '-'})` : `ESPN: ${projPts} pts`;
+        const trendText = l7 < actAvg - 0.7 ? `Cold slump (L7: ${l7.toFixed(2)} vs Act: ${actAvg.toFixed(2)})` : `Form: ${l7.toFixed(2)} L7 / ${l15.toFixed(2)} L15`;
+        const ongText = personalONG != null ? `${personalONG} ONG` : '30 ONG';
 
-          // 3. User Personal Projections & VORP
-          if (personalVORP != null) {
-            if (personalVORP <= -50) dropScore += 10; // Personal model flagged deep below replacement
-            else if (personalVORP >= 35) dropScore -= 12; // Personal model flagged high value over replacement
-          }
-          if (personalRank != null) {
-            if (personalRank <= 40) dropScore -= 14; // Elite personal rank protection
-            else if (personalRank >= 220) dropScore += 8; // Deep draft tier
-          }
-
-          // 4. Model Expected Rest-Of-Season (ROS) Projection
-          if (modelProj < 2.2) dropScore += 14;
-          else if (modelProj >= 3.2) dropScore -= 14;
-
-          // 5. ESPN Season Total Projections & Draft Capital
-          if (projPts >= 250 || projAvg >= 3.2) {
-            dropScore -= 8; // Protected by strong full-season ESPN projection
-          } else if (projPts > 0 && projPts < 180) {
-            dropScore += 8; // Low preseason/season-long baseline
-          }
-
-          // 6. Positive Regression / Slump Detection
-          const isDueForBounceBack = (projAvg - actAvg >= 1.2 && projPts >= 230);
-          if (isDueForBounceBack) {
-            dropScore -= 6; // Slumping well below ESPN projection; candidate to bounce back
-          }
-
-          // 7. Schedule & Accurate Saturday Lineup Status
-          if (gamesCount === 0) {
-            dropScore += 30; // 0 games remaining
-          } else if (friSunCount >= 1) {
-            dropScore -= 20; // High value off-night game
-          } else if (satCount > 0 && isSatStarter) {
-            // Player actively starts on Saturday (not a bench clog!)
-            dropScore -= 6;
-          } else if (satCount > 0 && !isSatStarter) {
-            // Player is genuinely benched behind full capacity
-            dropScore += 20;
-          }
-
-          // 8. Strength of Schedule (SOS) Matchup Difficulty
-          if (avgSOS < 0.90) dropScore += 14;
-          else if (avgSOS >= 1.10) dropScore -= 14;
-
-          // 9. Goalie Performance Adjustment
-          if (p.pos === 'G' && actAvg < 2.5) {
-            dropScore += 24;
-          }
-
-          dropScore = Math.max(5, Math.min(99, Math.round(dropScore)));
-
-          if (dropScore >= 75) {
-            tier = 'PRIME_DROP';
-            if (friSunCount === 0) {
-              timing = '🚨 DROP TODAY (Friday before 7 PM EDT lock)';
-            } else {
-              timing = '⏳ HOLD through off-night game, then drop';
-            }
-          } else if (dropScore >= 52) {
-            tier = 'BORDERLINE';
-            timing = '👀 HOLD & MONITOR (Drop if streamer needed)';
-          } else {
-            tier = 'HOLD';
-            timing = '✅ HOLD (Quality active contributor)';
-          }
-
-          const customNote = personalPR ? `Personal PR: ${personalPR} (VORP: ${personalVORP > 0 ? '+' : ''}${personalVORP.toFixed(1)})` : `ESPN: ${projPts} pts`;
-          const satStarterNote = (satCount > 0 && isSatStarter) ? 'Active Sat Starter' : (satCount > 0 ? 'Sat Bench' : '');
-          reason = `${gamesCount} gms left (Fri/Sun: ${friSunCount}${satStarterNote ? ', ' + satStarterNote : ''}). SOS: ${avgSOS.toFixed(2)}x. Model: ${modelProj} PPG (${customNote}).`;
+        if (tier === 'UNTOUCHABLE') {
+          reason = `Elite anchor (${actAvg > 0 ? actAvg.toFixed(2) + ' Act' : projAvg.toFixed(2) + ' Proj'} &bull; ${prText} &bull; ${vorpText}). Core championship asset.`;
+        } else if (tier === 'PRIME_DROP') {
+          reason = `Prime cut candidate. ${vorpText} &bull; ${prText} &bull; ${trendText} &bull; ${ongText} (${gamesCount} weekend gms, SOS: ${avgSOS.toFixed(2)}x).`;
+        } else {
+          reason = `${tier === 'BORDERLINE' ? 'Borderline depth asset' : 'Solid contributor'}. ${vorpText} &bull; ${prText} &bull; ${trendText} &bull; ${ongText}.`;
         }
 
         evaluated.push({
@@ -2618,14 +2628,23 @@
           isSatStarter,
           avgSOS,
           sosData,
-          modelProj,
+          modelProj: Number(blendedExpPPG.toFixed(2)),
           projAvg,
           projPts,
           personalPR,
           personalVORP,
+          personalONG,
           personalRank,
-          personalAvg,
-          isDueForBounceBack: Boolean(projAvg - actAvg >= 1.2 && projPts >= 230)
+          personalAvg: personalPR != null ? Number((personalPR / 82).toFixed(2)) : null,
+          indices: {
+            vorpIndex: Math.round(vorpIndex),
+            projIndex: Math.round(projIndex),
+            actIndex: Math.round(actIndex),
+            momentumIndex: Math.round(momentumIndex),
+            scheduleIndex: Math.round(scheduleIndex),
+            ongIndex: Math.round(ongIndex),
+            compositeQuality: Number(compositeQuality.toFixed(1))
+          }
         });
       });
 
@@ -2848,28 +2867,25 @@
               </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; margin-bottom: 12px; font-size: 0.78rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 12px; font-size: 0.78rem;">
               <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
                 <span style="color: var(--text-muted);">Season Actual:</span> <strong>${p.actAvg > 0 ? p.actAvg + ' PPG' : '-'}</strong>
               </div>
               <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
-                <span style="color: var(--text-muted);">Last 7d Form:</span> <strong>${p.l7Avg > 0 ? p.l7Avg + ' PPG' : '-'}</strong>
+                <span style="color: var(--text-muted);">L7 / L15 / L30:</span> <strong>${p.l7Avg || '-'} | ${p.l15Avg || '-'} | ${p.l30Avg || '-'}</strong>
               </div>
               <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.25); padding: 8px; border-radius: var(--radius-sm);">
-                <span style="color: #86efac;">Your Sheet Proj:</span> <strong>${item.personalPR ? item.personalPR + ' pts (#' + item.personalRank + ')' : '-'}</strong>
+                <span style="color: #86efac;">Sheet PR / VORP:</span> <strong>${item.personalPR ? item.personalPR + ' pts' : '-'}</strong>
                 <div style="font-size: 0.7rem; color: #a7f3d0; margin-top: 2px;">VORP: <strong>${item.personalVORP != null ? (item.personalVORP > 0 ? '+' : '') + item.personalVORP.toFixed(1) : '-'}</strong></div>
               </div>
               <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.2); padding: 8px; border-radius: var(--radius-sm);">
-                <span style="color: #7dd3fc;">ESPN Season Proj:</span> <strong>${item.projPts ? item.projPts + ' Pts' : '-'} (${item.projAvg} avg)</strong>
+                <span style="color: #7dd3fc;">ESPN Proj (ROS):</span> <strong>${item.projPts ? item.projPts + ' Pts' : '-'} (${item.projAvg} avg)</strong>
               </div>
-              <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.2); padding: 8px; border-radius: var(--radius-sm);">
-                <span style="color: #7dd3fc;">Model Expected ROS:</span> <strong>${item.modelProj} PPG</strong>
-              </div>
-              <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
-                <span style="color: var(--text-muted);">Remaining Games:</span> <strong>${item.gamesCount} gms</strong> (${item.friSunCount} Off-Nights)
+              <div style="background: rgba(168, 85, 247, 0.06); border: 1px solid rgba(168, 85, 247, 0.2); padding: 8px; border-radius: var(--radius-sm);">
+                <span style="color: #c084fc;">Off-Nights (ONG):</span> <strong>${item.personalONG != null ? item.personalONG + ' games' : '30 games'}</strong>
               </div>
               <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: var(--radius-sm);">
-                <span style="color: var(--text-muted);">Opponent SOS:</span> <strong>${item.avgSOS ? item.avgSOS.toFixed(2) : '1.00'}x (${item.sosData ? item.sosData.label : 'Balanced'})</strong>
+                <span style="color: var(--text-muted);">Weekend SOS:</span> <strong>${item.avgSOS ? item.avgSOS.toFixed(2) : '1.00'}x (${item.sosData ? item.sosData.label : 'Balanced'})</strong>
               </div>
             </div>
 
@@ -3143,43 +3159,58 @@
         return;
       }
 
-      // CASE 12: Projections & Model ROS Inquiry (e.g. "are projections factored in?", "how do projections work?")
-      if (q.includes('projection') || q.includes('projections') || q.includes('sheet') || q.includes('espn proj') || q.includes('model proj') || q.includes('ros proj') || q.includes('vorp')) {
+      // CASE 12: Unified 7-Factor Drop Formula Breakdown (e.g. "what is the formula?", "how do projections work?")
+      if (q.includes('formula') || q.includes('projection') || q.includes('projections') || q.includes('sheet') || q.includes('espn proj') || q.includes('model proj') || q.includes('vorp') || q.includes('ong') || q.includes('l7') || q.includes('l15') || q.includes('l30')) {
         answerArea.innerHTML = `
           ${questionHeader}
           <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: var(--radius-md); padding: 14px 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-              <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">📊 Triple Projection Integration Active</span>
-              <span class="tier-pill tier-gold">Personal Google Sheet (655 Players) + ESPN + Model ROS</span>
+              <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">🧠 Unified 7-Factor Drop Formula Active</span>
+              <span class="tier-pill tier-gold">VORP + ESPN + PR + SOS + ONG + Actuals + L7/L15/L30</span>
             </div>
             <div style="font-size: 0.84rem; color: var(--text-main); margin-bottom: 12px; line-height: 1.55;">
-              <strong>YES!</strong> The assistant now directly integrates your <strong>personal Google Sheet projections (PR, VORP, and Ranks for 655 players)</strong> alongside ESPN season totals, actual year-to-date output, and Strength of Schedule (SOS):
+              The Drop Advisor has been reworked into a <strong>rigorous mathematical multi-index formula</strong> that eliminates inconsistent ad-hoc jumps. All 7 dimensions are normalized (0 to 100) and weighted to expose the true worst assets on the roster:
             </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-bottom: 14px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 14px;">
               <div style="background: rgba(52, 211, 153, 0.06); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: var(--radius-sm); padding: 12px;">
-                <div style="font-weight: 700; color: #34d399; margin-bottom: 6px;">1. Your Personal Sheet (PR &amp; VORP):</div>
-                <ul style="margin: 0; padding-left: 18px; font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
-                  <li><strong>Personal Rank:</strong> Top-ranked players from your sheet (e.g. Matthews #3, Seider #10, Barkov #12, Fox #18) are locked as <strong>100% UNTOUCHABLE</strong>.</li>
-                  <li><strong>Personal VORP:</strong> Players with negative VORP in your model (Jenner -71.4, Boeser -56.4, Cuylle -11.7) receive elevated drop urgency when roster space is required.</li>
-                </ul>
+                <div style="font-weight: 700; color: #34d399; margin-bottom: 6px;">1. VORP (Weight: 20%)</div>
+                <div style="font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
+                  Measures point generation relative to waiver replacement level from your Google Sheet. Negative VORP (e.g. <strong>Jenner -71.4</strong>, <strong>Boeser -56.4</strong>) flags replacement urgency.
+                </div>
               </div>
               <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 12px;">
-                <div style="font-weight: 700; color: #38bdf8; margin-bottom: 6px;">2. ESPN Season Totals:</div>
-                <ul style="margin: 0; padding-left: 18px; font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
-                  <li><strong>League Baseline:</strong> Uses ESPN's projected totals (e.g. 291 pts for Matthews, 261 pts for Cozens) as a secondary draft baseline.</li>
-                  <li><strong>Slump Protection:</strong> Prevents panic drops by recognizing when a player is due for positive regression toward draft expectation.</li>
-                </ul>
+                <div style="font-weight: 700; color: #38bdf8; margin-bottom: 6px;">2. PR &amp; ESPN Projections (Weight: 20%)</div>
+                <div style="font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
+                  Blends your Google Sheet Point Projection (60%) with ESPN season baseline (40%) to establish expected rest-of-season PPG ceiling.
+                </div>
               </div>
               <div style="background: rgba(168, 85, 247, 0.06); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: var(--radius-sm); padding: 12px;">
-                <div style="font-weight: 700; color: #c084fc; margin-bottom: 6px;">3. Composite Model ROS:</div>
-                <ul style="margin: 0; padding-left: 18px; font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
-                  <li><strong>4-Tier Formula:</strong> <code>40% Actual + 25% L7 Form + 25% Your Sheet PR + 10% ESPN</code>.</li>
-                  <li><strong>True Forward Expectation:</strong> Synthesizes real momentum with your personal valuation to forecast points per game through Week 21.</li>
-                </ul>
+                <div style="font-weight: 700; color: #c084fc; margin-bottom: 6px;">3. Actual Season Stats (Weight: 20%)</div>
+                <div style="font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
+                  Ground-truth points per game actually produced in your league. Low scoring baseline (e.g. <strong>Cozens 1.77 PPG</strong>) heavily pulls down retainability.
+                </div>
+              </div>
+              <div style="background: rgba(251, 191, 36, 0.06); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: var(--radius-sm); padding: 12px;">
+                <div style="font-weight: 700; color: #fbbf24; margin-bottom: 6px;">4. Multi-Window Momentum (Weight: 15%)</div>
+                <div style="font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
+                  Synthesizes <code>50% L7 + 30% L15 + 20% L30</code> to catch acute ice-cold slumps vs sustained performance surges while filtering out 1-game noise.
+                </div>
+              </div>
+              <div style="background: rgba(244, 63, 94, 0.06); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: var(--radius-sm); padding: 12px;">
+                <div style="font-weight: 700; color: #f87171; margin-bottom: 6px;">5. Schedule &amp; SOS Multiplier (Weight: 15%)</div>
+                <div style="font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
+                  Calculates weekend start availability, Saturday lineup capacity, and opponent defensive strength multipliers (0.80x to 1.25x).
+                </div>
+              </div>
+              <div style="background: rgba(56, 189, 248, 0.06); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 12px;">
+                <div style="font-weight: 700; color: #38bdf8; margin-bottom: 6px;">6. ONG (Off-Night Games) (Weight: 10%)</div>
+                <div style="font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
+                  Season-long off-night density from your sheet. High ONG (39-40, Cuylle/Landeskog) prevents bench waste; low ONG (25, Cozens) forces bench sits.
+                </div>
               </div>
             </div>
             <div style="font-size: 0.82rem; color: var(--text-dim); border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; line-height: 1.5;">
-              💡 <strong>Roster Evidence:</strong> You can see your exact <strong>Personal Sheet PR, VORP, and Ranks</strong> alongside ESPN and Model ROS for all 21 players by clicking <strong>"▼ View Roster Drop Scores"</strong> below!
+              💡 <strong>Roster Evidence:</strong> Click <strong>"▼ View Roster Drop Scores"</strong> below to view all 7 metrics mapped side-by-side for your full roster.
             </div>
           </div>
         `;
@@ -3210,16 +3241,17 @@
 
           <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 12px; font-size: 0.83rem; color: #fca5a5; line-height: 1.5;">
             ⏰ <strong>Recommended Execution Window:</strong> <strong>${topDrop.timing}</strong>.<br>
-            Dropping ${topDrop.player.name.split(' ').pop()} immediately opens an active roster spot ahead of Friday's 2-game off-night slate.
+            Dropping ${topDrop.player.name.split(' ').pop()} opens an active roster spot ahead of Friday's 2-game off-night slate.
           </div>
 
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; font-size: 0.82rem; margin-bottom: 12px;">
             <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); padding: 10px 12px;">
-              <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">🔍 Strategic Reasons to Cut:</div>
-              <ul style="margin: 0; padding-left: 18px; line-height: 1.5; color: var(--text-main);">
+              <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">🔍 7-Factor Strategic Reasons to Cut:</div>
+              <ul style="margin: 0; padding-left: 18px; line-height: 1.55; color: var(--text-main); font-size: 0.78rem;">
+                <li><strong>VORP &amp; Sheet PR:</strong> <strong>${topDrop.personalVORP != null ? (topDrop.personalVORP > 0 ? '+' : '') + topDrop.personalVORP.toFixed(1) + ' VORP' : '-'}</strong> &bull; Sheet PR: <strong>${topDrop.personalPR || '-'} pts</strong> vs ESPN: <strong>${topDrop.projPts || '-'} pts</strong></li>
+                <li><strong>Actual vs L7/L15/L30 Momentum:</strong> Season: <strong>${topDrop.player.actAvg || 0} PPG</strong> (L7: <strong>${topDrop.player.l7Avg || '-'}</strong> | L15: <strong>${topDrop.player.l15Avg || '-'}</strong> | L30: <strong>${topDrop.player.l30Avg || '-'}</strong>)</li>
+                <li><strong>Schedule &amp; ONG Utility:</strong> <strong>${topDrop.personalONG || 30} Season Off-Nights</strong> &bull; Matchup SOS: <strong>${topDrop.avgSOS ? topDrop.avgSOS.toFixed(2) : '1.00'}x (${topDrop.sosData ? topDrop.sosData.label : 'Normal'})</strong></li>
                 <li><strong>Lineup Context:</strong> ${topDrop.isSatStarter ? `${topDrop.player.name} is slotted as an active starter on Saturday, but dropping them captures +2 pure off-night starts (Fri &amp; Sun).` : `Scheduled for Saturday bench jam.`} ${satStatus.openD > 0 ? `Note: Your Saturday roster currently has <strong>${satStatus.openD} open Defenseman slot</strong> (3/4 D playing)—dropping a Forward will not fill that open D slot!` : ''}</li>
-                <li><strong>Opponent SOS Gauntlet:</strong> Upcoming matchup difficulty rating is <strong>${topDrop.avgSOS ? topDrop.avgSOS.toFixed(2) : '0.85'}x (${topDrop.sosData ? topDrop.sosData.label : 'Tough'})</strong>.</li>
-                <li><strong>Form & Ceiling:</strong> Season actual of <strong>${topDrop.player.actAvg || 0} PPG</strong> (Last 7d: <strong>${topDrop.player.l7Avg || '-'} PPG</strong>) is easily replaceable on waivers.</li>
               </ul>
             </div>
             <div style="background: rgba(52, 211, 153, 0.06); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: var(--radius-sm); padding: 10px 12px;">
@@ -3299,16 +3331,15 @@
               <th>Pos</th>
               <th>Team</th>
               <th>Actual</th>
-              <th>Last 7d</th>
-              <th>Your Proj</th>
-              <th>Your VORP</th>
+              <th>L7 / L15 / L30</th>
+              <th>Sheet PR</th>
+              <th>Sheet VORP</th>
+              <th>Sheet ONG</th>
               <th>ESPN Proj</th>
-              <th>Model ROS</th>
-              <th>Rem Gms</th>
               <th>SOS Rating</th>
               <th>Lineup Fit</th>
               <th>Drop Score</th>
-              <th>Timing Window</th>
+              <th>Strategy Window</th>
             </tr>
           </thead>
           <tbody>
@@ -3326,24 +3357,33 @@
                     ? `🟢 Active Sat Starter${satStatus.openD > 0 && d.player.pos !== 'D' ? ` (${satStatus.openD} Open D)` : ''}` 
                     : (d.satCount === 1 ? '🔴 Saturday Clog (0 Starts)' : '⚪ Neutral'));
 
+              // Multi-window momentum trend styling
+              const l7 = p.l7Avg > 0 ? p.l7Avg.toFixed(2) : '-';
+              const l15 = p.l15Avg > 0 ? p.l15Avg.toFixed(2) : '-';
+              const l30 = p.l30Avg > 0 ? p.l30Avg.toFixed(2) : '-';
+              const isCold = p.l7Avg > 0 && p.l7Avg < p.actAvg - 0.7;
+              const isHot = p.l7Avg > 0 && p.l7Avg > p.actAvg + 0.7;
+              const momentumColor = isCold ? '#f87171' : (isHot ? '#34d399' : 'inherit');
+
               return `
                 <tr>
                   <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">#${idx + 1}</td>
                   <td><strong>${p.name}</strong></td>
                   <td><span class="pos-pill">${p.pos}</span></td>
                   <td style="font-family: 'JetBrains Mono', monospace;">${p.team}</td>
-                  <td style="font-family: 'JetBrains Mono', monospace;">${p.actAvg > 0 ? p.actAvg : '-'}</td>
-                  <td style="font-family: 'JetBrains Mono', monospace; color: ${p.l7Avg < p.actAvg - 0.5 ? '#f87171' : (p.l7Avg > p.actAvg + 0.5 ? '#34d399' : 'inherit')};">${p.l7Avg > 0 ? p.l7Avg : '-'}</td>
+                  <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">${p.actAvg > 0 ? p.actAvg : '-'}</td>
+                  <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: ${momentumColor};">
+                    ${l7} <span style="opacity: 0.4;">|</span> ${l15} <span style="opacity: 0.4;">|</span> ${l30}
+                  </td>
                   <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: #86efac; font-weight: 700;">${d.personalPR ? d.personalPR + ' (#' + d.personalRank + ')' : '-'}</td>
-                  <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: ${d.personalVORP > 0 ? '#34d399' : (d.personalVORP < 0 ? '#f87171' : 'inherit')};">${d.personalVORP != null ? (d.personalVORP > 0 ? '+' : '') + d.personalVORP.toFixed(1) : '-'}</td>
+                  <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; font-weight: 700; color: ${d.personalVORP > 0 ? '#34d399' : (d.personalVORP < 0 ? '#f87171' : 'inherit')};">${d.personalVORP != null ? (d.personalVORP > 0 ? '+' : '') + d.personalVORP.toFixed(1) : '-'}</td>
+                  <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: ${d.personalONG >= 38 ? '#38bdf8' : (d.personalONG <= 25 ? '#fb923c' : 'inherit')};">${d.personalONG != null ? d.personalONG + ' gms' : '-'}</td>
                   <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.76rem;">${d.projPts ? d.projPts + ' pts' : '-'} (${d.projAvg})</td>
-                  <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 700; color: #38bdf8;">${d.modelProj} PPG</td>
-                  <td style="font-family: 'JetBrains Mono', monospace;">${d.gamesCount}</td>
-                  <td><span class="sos-pill ${d.sosData.avgMultiplier >= 1.05 ? 'sos-a' : (d.sosData.avgMultiplier >= 0.98 ? 'sos-b' : 'sos-d')}">${d.sosData.avgMultiplier}x (${d.sosData.grade})</span></td>
+                  <td><span class="sos-pill ${d.sosData.avgMultiplier >= 1.05 ? 'sos-a' : (d.sosData.avgMultiplier >= 0.98 ? 'sos-b' : 'sos-d')}">${d.sosData.avgMultiplier ? d.sosData.avgMultiplier.toFixed(2) : '1.00'}x (${d.sosData.grade})</span></td>
                   <td style="font-size: 0.76rem;">${fitText}</td>
                   <td style="white-space: nowrap;">
                     <div style="display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;">
-                      <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: ${d.dropScore >= 75 ? '#f87171' : (d.dropScore <= 20 ? '#34d399' : '#fbbf24')};">
+                      <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: ${d.dropScore >= 70 ? '#f87171' : (d.dropScore <= 20 ? '#34d399' : '#fbbf24')};">
                         ${d.dropScore}
                       </span>
                       <span style="font-size: 0.7rem; color: var(--text-dim); margin-right: 4px;">/100</span>
