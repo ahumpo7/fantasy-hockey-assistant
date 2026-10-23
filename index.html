@@ -1221,6 +1221,54 @@
     .verdict-fair { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.4); }
     .verdict-loss { background: rgba(244, 63, 94, 0.2); color: #f87171; border: 1px solid rgba(244, 63, 94, 0.4); }
 
+    .trade-slider-card {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(17, 24, 39, 0.95));
+      border: 1px solid rgba(168, 85, 247, 0.35);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .trade-proposal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .trade-proposal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .trade-proposal-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--primary);
+    }
+    .load-trade-btn {
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: #0b0f19;
+      font-weight: 700;
+      font-size: 0.8rem;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: opacity 0.2s ease, transform 0.15s ease;
+    }
+    .load-trade-btn:hover {
+      opacity: 0.92;
+      transform: scale(1.02);
+    }
+
     /* Playoff Planner */
     .playoff-hero {
       background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(245, 158, 11, 0.04));
@@ -1508,6 +1556,41 @@
       <div class="section-title">
         🔄 Trade Analyzer & Market Inefficiency Radar
         <span>Evaluate 2-team trade proposals, capitalize on sell-high momentum & target buy-low superstars</span>
+      </div>
+
+      <!-- Trade Fairness Slider Control -->
+      <div class="trade-slider-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px;">
+          <div>
+            <span class="badge-rank" style="background: rgba(168, 85, 247, 0.2); color: #c084fc;">Fairness Dial</span>
+            <h3 style="font-size: 1.05rem; color: #fff; margin-top: 4px;">Target Balance: <span id="tradeSliderTitle" style="color: #38bdf8;">Fox News: Fair & Balanced</span></h3>
+          </div>
+          <div id="tradeSliderBadge" class="tier-pill tier-gold" style="font-size: 0.82rem; padding: 6px 14px;">
+            📺 Fox News: Fair & Balanced (±4 pts)
+          </div>
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 12px;" id="tradeSliderDesc">
+          Adjust the slider from <strong>Highway Robbery</strong> (heavily lopsided in your favor) to <strong>Fox News: Fair & Balanced</strong> (dead even win-win trades) to <strong>Generous Overpay</strong>.
+        </p>
+        <input type="range" min="1" max="5" value="4" id="tradeFairnessSlider" class="calc-slider" style="margin: 8px 0 10px;" oninput="onTradeFairnessChange(this.value)">
+        <div class="slider-ticks" style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">
+          <span style="color: #f87171;">🏴‍☠️ Highway Robbery</span>
+          <span style="color: #fb923c;">💰 Heavy Edge</span>
+          <span style="color: #38bdf8;">📈 Favorable</span>
+          <span style="color: #34d399; font-weight: 800;">📺 Fox News (Balanced)</span>
+          <span style="color: #c084fc;">🤝 Generous Overpay</span>
+        </div>
+      </div>
+
+      <!-- Auto-Generated Trade Suggestions Matching Selected Level -->
+      <div style="margin-bottom: 24px;">
+        <div class="section-title" style="font-size: 1.05rem; margin-bottom: 12px;">
+          ✨ Auto-Suggested Trade Packages (<span id="suggestionsOpponentName">Opponent</span>)
+          <span id="suggestionsSubtitle">Tailored to your current fairness slider level</span>
+        </div>
+        <div id="autoTradeSuggestionsContainer" class="trade-proposal-grid">
+          <!-- Populated by JS -->
+        </div>
       </div>
 
       <!-- Trade Evaluation Hero -->
@@ -3668,9 +3751,75 @@
     // ========================================================
     // FEATURE 3: TRADE ANALYZER & MARKET RADAR
     // ========================================================
+    const FAIRNESS_LEVELS = {
+      1: {
+        id: 1,
+        title: "Highway Robbery (Total Fleece)",
+        badge: "🏴‍☠️ Highway Robbery (+30+ pts for You)",
+        badgeClass: "tier-danger",
+        minDiff: 28.0,
+        maxDiff: 75.0,
+        desc: "The absolute worst trade for the opponent. Massively skewed in your favor (+30+ projected points)."
+      },
+      2: {
+        id: 2,
+        title: "Heavy Edge (Strong Favor)",
+        badge: "💰 Heavy Edge (+15 to +27 pts for You)",
+        badgeClass: "tier-bronze",
+        minDiff: 15.0,
+        maxDiff: 28.0,
+        desc: "Strongly favors your roster (+15 to +27 points). Exploits depth or desperate owner needs."
+      },
+      3: {
+        id: 3,
+        title: "Favorable (Modest Profit)",
+        badge: "📈 Favorable (+6 to +14 pts for You)",
+        badgeClass: "tier-silver",
+        minDiff: 6.0,
+        maxDiff: 15.0,
+        desc: "A quality upgrade (+6 to +14 points). Gives you a notable edge while remaining plausible."
+      },
+      4: {
+        id: 4,
+        title: "Fox News: Fair & Balanced",
+        badge: "📺 Fox News: Fair & Balanced (±4 pts)",
+        badgeClass: "tier-gold",
+        minDiff: -4.0,
+        maxDiff: 5.0,
+        desc: "Completely fair, balanced, and mutually beneficial (within ±4 points). Easy for opponents to accept."
+      },
+      5: {
+        id: 5,
+        title: "Generous Overpay",
+        badge: "🤝 Generous Overpay (Giving up +10+ pts)",
+        badgeClass: "tier-danger",
+        minDiff: -65.0,
+        maxDiff: -8.0,
+        desc: "Overpaying with multiple assets to force the opponent to part with their untouchable franchise superstar."
+      }
+    };
+    let currentFairnessLevel = 4;
     let tradeSelectedA = new Set();
     let tradeSelectedB = new Set();
     let tradeTeamBId = null;
+
+    function onTradeFairnessChange(val) {
+      currentFairnessLevel = Number(val);
+      const lvl = FAIRNESS_LEVELS[currentFairnessLevel] || FAIRNESS_LEVELS[4];
+      const titleEl = document.getElementById('tradeSliderTitle');
+      const badgeEl = document.getElementById('tradeSliderBadge');
+      const descEl = document.getElementById('tradeSliderDesc');
+
+      if (titleEl) titleEl.textContent = lvl.title;
+      if (badgeEl) {
+        badgeEl.className = `tier-pill ${lvl.badgeClass}`;
+        badgeEl.textContent = lvl.badge;
+      }
+      if (descEl) descEl.innerHTML = lvl.desc;
+
+      generateTradeSuggestions();
+      updateTradeEvaluation();
+    }
 
     function renderTradeAnalyzer() {
       const selectB = document.getElementById('tradeTeamBSelect');
@@ -3724,8 +3873,184 @@
         `;
       }).join('');
 
+      generateTradeSuggestions();
       updateTradeEvaluation();
       renderMarketRadar();
+    }
+
+    function generateTradeSuggestions() {
+      const container = document.getElementById('autoTradeSuggestionsContainer');
+      const oppNameEl = document.getElementById('suggestionsOpponentName');
+      if (!container) return;
+
+      const myTeam = currentTeam || allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
+      const teamB = allLeagueTeams.find(t => t.id === tradeTeamBId) || allLeagueTeams.find(t => t.id !== myTeam.id) || allLeagueTeams[1];
+      if (!teamB) return;
+
+      if (oppNameEl) oppNameEl.textContent = teamB.name;
+
+      const lvl = FAIRNESS_LEVELS[currentFairnessLevel] || FAIRNESS_LEVELS[4];
+      const min = lvl.minDiff;
+      const max = lvl.maxDiff;
+      const mid = (min + max) / 2;
+
+      const proposals = [];
+      const myRoster = currentMyRoster || [];
+      const oppRoster = teamB.roster || [];
+
+      // 1. Best 1-for-1 Swap
+      let best1 = null, dist1 = 999;
+      myRoster.forEach(a => {
+        oppRoster.forEach(b => {
+          const diff = b.projPts - a.projPts;
+          if (diff >= min && diff <= max) {
+            const d = Math.abs(diff - mid);
+            if (d < dist1) {
+              dist1 = d;
+              best1 = {
+                title: "1-for-1 Position / Star Swap",
+                a: [a],
+                b: [b],
+                diff: Math.round(diff * 10) / 10,
+                rationale: `Swaps ${a.name} (${a.pos}) for ${b.name} (${b.pos}). Matches target ${lvl.title} balance.`
+              };
+            }
+          }
+        });
+      });
+      if (best1) proposals.push(best1);
+
+      // 2. Best 2-for-1 Package
+      let best2 = null, dist2 = 999;
+      myRoster.forEach((a1, i) => {
+        myRoster.slice(i + 1).forEach(a2 => {
+          oppRoster.forEach(b => {
+            const diff = b.projPts - (a1.projPts + a2.projPts);
+            if (diff >= min && diff <= max) {
+              const d = Math.abs(diff - mid);
+              if (d < dist2) {
+                dist2 = d;
+                best2 = {
+                  title: "2-for-1 Consolidation Upgrade",
+                  a: [a1, a2],
+                  b: [b],
+                  diff: Math.round(diff * 10) / 10,
+                  rationale: `Package 2 pieces (${a1.name} & ${a2.name}) for ${b.name}. Opens an active roster spot for streaming!`
+                };
+              }
+            }
+          });
+        });
+      });
+      if (best2) proposals.push(best2);
+
+      // 3. Best 2-for-2 Balanced Package
+      let best3 = null, dist3 = 999;
+      myRoster.slice(0, 10).forEach((a1, i) => {
+        myRoster.slice(i + 1, 14).forEach(a2 => {
+          oppRoster.slice(0, 10).forEach((b1, j) => {
+            oppRoster.slice(j + 1, 14).forEach(b2 => {
+              const diff = (b1.projPts + b2.projPts) - (a1.projPts + a2.projPts);
+              if (diff >= min && diff <= max) {
+                const d = Math.abs(diff - mid);
+                if (d < dist3) {
+                  dist3 = d;
+                  best3 = {
+                    title: "2-for-2 Roster Re-alignment",
+                    a: [a1, a2],
+                    b: [b1, b2],
+                    diff: Math.round(diff * 10) / 10,
+                    rationale: `Multi-asset swap sending ${a1.name} & ${a2.name} for ${b1.name} & ${b2.name}. Balances depth across positions.`
+                  };
+                }
+              }
+            });
+          });
+        });
+      });
+      if (best3) proposals.push(best3);
+
+      if (proposals.length === 0) {
+        container.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 24px; background: rgba(17, 24, 39, 0.5); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            No direct trade proposals found between ${myTeam.name} and ${teamB.name} within the <strong>${lvl.title}</strong> target range (${min > 0 ? '+' + min : min} to ${max > 0 ? '+' + max : max} pts). Try adjusting the fairness slider above!
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = proposals.map((p, idx) => {
+        const sign = p.diff >= 0 ? '+' : '';
+        const aIds = p.a.map(x => x.id);
+        const bIds = p.b.map(x => x.id);
+        return `
+          <div class="trade-proposal-card">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span class="badge-rank" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">Package ${idx + 1}</span>
+                <span class="tier-pill ${lvl.badgeClass}">${p.diff >= 0 ? '+' + p.diff : p.diff} Pts</span>
+              </div>
+              <h4 style="color: #fff; font-size: 0.95rem; margin-bottom: 10px;">${p.title}</h4>
+              
+              <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.8rem; margin-bottom: 12px;">
+                <div style="background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: var(--radius-sm); padding: 8px 10px;">
+                  <span style="color: #fca5a5; font-weight: 700; text-transform: uppercase; font-size: 0.7rem;">You Send:</span>
+                  <div style="color: #fff; font-weight: 600; margin-top: 2px;">
+                    ${p.a.map(x => `${x.name} <span class="pos-pill">${x.pos} &bull; ${x.team}</span> (${x.projPts} pts)`).join('<br>')}
+                  </div>
+                </div>
+
+                <div style="background: rgba(52, 211, 153, 0.08); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: var(--radius-sm); padding: 8px 10px;">
+                  <span style="color: #86efac; font-weight: 700; text-transform: uppercase; font-size: 0.7rem;">You Receive:</span>
+                  <div style="color: #fff; font-weight: 600; margin-top: 2px;">
+                    ${p.b.map(x => `${x.name} <span class="pos-pill">${x.pos} &bull; ${x.team}</span> (${x.projPts} pts)`).join('<br>')}
+                  </div>
+                </div>
+              </div>
+
+              <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.45;">
+                <strong>Pitch:</strong> ${p.rationale}
+              </div>
+            </div>
+
+            <button class="load-trade-btn" style="margin-top: 8px;" onclick="loadTradeProposal([${aIds.join(',')}], [${bIds.join(',')}])">
+              📥 Load into Simulator &bull; ${sign}${p.diff} Pts
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function loadTradeProposal(aIds, bIds) {
+      tradeSelectedA.clear();
+      tradeSelectedB.clear();
+
+      (aIds || []).forEach(id => tradeSelectedA.add(Number(id)));
+      (bIds || []).forEach(id => tradeSelectedB.add(Number(id)));
+
+      // Update checkboxes in DOM
+      document.querySelectorAll('#tradeListTeamA input[type="checkbox"]').forEach(chk => {
+        const id = Number(chk.id.replace('chk_A_', ''));
+        chk.checked = tradeSelectedA.has(id);
+      });
+      document.querySelectorAll('#tradeListTeamB input[type="checkbox"]').forEach(chk => {
+        const id = Number(chk.id.replace('chk_B_', ''));
+        chk.checked = tradeSelectedB.has(id);
+      });
+
+      updateTradeEvaluation();
+
+      const hero = document.getElementById('tradeEvalHero');
+      if (hero) hero.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function addTradePlayer(side, playerId) {
+      const pid = Number(playerId);
+      const set = (side === 'A') ? tradeSelectedA : tradeSelectedB;
+      set.add(pid);
+      const chk = document.getElementById(`chk_${side}_${pid}`);
+      if (chk) chk.checked = true;
+      updateTradeEvaluation();
     }
 
     function onTradeTeamBChange(newTeamId) {
@@ -3760,7 +4085,7 @@
         hero.innerHTML = `
           <div style="text-align: center; color: var(--text-muted); padding: 10px 0;">
             <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 6px;">Interactive 2-Team Trade Simulator</div>
-            <div>Select players from <strong>${myTeam.name}</strong> and <strong>${teamB ? teamB.name : 'Opponent'}</strong> above to see instant net projected points, momentum shifts, and trade grades.</div>
+            <div>Select players from <strong>${myTeam.name}</strong> and <strong>${teamB ? teamB.name : 'Opponent'}</strong> above, or load an auto-suggested package below to evaluate trade grades & momentum.</div>
           </div>
         `;
         return;
@@ -3796,6 +4121,65 @@
         verdictDesc = `You lose <strong>${Math.abs(diffProj)} net points</strong>. Ensure positional need justifies this cost.`;
       }
 
+      // Check against current fairness level target
+      const lvl = FAIRNESS_LEVELS[currentFairnessLevel] || FAIRNESS_LEVELS[4];
+      const targetMid = (lvl.minDiff + lvl.maxDiff) / 2;
+      const isWithinTarget = (diffProj >= lvl.minDiff && diffProj <= lvl.maxDiff);
+
+      let balancerHtml = '';
+      if (isWithinTarget) {
+        balancerHtml = `
+          <div style="margin-top: 14px; background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.35); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 0.82rem; color: #86efac; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <span>🎯 <strong>Fairness Target Met!</strong> This trade matches your <strong>${lvl.title}</strong> setting (${diffProj >= 0 ? '+' : ''}${diffProj} net projected pts).</span>
+            <span class="tier-pill ${lvl.badgeClass}">${lvl.title.split(' ')[0]}</span>
+          </div>
+        `;
+      } else {
+        const gap = targetMid - diffProj; // How many more points you need (positive = need opponent to add; negative = you need to add)
+        if (gap > 0 && teamB && teamB.roster) {
+          const candidates = teamB.roster.filter(p => !tradeSelectedB.has(Number(p.id)));
+          let best = null, bestDiff = 999;
+          candidates.forEach(p => {
+            const d = Math.abs(p.projPts - gap);
+            if (d < bestDiff) { bestDiff = d; best = p; }
+          });
+          if (best) {
+            const newDiff = Math.round((diffProj + best.projPts) * 10) / 10;
+            balancerHtml = `
+              <div style="margin-top: 14px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 0.82rem; color: #7dd3fc; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div>
+                  💡 <strong>Auto-Suggest Balancer:</strong> To reach <strong>${lvl.title}</strong>, have ${teamB.name} add <strong>${best.name} (${best.pos} &bull; ${best.projPts} pts)</strong> &rarr; Net: <strong>${newDiff >= 0 ? '+' : ''}${newDiff} pts</strong>.
+                </div>
+                <button class="load-trade-btn" style="padding: 6px 12px; font-size: 0.75rem;" onclick="addTradePlayer('B', ${best.id})">
+                  ➕ Add ${best.name.split(' ')[1] || best.name} to Offer
+                </button>
+              </div>
+            `;
+          }
+        } else if (gap < 0) {
+          const needed = Math.abs(gap);
+          const candidates = (currentMyRoster || []).filter(p => !tradeSelectedA.has(Number(p.id)));
+          let best = null, bestDiff = 999;
+          candidates.forEach(p => {
+            const d = Math.abs(p.projPts - needed);
+            if (d < bestDiff) { bestDiff = d; best = p; }
+          });
+          if (best) {
+            const newDiff = Math.round((diffProj - best.projPts) * 10) / 10;
+            balancerHtml = `
+              <div style="margin-top: 14px; background: rgba(251, 191, 36, 0.08); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 0.82rem; color: #fde047; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div>
+                  💡 <strong>Auto-Suggest Balancer:</strong> To reach <strong>${lvl.title}</strong>, add <strong>${best.name} (${best.pos} &bull; ${best.projPts} pts)</strong> from your team &rarr; Net: <strong>${newDiff >= 0 ? '+' : ''}${newDiff} pts</strong>.
+                </div>
+                <button class="load-trade-btn" style="padding: 6px 12px; font-size: 0.75rem;" onclick="addTradePlayer('A', ${best.id})">
+                  ➕ Add ${best.name.split(' ')[1] || best.name} to Offer
+                </button>
+              </div>
+            `;
+          }
+        }
+      }
+
       hero.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
           <div>
@@ -3827,6 +4211,7 @@
             </div>
           </div>
         </div>
+        ${balancerHtml}
       `;
     }
 
