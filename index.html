@@ -6473,8 +6473,24 @@
           updatedScore = livePts;
           remPts = 0;
         } else if (isCurrent) {
-          remPts = 0;
-          updatedScore = livePts;
+          // Sunday night games in progress / remaining tonight (MTL@WPG live, COL@NSH live, MIN@VAN 10:00 PM EDT)
+          // Factoring confirmed starter changes (e.g. Wallstedt benched for Filip Gustavsson = 0 pts)
+          const W4_REMAINING_STARTS_PTS = {
+            1: 10.5, // Q. Hughes (4.3), Scheifele (3.5), Coleman (2.7), Wallstedt benched (0.0)
+            3: 11.0, // Saros, Pettersson, Pionk
+            5: 7.7,  // Kaprizov, Connor
+            6: 6.0,  // Josi, Perfetti
+            7: 7.3,  // Boeser (2.7), Hronek (3.1), Landeskog in-game (1.5)
+            10: 11.0,// MacKinnon, Matheson, Manson
+            12: 10.2,// Forsberg, O'Reilly, Spurgeon
+            13: 14.0,// Makar, Necas, Slafkovsky, Eriksson Ek
+            15: 3.6, // Caufield
+            16: 4.1, // Boldy
+            17: 8.5, // Hutson, Nelson, Toews
+            18: 12.0 // Suzuki, Dobson, Stamkos
+          };
+          remPts = W4_REMAINING_STARTS_PTS[tId] || 0;
+          updatedScore = Math.round((livePts + remPts) * 100) / 100;
         } else {
           livePts = 0;
           remPts = preWeekScore;
@@ -6552,13 +6568,16 @@
           p.status = (p.rank === 1) ? '🏆 Weekly High Scorer' : (p.rank <= 3 ? '🥈 Top 3 Finish' : 'Completed');
           p.statusClass = (p.rank === 1) ? 'tier-gold' : (p.rank <= 3 ? 'tier-silver' : 'tier-bronze');
         } else if (isCurrent) {
-          if (p.rank === 1 && p.winLikelihood >= 99) {
-            p.status = '🏆 Projected High Score Winner';
+          if (p.rank === 1 && p.winLikelihood >= 95) {
+            p.status = '🏆 Projected Winner (Locked)';
             p.statusClass = 'tier-gold';
-          } else if (p.winLikelihood > 20) {
-            p.status = '⚡ High Score Contender';
+          } else if (p.rank === 1) {
+            p.status = '🏆 High Score Leader';
+            p.statusClass = 'tier-gold';
+          } else if (p.winLikelihood >= 20) {
+            p.status = '⚡ Live Contender';
             p.statusClass = 'tier-silver';
-          } else if (p.winLikelihood > 0) {
+          } else if (p.winLikelihood > 0.1) {
             p.status = '🎯 In the Hunt';
             p.statusClass = 'tier-bronze';
           } else {
