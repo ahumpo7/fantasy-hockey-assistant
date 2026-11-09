@@ -1669,6 +1669,13 @@
 
     <div class="header-controls">
       <div class="team-switcher-box">
+        <label for="matchupWeekSelect" class="switcher-label">📅 Week:</label>
+        <select id="matchupWeekSelect" class="team-select" onchange="switchMatchupWeek(this.value)">
+          <!-- Populated dynamically -->
+        </select>
+      </div>
+
+      <div class="team-switcher-box">
         <label for="teamSelectDropdown" class="switcher-label">🎭 Roleplay Team:</label>
         <select id="teamSelectDropdown" class="team-select" onchange="switchRoleplayTeam(this.value)">
           <!-- Populated dynamically -->
@@ -1727,26 +1734,26 @@
         <div id="heroMyAvatar" class="team-avatar avatar-my">DL</div>
         <div class="team-info">
           <h2 id="heroMyName">Dead Lokomotiv <span id="heroMyTag" class="team-tag tag-my">You</span></h2>
-          <div id="heroMyStats" class="team-stats">Record: 2-1-0 &bull; 21 Players &bull; Current Week 4</div>
+          <div id="heroMyStats" class="team-stats">Record: 4-2-0 &bull; 21 Players &bull; Week 7</div>
         </div>
       </div>
 
       <div class="vs-box">
         <div id="heroScoreLive" class="hero-live-score">
-          <span style="color:#38bdf8;">81.8</span>
+          <span style="color:#38bdf8;">0.0</span>
           <span class="hero-score-divider">-</span>
-          <span style="color:#fb7185;">54.6</span>
+          <span style="color:#fb7185;">0.0</span>
         </div>
         <div class="vs-text">LIVE SCORE</div>
-        <div id="heroWinnerBadge" class="hero-winner-badge">🏆 DEAD 89% Win Prob</div>
-        <div id="matchupWeekLabel" class="matchup-week">Week 4 (Oct 19 - Oct 25)</div>
+        <div id="heroWinnerBadge" class="hero-winner-badge">🏆 Calculating Matchup...</div>
+        <div id="matchupWeekLabel" class="matchup-week">Week 7 (Nov 9 - Nov 15) &bull; <span style="color:#34d399; font-weight:700;">● Live Active Week</span></div>
       </div>
 
       <div class="team-hero right">
-        <div id="heroOppAvatar" class="team-avatar avatar-opp">ICE</div>
+        <div id="heroOppAvatar" class="team-avatar avatar-opp">EHT</div>
         <div class="team-info">
-          <h2 id="heroOppName">Bay Ridge Icelanders <span id="heroOppTag" class="team-tag tag-opp">Opponent</span></h2>
-          <div id="heroOppStats" class="team-stats">Record: 2-1-0 &bull; Led by MacKinnon, Johnston, Marner</div>
+          <h2 id="heroOppName">The Waterboyz <span id="heroOppTag" class="team-tag tag-opp">Opponent</span></h2>
+          <div id="heroOppStats" class="team-stats">Record: 4-2-0 &bull; Opponent</div>
         </div>
       </div>
     </div>
@@ -1818,8 +1825,8 @@
         </div>
       </div>
 
-      <div class="section-title">
-        Top 3 Priority Moves for Week 4
+      <div class="section-title" id="strategyPriorityMovesTitle">
+        Top 3 Priority Moves for Week 7
         <span id="recsSubtitle">Detailed rationale, schedule fit & statistical reasoning for each move</span>
       </div>
 
@@ -1876,8 +1883,8 @@
 
       <!-- Day by Day Playbook -->
       <div class="timeline-container">
-        <div class="section-title" style="margin-bottom: 4px;">
-          📅 Week 4 Day-by-Day Playbook
+        <div class="section-title" id="playbookSectionTitle" style="margin-bottom: 4px;">
+          📅 Week 7 Day-by-Day Playbook
           <span>Scheduled games comparison & strategic focal points</span>
         </div>
         <div class="days-grid" id="daysGridContainer">
@@ -2453,6 +2460,186 @@
       badge.style.color = '#38bdf8';
     }
 
+    // Global Matchup & Season Calendar State
+    let currentLeagueWeek = 7;
+    let selectedMatchupWeek = 7;
+    let currentScoringPeriod = 42;
+    let rawEspnSchedule = null;
+    let proTeamsScheduleData = null;
+
+    function getWeekDateRange(w) {
+      const baseMon = new Date(Date.UTC(2026, 10, 9)); // Week 7 Monday is Nov 9, 2026
+      const mon = new Date(baseMon.getTime() + (w - 7) * 7 * 86400000);
+      const sun = new Date(mon.getTime() + 6 * 86400000);
+      const mFmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+      if (w === 1) return 'Sep 29 - Oct 4';
+      return `${mFmt(mon)} - ${mFmt(sun)}`;
+    }
+
+    function getWeekDaysSpMap(w) {
+      const spMap = {};
+      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      if (w === 1) {
+        for (let sp = 1; sp <= 6; sp++) {
+          spMap[String(sp)] = dayNames[sp % 7];
+        }
+      } else {
+        const startSp = 7 * w - 7;
+        for (let i = 0; i < 7; i++) {
+          spMap[String(startSp + i)] = dayNames[i];
+        }
+      }
+      return spMap;
+    }
+
+    function getNhlScheduleForWeek(w) {
+      if (!proTeamsScheduleData) {
+        return (typeof fantasyData !== 'undefined' && fantasyData.nhlSchedule) ? fantasyData.nhlSchedule : {};
+      }
+      const startSp = (w === 1) ? 1 : (7 * w - 7);
+      const endSp = (w === 1) ? 6 : (7 * w - 1);
+      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const nhlSched = {};
+
+      proTeamsScheduleData.forEach(pt => {
+        if (pt.id === 0) return;
+        const tAbbr = proTeamMap[pt.id] || String(pt.id);
+        let count = 0;
+        const daysObj = {};
+        for (let sp = startSp; sp <= endSp; sp++) {
+          const dayIdx = (w === 1) ? (sp - 1 + 1) : (sp - startSp);
+          const dayName = dayNames[dayIdx % 7];
+          const games = pt.proGamesByScoringPeriod?.[String(sp)];
+          if (games && games.length > 0) {
+            const g = games[0];
+            const isHome = (g.homeProTeamId === pt.id);
+            const oppId = isHome ? g.awayProTeamId : g.homeProTeamId;
+            const oppAbbr = proTeamMap[oppId] || String(oppId);
+            daysObj[dayName] = (isHome ? 'vs ' : '@ ') + oppAbbr;
+            count++;
+          } else {
+            daysObj[dayName] = '';
+          }
+        }
+        nhlSched[tAbbr] = { Team: tAbbr, GamesCount: count, Days: daysObj };
+      });
+      return nhlSched;
+    }
+
+    function populateWeekDropdown() {
+      const selects = [
+        document.getElementById('matchupWeekSelect'),
+        document.getElementById('highScoreWeekSelect')
+      ];
+
+      selects.forEach(select => {
+        if (!select) return;
+        select.innerHTML = '';
+
+        for (let w = 1; w <= 21; w++) {
+          const opt = document.createElement('option');
+          opt.value = w;
+          const dateStr = getWeekDateRange(w);
+          let tag = '';
+          if (w === currentLeagueWeek) tag = ' [⚡ Current Week]';
+          else if (w < currentLeagueWeek) tag = ' [Completed]';
+          else if (w > 18) tag = ` (Playoffs ${w === 19 ? 'Rd 1' : w === 20 ? 'Semis' : 'Finals'})`;
+          else tag = ' [Upcoming]';
+
+          opt.textContent = `Week ${w} (${dateStr})${tag}`;
+          if (w === selectedMatchupWeek) opt.selected = true;
+          select.appendChild(opt);
+        }
+      });
+    }
+
+    function applyWeekSchedule(w) {
+      const nhlSched = getNhlScheduleForWeek(w);
+      allLeagueTeams.forEach(t => {
+        (t.roster || []).forEach(p => {
+          const s = nhlSched[p.team];
+          p.gamesCount = s ? s.GamesCount : 0;
+          p.schedule = s ? s.Days : {};
+        });
+      });
+    }
+
+    function applyWeekMatchups(w) {
+      if (!rawEspnSchedule) return;
+      const spDaysMap = getWeekDaysSpMap(w);
+
+      allLeagueTeams.forEach(team => {
+        const tId = team.id;
+        const m = rawEspnSchedule.find(match => match.matchupPeriodId === w && 
+          (Number(match.home?.teamId) === tId || Number(match.away?.teamId) === tId));
+
+        if (m) {
+          const isHome = (Number(m.home?.teamId) === tId);
+          const teamObj = isHome ? m.home : m.away;
+          const oppObj = isHome ? m.away : m.home;
+
+          team.opponentId = (oppObj && oppObj.teamId != null) ? Number(oppObj.teamId) : team.opponentId;
+          const ptsLive = teamObj?.totalPointsLive != null ? teamObj.totalPointsLive : teamObj?.totalPoints;
+          team.livePoints = Math.round(Number(ptsLive || 0) * 100) / 100;
+
+          if (teamObj?.pointsByScoringPeriod) {
+            team.pointsByDay = {};
+            for (const [k, v] of Object.entries(teamObj.pointsByScoringPeriod)) {
+              const dName = spDaysMap[k] || k;
+              team.pointsByDay[dName] = Math.round(Number(v) * 100) / 100;
+            }
+          } else {
+            team.pointsByDay = {};
+          }
+        }
+      });
+
+      const curTeam = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
+      if (curTeam) {
+        currentTeam = curTeam;
+        currentOpponentId = curTeam.opponentId || (allLeagueTeams.find(t => t.id !== curTeam.id)?.id || 10);
+        const oppTeam = allLeagueTeams.find(t => t.id === currentOpponentId) || allLeagueTeams[0];
+        currentMyRoster = curTeam.roster || [];
+        currentOppRoster = oppTeam ? (oppTeam.roster || []) : [];
+      }
+    }
+
+    function switchMatchupWeek(weekNum) {
+      selectedMatchupWeek = Number(weekNum);
+      currentHighScoreWeek = selectedMatchupWeek;
+
+      const weekSelect = document.getElementById('matchupWeekSelect');
+      if (weekSelect && weekSelect.value != String(selectedMatchupWeek)) {
+        weekSelect.value = String(selectedMatchupWeek);
+      }
+      const hsSelect = document.getElementById('highScoreWeekSelect');
+      if (hsSelect && hsSelect.value != String(selectedMatchupWeek)) {
+        hsSelect.value = String(selectedMatchupWeek);
+      }
+
+      applyWeekSchedule(selectedMatchupWeek);
+      applyWeekMatchups(selectedMatchupWeek);
+
+      const team = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
+      const opp = allLeagueTeams.find(t => t.id === currentOpponentId) || allLeagueTeams[0];
+      updateHeaderAndHero(team, opp);
+
+      recalculateStrategy();
+      renderPlaybook();
+      renderMatchupPredictor();
+      renderDropAdvisor();
+      renderRosterTable(currentMyRoster, 'myRosterTable');
+      renderRosterTable(currentOppRoster, 'oppRosterTable');
+      filterFreeAgents();
+      renderHighScoreRace();
+      renderHighScoreTeaser();
+
+      if (document.getElementById('tab-streamer')?.classList.contains('active')) renderStreamerOptimizer();
+      if (document.getElementById('tab-goalies')?.classList.contains('active')) renderGoalieRadar();
+      if (document.getElementById('tab-trades')?.classList.contains('active')) renderTradeAnalyzer();
+      if (document.getElementById('tab-playoffs')?.classList.contains('active')) renderPlayoffPlanner();
+    }
+
     // League Teams & Roleplay State
     let allLeagueTeams = (typeof fantasyData !== 'undefined' && fantasyData.teams) 
       ? fantasyData.teams 
@@ -2470,7 +2657,7 @@
     let initialOpp = (initialTeam && initialTeam.opponentId) 
       ? allLeagueTeams.find(t => t.id === initialTeam.opponentId) 
       : allLeagueTeams.find(t => t.id !== initialTeam.id) || allLeagueTeams[0];
-    let currentOpponentId = initialOpp ? initialOpp.id : 10;
+    let currentOpponentId = initialOpp ? initialOpp.id : 16;
     let currentTeam = initialTeam || allLeagueTeams[0];
 
     let currentMyRoster = initialTeam ? initialTeam.roster : fantasyData.myTeam.roster;
@@ -2512,6 +2699,7 @@
     function updateHeaderAndHero(team, oppTeam) {
       if (!team) return;
       const isDefault = (team.id === 7);
+      const isCurrentWeek = (selectedMatchupWeek === currentLeagueWeek);
 
       const subEl = document.querySelector('.brand-subtitle');
       if (subEl) {
@@ -2528,7 +2716,15 @@
 
       const myStats = document.getElementById('heroMyStats');
       if (myStats) {
-        myStats.innerHTML = `Record: ${team.record} &bull; ${team.roster.length} Players &bull; Current Week 4`;
+        myStats.innerHTML = `Record: ${team.record} &bull; ${team.roster.length} Players &bull; Week ${selectedMatchupWeek} (${getWeekDateRange(selectedMatchupWeek)})`;
+      }
+
+      const weekLabel = document.getElementById('matchupWeekLabel');
+      if (weekLabel) {
+        const statusPill = isCurrentWeek 
+          ? `<span style="color:#34d399; font-weight:700;">● Live Active Week</span>`
+          : (selectedMatchupWeek < currentLeagueWeek ? `<span style="color:#94a3b8; font-weight:700;">✓ Completed Final</span>` : `<span style="color:#38bdf8; font-weight:700;">⏳ Upcoming Matchup</span>`);
+        weekLabel.innerHTML = `Week ${selectedMatchupWeek} (${getWeekDateRange(selectedMatchupWeek)}) &bull; ${statusPill}`;
       }
 
       if (oppTeam) {
@@ -2555,6 +2751,16 @@
       const oppRosterTitle = document.getElementById('oppRosterTitle');
       if (oppRosterTitle && oppTeam) {
         oppRosterTitle.innerHTML = `${oppTeam.name} (Opponent Lineup) <span>${oppTeam.roster.length} Rostered Players</span>`;
+      }
+
+      const stratTitle = document.getElementById('strategyPriorityMovesTitle');
+      if (stratTitle) {
+        stratTitle.innerHTML = `Top 3 Priority Moves for Week ${selectedMatchupWeek} <span id="recsSubtitle">Detailed rationale, schedule fit & statistical reasoning for each move</span>`;
+      }
+
+      const playbookTitle = document.getElementById('playbookSectionTitle');
+      if (playbookTitle) {
+        playbookTitle.innerHTML = `📅 Week ${selectedMatchupWeek} Day-by-Day Playbook <span>Scheduled games comparison & strategic focal points (${getWeekDateRange(selectedMatchupWeek)})</span>`;
       }
     }
 
@@ -3667,7 +3873,7 @@
         let totalSOSCount = 0;
 
         allDays.forEach((d, idx) => {
-          const isPast = (idx < realToday);
+          const isPast = (selectedMatchupWeek < currentLeagueWeek) || (selectedMatchupWeek === currentLeagueWeek && idx < realToday);
 
           if (isPast) {
             const actDayPts = (dayActuals[d] != null) ? Number(dayActuals[d]) : 0;
@@ -3807,7 +4013,7 @@
       if (pred.isMyProjectedWinner) {
         intelAnalysis = `<strong>${myTeam.name}</strong> holds a <strong>${pred.winnerProb}% win probability</strong> with a projected final margin of <strong>+${pred.margin} points</strong>. Live score currently sits at <strong>${pred.myProj.livePts} to ${pred.oppProj.livePts}</strong> (${liveLeadText}). Across the remaining days through Sunday, ${myTeam.name} commands <strong>${pred.myProj.remainingStarts} starting opportunities</strong> against ${pred.oppProj.remainingStarts} for ${oppTeam.name}. Maintain active starter locks on high-volume days to seal the matchup.`;
       } else {
-        intelAnalysis = `<strong>${oppTeam.name}</strong> is currently projected to take Week 4 with a <strong>${pred.winnerProb}% win probability</strong> and a <strong>+${pred.margin} point</strong> projected margin. ${myTeam.name} commands <strong>${pred.myProj.remainingStarts} remaining starts</strong> vs ${pred.oppProj.remainingStarts} for ${oppTeam.name}. Stream available players on light off-nights (e.g. Friday and Sunday) to close the scoring gap.`;
+        intelAnalysis = `<strong>${oppTeam.name}</strong> is currently projected to take Week ${selectedMatchupWeek} with a <strong>${pred.winnerProb}% win probability</strong> and a <strong>+${pred.margin} point</strong> projected margin. ${myTeam.name} commands <strong>${pred.myProj.remainingStarts} remaining starts</strong> vs ${pred.oppProj.remainingStarts} for ${oppTeam.name}. Stream available players on light off-nights (e.g. Friday and Sunday) to close the scoring gap.`;
       }
 
       const daysList = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -3815,8 +4021,8 @@
 
       let trajRowsHtml = "";
       daysList.forEach((d, idx) => {
-        const isPast = (idx < realToday);
-        const isToday = (idx === realToday);
+        const isPast = (selectedMatchupWeek < currentLeagueWeek) || (selectedMatchupWeek === currentLeagueWeek && idx < realToday);
+        const isToday = (selectedMatchupWeek === currentLeagueWeek && idx === realToday);
         const myDay = pred.myProj.dailyBreakdown[d];
         const oppDay = pred.oppProj.dailyBreakdown[d];
         const dayDiff = Math.round((myDay.pts - oppDay.pts) * 10) / 10;
@@ -3835,7 +4041,7 @@
       container.innerHTML = `
         <div class="predictor-header">
           <div class="predictor-title">
-            <span>🔮 Week 4 Matchup Win Predictor</span>
+            <span>🔮 Week ${selectedMatchupWeek} Matchup Win Predictor</span>
             <span style="font-size: 0.8rem; font-weight: 500; color: var(--text-muted);">(Rest of Week Scoring Model)</span>
           </div>
           <div class="predictor-badges">
@@ -3875,7 +4081,7 @@
           </div>
 
           <div class="pred-stat-box">
-            <div class="pred-stat-label">Remaining Active Starts (Thu-Sun)</div>
+            <div class="pred-stat-label">Remaining Active Starts (${selectedMatchupWeek === currentLeagueWeek ? daysOfWeek[realToday] + '-Sun' : 'Full Week'})</div>
             <div class="pred-stat-scores">
               <span class="pred-stat-val-my">${pred.myProj.remainingStarts} starts</span>
               <span style="color:var(--text-dim); font-size:0.9rem;">vs</span>
@@ -3992,7 +4198,7 @@
         const alertText = document.getElementById('txAlertText');
         if (alertEl && alertText) {
           alertEl.style.display = 'flex';
-          alertText.innerHTML = `🎭 Now roleplaying as <strong>${team.name} (${team.record})</strong>. Facing <strong>${oppTeam.name} (${oppTeam.record})</strong> in Week 4. Playbook, lineups & moves updated!`;
+          alertText.innerHTML = `🎭 Now roleplaying as <strong>${team.name} (${team.record})</strong>. Facing <strong>${oppTeam.name} (${oppTeam.record})</strong> in Week ${selectedMatchupWeek}. Playbook, lineups & moves updated!`;
         }
       }
     }
@@ -4735,29 +4941,52 @@
       if (statusText && !isSilent) statusText.innerText = "Syncing with ESPN API...";
 
       try {
-        const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/2027/segments/0/leagues/82784331?view=mRoster&view=mTeam&view=mTransactions2&view=mMatchup&view=mScoreboard`;
-        const resp = await fetch(url);
+        const [leagueResp, proSchedResp] = await Promise.all([
+          fetch(`https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/2027/segments/0/leagues/82784331?view=mRoster&view=mTeam&view=mTransactions2&view=mMatchup&view=mScoreboard&view=mSettings`),
+          fetch(`https://lm-api-reads.fantasy.espn.com/apis/v3/games/fhl/seasons/2027?view=proTeamSchedules`)
+        ]);
         
-        if (!resp.ok) throw new Error("API status " + resp.status);
-        const data = await resp.json();
+        if (!leagueResp.ok) throw new Error("League API status " + leagueResp.status);
+        const data = await leagueResp.json();
+
+        if (proSchedResp.ok) {
+          const schedData = await proSchedResp.json();
+          proTeamsScheduleData = schedData.settings?.proTeams || null;
+        }
+
+        // Dynamically detect current league matchup period & scoring period from ESPN
+        if (data.status?.currentMatchupPeriod) {
+          currentLeagueWeek = Number(data.status.currentMatchupPeriod);
+        }
+        if (data.scoringPeriodId) {
+          currentScoringPeriod = Number(data.scoringPeriodId);
+        }
+
+        // Default selectedMatchupWeek to currentLeagueWeek if not yet set
+        if (!selectedMatchupWeek || selectedMatchupWeek < 1) {
+          selectedMatchupWeek = currentLeagueWeek;
+        }
+
+        if (data.schedule) {
+          rawEspnSchedule = data.schedule;
+        }
 
         liveRosteredPlayerIds.clear();
 
         if (data.teams) {
+          const nhlSched = getNhlScheduleForWeek(selectedMatchupWeek);
+
           allLeagueTeams = data.teams.map(t => {
             const tId = Number(t.id);
             const tRec = (t.record && t.record.overall) ? `${t.record.overall.wins}-${t.record.overall.losses}` : '0-0';
             const existing = allLeagueTeams.find(x => x.id === tId);
-            const oppId = existing ? existing.opponentId : null;
-            const livePts = existing ? existing.livePoints : 0;
-            const ptsByDay = existing ? existing.pointsByDay : {};
 
             let roster = [];
             if (t.roster && t.roster.entries) {
               roster = t.roster.entries.map(e => {
                 const p = e.playerPoolEntry.player;
                 const ptAbbr = proTeamMap[p.proTeamId] || String(p.proTeamId);
-                const sched = fantasyData.nhlSchedule ? fantasyData.nhlSchedule[ptAbbr] : null;
+                const sched = nhlSched[ptAbbr] || null;
                 const pProj = p.stats ? p.stats.find(s => s.id === '102027') : null;
                 const pAct = p.stats ? p.stats.find(s => s.id === '002027') : null;
                 const pL7 = p.stats ? p.stats.find(s => s.id === '012027') : null;
@@ -4798,9 +5027,9 @@
               name: t.name ? t.name.trim() : (existing ? existing.name : `Team ${tId}`),
               abbrev: t.abbrev || (existing ? existing.abbrev : 'TEAM'),
               record: tRec,
-              opponentId: oppId,
-              livePoints: livePts,
-              pointsByDay: ptsByDay,
+              opponentId: existing ? existing.opponentId : null,
+              livePoints: existing ? existing.livePoints : 0,
+              pointsByDay: existing ? existing.pointsByDay : {},
               roster: roster
             };
           });
@@ -4830,7 +5059,7 @@
                         team.roster.push({ ...pInfo, slot: 'BENCH', slotId: 7 });
                         recentMoves.push({ type: 'ADD', playerName: pInfo.name, teamName: team.name, playerId: pid });
                       } else if (pid === PLAYER_IDS.GIBSON) {
-                        const detSched = (typeof fantasyData !== 'undefined' && fantasyData.nhlSchedule && fantasyData.nhlSchedule['DET']) || null;
+                        const detSched = nhlSched['DET'] || null;
                         team.roster.push({
                           id: pid,
                           name: "John Gibson",
@@ -4850,7 +5079,7 @@
                         });
                         recentMoves.push({ type: 'ADD', playerName: "John Gibson", teamName: team.name, playerId: pid });
                       } else if (pid === 4271575) {
-                        const phiSched = (typeof fantasyData !== 'undefined' && fantasyData.nhlSchedule && fantasyData.nhlSchedule['PHI']) || null;
+                        const phiSched = nhlSched['PHI'] || null;
                         team.roster.push({
                           id: pid,
                           name: "Joseph Woll",
@@ -4881,45 +5110,12 @@
             });
           }
 
-          // Sync live scores from schedule if available
-          if (data.schedule) {
-            rawEspnSchedule = data.schedule;
-            const spDaysMap = { "21":"Mon", "22":"Tue", "23":"Wed", "24":"Thu", "25":"Fri", "26":"Sat", "27":"Sun" };
-            data.schedule.forEach(m => {
-              if (m.matchupPeriodId === 4) {
-                const hId = Number(m.home?.teamId);
-                const aId = Number(m.away?.teamId);
-                const hPts = m.home?.totalPointsLive ?? m.home?.totalPoints;
-                const aPts = m.away?.totalPointsLive ?? m.away?.totalPoints;
-
-                const hTeam = allLeagueTeams.find(t => t.id === hId);
-                if (hTeam && hPts != null) {
-                  hTeam.livePoints = Math.round(Number(hPts) * 100) / 100;
-                  if (m.home?.pointsByScoringPeriod) {
-                    hTeam.pointsByDay = {};
-                    for (const [k, v] of Object.entries(m.home.pointsByScoringPeriod)) {
-                      const dName = spDaysMap[k] || k;
-                      hTeam.pointsByDay[dName] = Math.round(Number(v) * 100) / 100;
-                    }
-                  }
-                }
-
-                const aTeam = allLeagueTeams.find(t => t.id === aId);
-                if (aTeam && aPts != null) {
-                  aTeam.livePoints = Math.round(Number(aPts) * 100) / 100;
-                  if (m.away?.pointsByScoringPeriod) {
-                    aTeam.pointsByDay = {};
-                    for (const [k, v] of Object.entries(m.away.pointsByScoringPeriod)) {
-                      const dName = spDaysMap[k] || k;
-                      aTeam.pointsByDay[dName] = Math.round(Number(v) * 100) / 100;
-                    }
-                  }
-                }
-              }
-            });
-          }
+          // Apply matchups and schedule for selectedMatchupWeek
+          applyWeekMatchups(selectedMatchupWeek);
+          applyWeekSchedule(selectedMatchupWeek);
 
           populateTeamDropdown();
+          populateWeekDropdown();
           switchRoleplayTeam(currentTeamId, false);
           renderMatchupPredictor();
           renderHighScoreRace();
@@ -4927,7 +5123,7 @@
         }
 
         const activeTeam = allLeagueTeams.find(t => t.id === currentTeamId) || allLeagueTeams[0];
-        let alertMsg = `Live sync verified with ESPN API! ${allLeagueTeams.length} league teams updated. Active lineup: ${activeTeam.name} (${currentMyRoster.length} players).`;
+        let alertMsg = `Live sync verified with ESPN API! ${allLeagueTeams.length} league teams updated. Active lineup: ${activeTeam.name} (${currentMyRoster.length} players) &bull; Week ${selectedMatchupWeek} active.`;
 
         if (typeof recentMoves !== 'undefined' && recentMoves.length > 0) {
           const latest = recentMoves[recentMoves.length - 1];
@@ -4958,16 +5154,18 @@
       const container = document.getElementById('daysGridContainer');
       container.innerHTML = '';
       const realToday = getCurrentDayIndex();
+      const isPastWeek = (selectedMatchupWeek < currentLeagueWeek);
+      const isCurrentWeek = (selectedMatchupWeek === currentLeagueWeek);
 
-      const dayTips = {
-        "Mon": "(Completed) Low volume slate (4 games). Opening matchup day.",
-        "Tue": "(Completed) Heavy slate (11 games). Full lineups for both teams.",
-        "Wed": "(Completed) Light slate (2 games). Only 4 teams played.",
-        "Thu": "Mega slate (12 games). Lineup locked at 14/14 capacity (0 open slots). Do not stream!",
-        "Fri": "Crucial Off-Night (Only 2 games). 12 open starting slots! Stream Tyler Bertuzzi or Dobes.",
-        "Sat": "Huge Saturday (12 games). Decisive night for goalie starts and peripherals.",
-        "Sun": "Matchup Finale (5 games). 9 open starting slots! Tyler Bertuzzi & Dobes play."
-      };
+      // Compute dynamic day tips based on actual games count across NHL for each day of this week
+      const nhlSched = getNhlScheduleForWeek(selectedMatchupWeek);
+      const dailyGamesCount = { Mon:0, Tue:0, Wed:0, Thu:0, Fri:0, Sat:0, Sun:0 };
+      Object.values(nhlSched).forEach(t => {
+        daysOfWeek.forEach(d => {
+          if (t.Days && t.Days[d]) dailyGamesCount[d]++;
+        });
+      });
+      daysOfWeek.forEach(d => dailyGamesCount[d] = Math.round(dailyGamesCount[d] / 2));
 
       daysOfWeek.forEach((day, idx) => {
         let myCount = 0;
@@ -4983,8 +5181,8 @@
 
         const cap = getDailyLineupCapacity(day);
         const isSelected = (idx === todayIndex);
-        const isPast = (idx < realToday);
-        const isRealToday = (idx === realToday);
+        const isPast = isPastWeek || (isCurrentWeek && idx < realToday);
+        const isRealToday = isCurrentWeek && (idx === realToday);
 
         const card = document.createElement('div');
         card.className = `day-card ${isSelected ? 'today' : ''} ${isPast ? 'past' : ''}`;
@@ -5002,6 +5200,20 @@
           ? `<span class="count-chip" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.3); font-weight:700;">Full (14/14)</span>`
           : `<span class="count-chip" style="background:rgba(52,211,153,0.15); color:var(--accent-green); border:1px solid rgba(52,211,153,0.3); font-weight:700;">${cap.totalOpenSlots} Open</span>`;
 
+        const numG = dailyGamesCount[day] || 0;
+        let tipText = '';
+        if (isPast) {
+          tipText = `(Completed) ${numG} NHL games played. Final points tallied.`;
+        } else if (numG >= 10) {
+          tipText = `Heavy slate (${numG} games). Full lineups expected; monitor bench jams.`;
+        } else if (numG <= 4 && numG > 0) {
+          tipText = `Prime off-night (${numG} games). ${cap.totalOpenSlots} open spots — excellent streaming target!`;
+        } else if (numG > 4) {
+          tipText = `Balanced slate (${numG} games). Standard start/sit volume.`;
+        } else {
+          tipText = `No NHL games scheduled league-wide.`;
+        }
+
         card.innerHTML = `
           <div class="day-header">
             <span class="day-name">${day}</span>
@@ -5010,7 +5222,7 @@
           <div class="day-count">Your Active: <span class="count-chip chip-my">${myCount}</span></div>
           <div class="day-count">Opponent: <span class="count-chip chip-opp">${oppCount}</span></div>
           <div class="day-count">Starting Spots: ${slotBadge}</div>
-          <div class="day-tip">${dayTips[day]}</div>
+          <div class="day-tip">${tipText}</div>
         `;
         container.appendChild(card);
       });
@@ -6407,28 +6619,32 @@
     // ========================================================
     // FEATURE 5: WEEKLY HIGH SCORE RACE & LIVE WIN PROBABILITY
     // ========================================================
-    let currentHighScoreWeek = 4;
-    let rawEspnSchedule = null;
+    let currentHighScoreWeek = 7;
 
     const HISTORICAL_WEEKLY_SCORES = {
       1: { 1: 157.35, 3: 125.75, 5: 156.85, 6: 125.95, 7: 123.35, 10: 148.95, 12: 137.50, 13: 105.70, 15: 130.50, 16: 131.45, 17: 125.55, 18: 71.75 },
       2: { 1: 170.05, 3: 139.45, 5: 148.20, 6: 135.30, 7: 189.00, 10: 160.00, 12: 174.50, 13: 163.90, 15: 145.00, 16: 134.15, 17: 108.45, 18: 173.75 },
       3: { 1: 145.15, 3: 157.30, 5: 127.85, 6: 148.50, 7: 172.35, 10: 157.85, 12: 163.30, 13: 161.75, 15: 157.20, 16: 142.00, 17: 167.60, 18: 137.70 },
-      4: { 1: 189.80, 3: 121.50, 5: 125.95, 6: 136.05, 7: 194.15, 10: 144.00, 12: 115.35, 13: 169.70, 15: 185.55, 16: 167.30, 17: 113.80, 18: 170.65 }
+      4: { 1: 205.00, 3: 125.00, 5: 132.95, 6: 162.10, 7: 201.90, 10: 148.95, 12: 120.35, 13: 174.70, 15: 185.55, 16: 172.30, 17: 118.80, 18: 175.65 },
+      5: { 1: 203.05, 3: 158.80, 5: 150.80, 6: 189.30, 7: 194.50, 10: 152.65, 12: 152.40, 13: 208.20, 15: 124.75, 16: 142.65, 17: 161.55, 18: 150.00 },
+      6: { 1: 230.65, 3: 153.90, 5: 192.80, 6: 173.80, 7: 173.00, 10: 191.15, 12: 146.15, 13: 203.40, 15: 169.75, 16: 171.40, 17: 193.10, 18: 174.85 }
     };
 
     const PRE_WEEK_BASELINES = {
       1: { 1: 152.0, 3: 135.0, 5: 150.0, 6: 132.0, 7: 138.0, 10: 139.9, 12: 135.0, 13: 128.0, 15: 132.0, 16: 135.0, 17: 120.0, 18: 118.0 },
       2: { 1: 172.0, 3: 145.0, 5: 155.0, 6: 148.0, 7: 180.0, 10: 162.0, 12: 170.0, 13: 158.0, 15: 150.0, 16: 142.0, 17: 115.0, 18: 153.9 },
       3: { 1: 168.0, 3: 152.0, 5: 148.0, 6: 150.0, 7: 178.0, 10: 164.0, 12: 168.0, 13: 160.0, 15: 155.0, 16: 146.0, 17: 145.4, 18: 148.0 },
-      4: { 1: 180.3, 3: 172.9, 5: 177.4, 6: 176.6, 7: 184.5, 10: 169.9, 12: 183.6, 13: 166.2, 15: 164.5, 16: 173.8, 17: 145.4, 18: 153.9 }
+      4: { 1: 180.3, 3: 172.9, 5: 177.4, 6: 176.6, 7: 184.5, 10: 169.9, 12: 183.6, 13: 166.2, 15: 164.5, 16: 173.8, 17: 145.4, 18: 153.9 },
+      5: { 1: 182.0, 3: 165.0, 5: 170.0, 6: 175.0, 7: 185.0, 10: 168.0, 12: 160.0, 13: 180.0, 15: 155.0, 16: 165.0, 17: 150.0, 18: 155.0 },
+      6: { 1: 185.0, 3: 162.0, 5: 172.0, 6: 174.0, 7: 183.0, 10: 170.0, 12: 158.0, 13: 182.0, 15: 160.0, 16: 168.0, 17: 155.0, 18: 158.0 },
+      7: { 1: 174.4, 3: 167.5, 5: 172.8, 6: 179.2, 7: 174.4, 10: 163.7, 12: 166.5, 13: 174.0, 15: 154.4, 16: 170.3, 17: 150.3, 18: 133.9 }
     };
 
     function calculateWeeklyHighScoreProjections(targetWeek) {
       const w = Number(targetWeek);
-      const isPast = w < 4;
-      const isCurrent = w === 4;
-      const isFuture = w > 4;
+      const isPast = w < currentLeagueWeek;
+      const isCurrent = w === currentLeagueWeek;
+      const isFuture = w > currentLeagueWeek;
 
       const livePointsMap = {};
       if (rawEspnSchedule && Array.isArray(rawEspnSchedule)) {
@@ -6450,7 +6666,7 @@
         Object.assign(livePointsMap, HISTORICAL_WEEKLY_SCORES[w]);
       }
 
-      const baselinesForWeek = PRE_WEEK_BASELINES[w] || PRE_WEEK_BASELINES[4];
+      const baselinesForWeek = PRE_WEEK_BASELINES[w] || PRE_WEEK_BASELINES[7] || PRE_WEEK_BASELINES[4];
 
       const projections = allLeagueTeams.map(team => {
         const tId = Number(team.id);
@@ -6473,23 +6689,20 @@
           updatedScore = livePts;
           remPts = 0;
         } else if (isCurrent) {
-          // Sunday night games in progress / remaining tonight (MTL@WPG live, COL@NSH live, MIN@VAN 10:00 PM EDT)
-          // Factoring confirmed starter changes (e.g. Wallstedt benched for Filip Gustavsson = 0 pts)
-          const W4_REMAINING_STARTS_PTS = {
-            1: 10.5, // Q. Hughes (4.3), Scheifele (3.5), Coleman (2.7), Wallstedt benched (0.0)
-            3: 11.0, // Saros, Pettersson, Pionk
-            5: 7.7,  // Kaprizov, Connor
-            6: 6.0,  // Josi, Perfetti
-            7: 7.3,  // Boeser (2.7), Hronek (3.1), Landeskog in-game (1.5)
-            10: 11.0,// MacKinnon, Matheson, Manson
-            12: 10.2,// Forsberg, O'Reilly, Spurgeon
-            13: 14.0,// Makar, Necas, Slafkovsky, Eriksson Ek
-            15: 3.6, // Caufield
-            16: 4.1, // Boldy
-            17: 8.5, // Hutson, Nelson, Toews
-            18: 12.0 // Suzuki, Dobson, Stamkos
-          };
-          remPts = W4_REMAINING_STARTS_PTS[tId] || 0;
+          const nhlSched = getNhlScheduleForWeek(w);
+          const realToday = getCurrentDayIndex();
+          (team.roster || []).forEach(p => {
+            const s = nhlSched[p.team];
+            if (p.slot !== 'IR' && s && s.Days) {
+              daysOfWeek.forEach((d, dIdx) => {
+                if (dIdx >= realToday && s.Days[d]) {
+                  const ppg = p.actAvg > 0 ? (p.actAvg * 0.50 + (p.l7Avg || p.actAvg) * 0.30 + (p.projAvg || 3.0) * 0.20) : (p.projAvg || 3.0);
+                  remPts += ppg;
+                }
+              });
+            }
+          });
+          remPts = Math.round(remPts * 0.78 * 10) / 10;
           updatedScore = Math.round((livePts + remPts) * 100) / 100;
         } else {
           livePts = 0;
@@ -6754,14 +6967,14 @@
 
     function onHighScoreWeekChange(val) {
       currentHighScoreWeek = Number(val);
-      renderHighScoreRace();
+      switchMatchupWeek(val);
     }
 
     function renderHighScoreTeaser() {
       const teaser = document.getElementById('highScoreRaceTeaser');
       if (!teaser) return;
 
-      const projections = calculateWeeklyHighScoreProjections(4);
+      const projections = calculateWeeklyHighScoreProjections(selectedMatchupWeek);
       if (!projections || projections.length === 0) return;
 
       const leader = projections[0];
@@ -6770,15 +6983,24 @@
 
       const headline = document.getElementById('teaserHeadline');
       const subtext = document.getElementById('teaserSubtext');
+      const badge = document.querySelector('#highScoreRaceTeaser .badge-rank');
+      const statusBadge = document.getElementById('teaserStatusBadge');
+
+      if (badge) badge.textContent = `Week ${selectedMatchupWeek} High Score Race`;
+      if (statusBadge) {
+        statusBadge.textContent = (selectedMatchupWeek === currentLeagueWeek) ? '● Live Active Model' : (selectedMatchupWeek < currentLeagueWeek ? '✓ Final Result' : '⏳ Pre-Week Model');
+        statusBadge.style.color = (selectedMatchupWeek === currentLeagueWeek) ? '#34d399' : (selectedMatchupWeek < currentLeagueWeek ? '#94a3b8' : '#38bdf8');
+      }
 
       if (headline && subtext) {
-        headline.innerHTML = `<strong>${leader.name}</strong> leads Week 4 High Score with <span style="color:#fbbf24;">${leader.updatedScore.toFixed(1)} pts</span> (${leader.winLikelihood}% Win Prob)!`;
+        headline.innerHTML = `<strong>${leader.name}</strong> leads Week ${selectedMatchupWeek} High Score with <span style="color:#fbbf24;">${leader.updatedScore.toFixed(1)} pts</span> (${leader.winLikelihood}% Win Prob)!`;
         subtext.innerHTML = `Your team (${userTeam.name}) ranks <strong>#${userTeam.rank}</strong> (${userTeam.updatedScore.toFixed(1)} pts, ${userTeam.delta >= 0 ? '+' : ''}${userTeam.delta.toFixed(1)} shift) &bull; ${runnerUp ? `Runner-up: ${runnerUp.name} (${runnerUp.updatedScore.toFixed(1)} pts)` : ''}`;
       }
     }
 
     window.addEventListener('DOMContentLoaded', () => {
       populateTeamDropdown();
+      populateWeekDropdown();
       setupAutoRefresh();
       switchRoleplayTeam(currentTeamId, false);
       refreshLeagueData();

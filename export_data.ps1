@@ -15,8 +15,18 @@ $proTeamMap = @{
 $posMap = @{ 1="C"; 2="LW"; 3="RW"; 4="D"; 5="G" }
 $slotMap = @{ 0="C"; 1="LW"; 2="RW"; 4="D"; 5="G"; 6="UTIL"; 7="BENCH"; 8="IR" }
 
-# Weekly SPs: 21 (Mon Oct 19) to 27 (Sun Oct 25)
-$spDays = [ordered]@{ "21"="Mon"; "22"="Tue"; "23"="Wed"; "24"="Thu"; "25"="Fri"; "26"="Sat"; "27"="Sun" }
+# Dynamic Matchup Period detection
+$matchupPeriod = if ($leagueData.status.currentMatchupPeriod) { [int]$leagueData.status.currentMatchupPeriod } else { 7 }
+$startSp = if ($matchupPeriod -eq 1) { 1 } else { 7 * $matchupPeriod - 7 }
+$endSp = if ($matchupPeriod -eq 1) { 6 } else { 7 * $matchupPeriod - 1 }
+$dayNamesList = @("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+$spDays = [ordered]@{}
+for ($s = $startSp; $s -le $endSp; $s++) {
+    $idx = if ($matchupPeriod -eq 1) { $s } else { $s - $startSp }
+    $dName = $dayNamesList[$idx % 7]
+    $spDays[$s.ToString()] = $dName
+}
 
 # Team schedules this week
 $nhlSchedule = @{}
@@ -25,7 +35,7 @@ foreach ($pt in $proTeams) {
     $tAbbr = $proTeamMap[[int]$pt.id]
     $daysObj = [ordered]@{}
     $count = 0
-    foreach ($sp in 21..27) {
+    foreach ($sp in $startSp..$endSp) {
         $spStr = $sp.ToString()
         $dayName = $spDays[$spStr]
         if ($pt.proGamesByScoringPeriod.psobject.properties[$spStr]) {
@@ -105,7 +115,7 @@ function Extract-Roster($tObj) {
     return $roster
 }
 
-# Schedule matching for matchupPeriod 4
+# Schedule matching for current matchupPeriod
 $opponentMap = @{}
 $matchupScoresMap = @{}
 $pointsByDayMap = @{}
@@ -113,7 +123,7 @@ $matchupsData = @()
 
 if ($leagueData.schedule) {
     foreach ($m in $leagueData.schedule) {
-        if ($m.matchupPeriodId -eq 4) {
+        if ($m.matchupPeriodId -eq $matchupPeriod) {
             $hId = [int]$m.home.teamId
             $aId = [int]$m.away.teamId
             $opponentMap[$hId] = $aId
@@ -177,14 +187,15 @@ foreach ($t in $leagueData.teams) {
 }
 
 $myTeamObj = $allTeams | Where-Object { $_.id -eq 7 }
-$oppTeamObj = $allTeams | Where-Object { $_.id -eq 10 }
+$myOppId = if ($opponentMap.ContainsKey(7)) { $opponentMap[7] } else { $null }
+$oppTeamObj = if ($myOppId) { $allTeams | Where-Object { $_.id -eq $myOppId } } else { $null }
 
-$myRoster = $myTeamObj.roster
-$oppRoster = $oppTeamObj.roster
+$myRoster = if ($myTeamObj) { $myTeamObj.roster } else { @() }
+$oppRoster = if ($oppTeamObj) { $oppTeamObj.roster } else { @() }
 
 Write-Host "Extracted $($allTeams.Count) league teams."
 Write-Host "Dead Lokomotiv players: $($myRoster.Count)"
-Write-Host "Bay Ridge Icelanders players: $($oppRoster.Count)"
+Write-Host "$($oppTeamObj.name) players: $($oppRoster.Count)"
 
 # Fetch Top Free Agents with live stats
 Write-Host "Fetching live Free Agent pool..."
@@ -299,23 +310,23 @@ if (-not $hasWashe) {
 }
 
 $dataExport = [ordered]@{
-    matchupPeriod = 4
-    weekName = "Week 4 (Oct 19 - Oct 25, 2026)"
+    matchupPeriod = $matchupPeriod
+    weekName = "Week $matchupPeriod"
     activeTeamId = 7
     teams = $allTeams
     matchups = $matchupsData
     myTeam = [ordered]@{
-        name = "Dead Lokomotiv"
-        abbrev = "DEAD"
+        name = if ($myTeamObj) { $myTeamObj.name } else { "Dead Lokomotiv" }
+        abbrev = if ($myTeamObj) { $myTeamObj.abbrev } else { "DEAD" }
         id = 7
-        record = "2-1"
+        record = if ($myTeamObj) { $myTeamObj.record } else { "0-0" }
         roster = $myRoster
     }
     oppTeam = [ordered]@{
-        name = "Bay Ridge Icelanders"
-        abbrev = "ICE"
-        id = 10
-        record = "2-1"
+        name = if ($oppTeamObj) { $oppTeamObj.name } else { "Opponent" }
+        abbrev = if ($oppTeamObj) { $oppTeamObj.abbrev } else { "OPP" }
+        id = if ($oppTeamObj) { $oppTeamObj.id } else { $null }
+        record = if ($oppTeamObj) { $oppTeamObj.record } else { "0-0" }
         roster = $oppRoster
     }
     nhlSchedule = $nhlSchedule
