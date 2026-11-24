@@ -2290,8 +2290,9 @@
               <th>Status</th>
               <th>Proj Avg</th>
               <th>Season Avg</th>
-              <th>Last 7d</th>
+              <th>Last 30d</th>
               <th>Last 15d</th>
+              <th>Last 7d</th>
               <th>Trend</th>
               <th>Gms</th>
               <th>Weekly Schedule</th>
@@ -2316,8 +2317,9 @@
               <th>Status</th>
               <th>Proj Avg</th>
               <th>Season Avg</th>
-              <th>Last 7d</th>
+              <th>Last 30d</th>
               <th>Last 15d</th>
+              <th>Last 7d</th>
               <th>Trend</th>
               <th>Gms</th>
               <th>Weekly Schedule</th>
@@ -2354,9 +2356,9 @@
               <th>Status</th>
               <th>Proj Avg</th>
               <th>Season Avg</th>
-              <th>Last 7d</th>
-              <th>Last 15d</th>
               <th>Last 30d</th>
+              <th>Last 15d</th>
+              <th>Last 7d</th>
               <th>Trend / Momentum</th>
               <th>Gms</th>
               <th>Weekly Schedule</th>
@@ -2961,13 +2963,13 @@
           actIndex = Math.max(0, Math.min(100, ((actAvg - 1.4) / (4.8 - 1.4)) * 100));
         }
 
-        // 4. FACTOR 7: MULTI-WINDOW MOMENTUM INDEX (L7, L15, L30) (Weight: 15%)
-        // Captures immediate acute slumps (50% L7) vs bi-weekly trends (30% L15) vs monthly baseline (20% L30)
+        // 4. FACTOR 7: MULTI-WINDOW MOMENTUM INDEX (L30 > L15 > L7) (Weight: 15%)
+        // Further into the season: L30 carries the most impact (55%), L15 (30%), L7 (15%)
         let momentumIndex = 0;
         const l7 = (l7Avg > 0) ? l7Avg : actAvg;
         const l15 = (l15Avg > 0) ? l15Avg : actAvg;
         const l30 = (l30Avg > 0) ? l30Avg : actAvg;
-        const recentPPG = (l7 * 0.50) + (l15 * 0.30) + (l30 * 0.20);
+        const recentPPG = (l30 * 0.55) + (l15 * 0.30) + (l7 * 0.15);
         if (isIR && actAvg < 1.0) {
           momentumIndex = projIndex;
         } else {
@@ -3674,7 +3676,7 @@
               <div style="background: rgba(251, 191, 36, 0.06); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: var(--radius-sm); padding: 12px;">
                 <div style="font-weight: 700; color: #fbbf24; margin-bottom: 6px;">4. Multi-Window Momentum (Weight: 15%)</div>
                 <div style="font-size: 0.78rem; line-height: 1.5; color: var(--text-main);">
-                  Synthesizes <code>50% L7 + 30% L15 + 20% L30</code> to catch acute ice-cold slumps vs sustained performance surges while filtering out 1-game noise.
+                  Synthesizes <code>55% L30 + 30% L15 + 15% L7</code>. Further into the season, the monthly 30-day baseline carries the most impact, supported by 15-day trends, with acute 7-day noise damped.
                 </div>
               </div>
               <div style="background: rgba(244, 63, 94, 0.06); border: 1px solid rgba(244, 63, 94, 0.25); border-radius: var(--radius-sm); padding: 12px;">
@@ -3812,7 +3814,7 @@
               <th>Pos</th>
               <th>Team</th>
               <th>Actual</th>
-              <th>L7 / L15 / L30</th>
+              <th>L30 / L15 / L7 (Wtd)</th>
               <th>Sheet PR</th>
               <th>Sheet VORP</th>
               <th>Sheet ONG</th>
@@ -3838,12 +3840,17 @@
                     ? `🟢 Active Sat Starter${satStatus.openD > 0 && d.player.pos !== 'D' ? ` (${satStatus.openD} Open D)` : ''}` 
                     : (d.satCount === 1 ? '🔴 Saturday Clog (0 Starts)' : '⚪ Neutral'));
 
-              // Multi-window momentum trend styling
+              // Multi-window momentum trend styling (55% L30 + 30% L15 + 15% L7)
               const l7 = p.l7Avg > 0 ? p.l7Avg.toFixed(2) : '-';
               const l15 = p.l15Avg > 0 ? p.l15Avg.toFixed(2) : '-';
               const l30 = p.l30Avg > 0 ? p.l30Avg.toFixed(2) : '-';
-              const isCold = p.l7Avg > 0 && p.l7Avg < p.actAvg - 0.7;
-              const isHot = p.l7Avg > 0 && p.l7Avg > p.actAvg + 0.7;
+              const actVal = p.actAvg || 0;
+              const wL30 = (p.l30Avg > 0) ? p.l30Avg : actVal;
+              const wL15 = (p.l15Avg > 0) ? p.l15Avg : actVal;
+              const wL7 = (p.l7Avg > 0) ? p.l7Avg : actVal;
+              const weightedRecent = (wL30 * 0.55) + (wL15 * 0.30) + (wL7 * 0.15);
+              const isCold = actVal > 1.2 && weightedRecent < actVal - 0.4;
+              const isHot = actVal > 0 && weightedRecent > actVal + 0.4;
               const momentumColor = isCold ? '#f87171' : (isHot ? '#34d399' : 'inherit');
 
               return `
@@ -3853,8 +3860,8 @@
                   <td><span class="pos-pill">${p.pos}</span></td>
                   <td style="font-family: 'JetBrains Mono', monospace;">${p.team}</td>
                   <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">${p.actAvg > 0 ? p.actAvg : '-'}</td>
-                  <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: ${momentumColor};">
-                    ${l7} <span style="opacity: 0.4;">|</span> ${l15} <span style="opacity: 0.4;">|</span> ${l30}
+                  <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: ${momentumColor};" title="Weighted Rating: 55% L30 + 30% L15 + 15% L7 = ${weightedRecent.toFixed(2)} PPG">
+                    <strong>${l30}</strong> <span style="opacity: 0.4;">|</span> ${l15} <span style="opacity: 0.4;">|</span> <span style="font-size:0.7rem; opacity:0.8;">${l7}</span>
                   </td>
                   <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; color: #86efac; font-weight: 700;">${d.personalPR ? d.personalPR + ' (#' + d.personalRank + ')' : '-'}</td>
                   <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.76rem; font-weight: 700; color: ${d.personalVORP > 0 ? '#34d399' : (d.personalVORP < 0 ? '#f87171' : 'inherit')};">${d.personalVORP != null ? (d.personalVORP > 0 ? '+' : '') + d.personalVORP.toFixed(1) : '-'}</td>
@@ -3922,10 +3929,15 @@
                 const customP = getUserPersonalProjection(p);
                 const personalAvg = (customP && customP.pr > 0) ? (customP.pr / 82) : null;
                 let baseExp = 2.0;
+                const rL30 = (p.l30Avg > 0) ? p.l30Avg : (p.actAvg || 0);
+                const rL15 = (p.l15Avg > 0) ? p.l15Avg : (p.actAvg || 0);
+                const rL7 = (p.l7Avg > 0) ? p.l7Avg : (p.actAvg || 0);
+                const recentRating = (rL30 * 0.55) + (rL15 * 0.30) + (rL7 * 0.15);
+
                 if (personalAvg != null && p.actAvg > 0) {
-                  baseExp = (p.actAvg * 0.40 + (p.l7Avg || p.actAvg) * 0.25 + personalAvg * 0.25 + (p.projAvg || 0) * 0.10);
+                  baseExp = (p.actAvg * 0.40 + recentRating * 0.25 + personalAvg * 0.25 + (p.projAvg || 0) * 0.10);
                 } else if (p.actAvg > 0) {
-                  baseExp = (p.actAvg * 0.45 + (p.l7Avg || p.actAvg) * 0.35 + (p.projAvg || 0) * 0.20);
+                  baseExp = (p.actAvg * 0.45 + recentRating * 0.35 + (p.projAvg || 0) * 0.20);
                 } else {
                   baseExp = personalAvg || (p.projAvg || 2.0);
                 }
@@ -4326,7 +4338,7 @@
       const act = p.actAvg != null ? p.actAvg : 0;
       const proj = p.projAvg != null ? p.projAvg : 0;
 
-      if (act === 0 && l7 === 0) {
+      if (act === 0 && l7 === 0 && l30 === 0) {
         return {
           status: 'INACTIVE',
           badge: '<span class="badge-trend trend-neutral">💤 Inactive</span>',
@@ -4336,64 +4348,69 @@
         };
       }
 
-      const diffL7Season = Math.round((l7 - act) * 100) / 100;
+      // Late-Season Calibration: L30 carries the highest impact (55%), followed by L15 (30%) and L7 (15%)
+      const effL30 = (l30 > 0) ? l30 : act;
+      const effL15 = (l15 > 0) ? l15 : act;
+      const effL7 = (l7 > 0) ? l7 : act;
+      const weightedRecent = (effL30 * 0.55) + (effL15 * 0.30) + (effL7 * 0.15);
+      const diffRecentSeason = Math.round((weightedRecent - act) * 100) / 100;
       const diffActProj = Math.round((act - proj) * 100) / 100;
 
       // 1. Heating Up from Slow Start:
-      // L7 is higher than L15, and L7 is significantly above season average
-      if ((l7 > l15 && l15 >= act && l7 >= act + 0.3) || (act < proj && l7 >= proj && l7 > l15)) {
+      // Strong 30-day baseline and 15-day surge trending well above season baseline
+      if ((weightedRecent >= act + 0.3 && (effL30 >= act || effL15 >= act)) || (act < proj && weightedRecent >= proj)) {
         return {
           status: 'HEATING_UP',
-          badge: `<span class="badge-trend trend-hot">🔥 Heating Up (+${Math.abs(diffL7Season)} L7)</span>`,
+          badge: `<span class="badge-trend trend-hot">🔥 Heating Up (+${Math.abs(diffRecentSeason)} Wtd)</span>`,
           label: 'Heating Up',
-          description: `<strong>Slow start but surging:</strong> Started the season at ${act} PPG, but has accelerated to <strong>${l15} (L15)</strong> and <strong>${l7} (L7)</strong>, trending well above his baseline.`,
-          diffL7: diffL7Season
+          description: `<strong>Sustained monthly surge:</strong> Anchored by a <strong>${l30} L30</strong> baseline and <strong>${l15} L15</strong> form (+${diffRecentSeason > 0 ? '+' : ''}${diffRecentSeason} vs ${act} season avg).`,
+          diffL7: diffRecentSeason
         };
       }
 
       // 2. Red Hot / Dominant Form:
-      // Beating projections consistently across all splits
-      if (l7 >= proj && act >= proj && l7 >= 3.0) {
+      // Consistently outperforming projections across the month
+      if (weightedRecent >= proj && act >= proj && (effL30 >= 3.0 || weightedRecent >= 3.0)) {
         return {
           status: 'ELITE',
-          badge: `<span class="badge-trend trend-hot">⚡ Red Hot (${l7} L7)</span>`,
+          badge: `<span class="badge-trend trend-hot">⚡ Elite Form (${l30} L30)</span>`,
           label: 'Red Hot',
-          description: `<strong>Peak form:</strong> Consistently outperforming projections. Averaging <strong>${l7} PPG over the last 7 days</strong> and ${act} on the season (vs ${proj} proj).`,
-          diffL7: diffL7Season
+          description: `<strong>Peak monthly form:</strong> Dominating projections. Averaging <strong>${l30} L30</strong> (${l15} L15 &bull; ${l7} L7) vs ${proj} proj baseline.`,
+          diffL7: diffRecentSeason
         };
       }
 
       // 3. Downfall / Slump:
-      // Severe drop in last 7-15 days compared to season baseline
-      if ((l7 < l15 - 0.4 && l15 <= act) || (act > 1.5 && l7 < act * 0.55) || (l7 < 0 && act > 0)) {
+      // Sustained drop across the last month compared to season baseline
+      if ((weightedRecent < act - 0.35 && effL30 <= act) || (act > 1.5 && weightedRecent < act * 0.72) || (l7 < 0 && act > 0)) {
         return {
           status: 'DOWNFALL',
-          badge: `<span class="badge-trend trend-cold">🧊 Downfall (${diffL7Season} L7)</span>`,
+          badge: `<span class="badge-trend trend-cold">🧊 Downfall (${diffRecentSeason} Wtd)</span>`,
           label: 'Downfall',
-          description: `<strong>Warning – Cooling off:</strong> Ice time or scoring has dropped sharply from a ${act} season average down to <strong>${l15} (L15)</strong> and <strong>${l7} (L7)</strong>.`,
-          diffL7: diffL7Season
+          description: `<strong>Warning – Sustained drop:</strong> Output has fallen over the last month to <strong>${l30} (L30)</strong> and <strong>${l15} (L15)</strong> (${diffRecentSeason} vs ${act} season avg).`,
+          diffL7: diffRecentSeason
         };
       }
 
       // 4. Slow Start / Sluggish:
-      // Below projections and hasn't yet ignited
-      if (act < proj * 0.8 && l7 <= act) {
+      // Below projections and hasn't yet ignited over the last 30 days
+      if (act < proj * 0.8 && weightedRecent <= act) {
         return {
           status: 'SLOW_START',
           badge: `<span class="badge-trend trend-warning">⚠️ Sluggish Start (${diffActProj} vs Proj)</span>`,
           label: 'Slow Start',
-          description: `<strong>Slower start:</strong> Averaging ${act} PPG (vs ${proj} proj) and yet to catch fire (${l7} L7). Locked into prime role with buy-low breakout potential.`,
-          diffL7: diffL7Season
+          description: `<strong>Slower start:</strong> Averaging ${act} PPG (vs ${proj} proj) and yet to catch fire (${l30} L30). Locked into prime role with buy-low breakout potential.`,
+          diffL7: diffRecentSeason
         };
       }
 
       // 5. Steady / Reliable Baseline
       return {
         status: 'STEADY',
-        badge: `<span class="badge-trend trend-steady">➡️ Steady (${l7 > 0 ? l7 : act} avg)</span>`,
+        badge: `<span class="badge-trend trend-steady">➡️ Steady (${l30 > 0 ? l30 : act} avg)</span>`,
         label: 'Steady',
-        description: `<strong>Reliable baseline:</strong> Consistent output across recent splits (${l7} L7 &bull; ${l15} L15 &bull; ${act} Season).`,
-        diffL7: diffL7Season
+        description: `<strong>Reliable baseline:</strong> Consistent output across recent splits (${l30} L30 &bull; ${l15} L15 &bull; ${l7} L7 &bull; ${act} Season).`,
+        diffL7: diffRecentSeason
       };
     }
 
@@ -4564,8 +4581,11 @@
             });
             const actAvg = p.actAvg || 0;
             const l7Avg = (p.l7Avg > 0) ? p.l7Avg : actAvg;
+            const l15Avg = (p.l15Avg > 0) ? p.l15Avg : actAvg;
+            const l30Avg = (p.l30Avg > 0) ? p.l30Avg : actAvg;
             const projAvg = p.projAvg || 2.5;
-            const heat = (l7Avg * 0.45) + (actAvg * 0.35) + (projAvg * 0.20);
+            const recentRating = (l30Avg * 0.55) + (l15Avg * 0.30) + (l7Avg * 0.15);
+            const heat = (recentRating > 0) ? (recentRating * 0.65 + actAvg * 0.25 + projAvg * 0.10) : projAvg;
             const estPts = remStarts * heat;
             return { player: p, remStarts, heat, estPts };
           })
@@ -4626,7 +4646,7 @@
               <ul class="why-list">
                 <li><strong>Immediate Active Start:</strong> <strong>${currentTeam.name}</strong> has <strong>${capacity.openSkaterSlots} open skater slots</strong> on ${currentDay}. ${topStreamer.name} plays <strong>${topStreamer.schedule[currentDay]}</strong> tonight and starts immediately with 0 bench waste.</li>
                 <li><strong>Rest-of-Week Leverage:</strong> Plays <strong>${topStreamerItem.remStarts} total usable games</strong> across remaining days this week, projecting <strong>+${topStreamerItem.estPts.toFixed(1)} total fantasy pts</strong>!</li>
-                <li><strong>Trajectory & Form:</strong> ${streamerTrend.description} (${topStreamer.l7Avg > 0 ? topStreamer.l7Avg + ' L7 PPG' : topStreamer.actAvg + ' Act PPG'}).</li>
+                <li><strong>Trajectory & Form:</strong> ${streamerTrend.description} (${topStreamer.l30Avg > 0 ? 'L30: ' + topStreamer.l30Avg + ' | ' : ''}${topStreamer.l7Avg > 0 ? 'L7: ' + topStreamer.l7Avg : 'Season: ' + topStreamer.actAvg} PPG).</li>
                 ${rosterPlayingToday.length > 0 ? `<li><strong>🛡️ Protect Tonight's Starters:</strong> <strong>${rosterPlayingToday.map(p => p.name).join(', ')}</strong> is already in your active lineup tonight (${rosterPlayingToday.map(p => p.schedule[currentDay]).join(', ')}). Do NOT drop an active player! Cut idle bench player <strong>${suggestedDropPlayer.name}</strong> instead.</li>` : ''}
               </ul>
             </div>
@@ -4687,8 +4707,11 @@
           });
           const actAvg = p.actAvg || 0;
           const l7Avg = (p.l7Avg > 0) ? p.l7Avg : actAvg;
+          const l15Avg = (p.l15Avg > 0) ? p.l15Avg : actAvg;
+          const l30Avg = (p.l30Avg > 0) ? p.l30Avg : actAvg;
           const projAvg = p.projAvg || 2.5;
-          const quality = (l7Avg * 0.45) + (actAvg * 0.35) + (projAvg * 0.20);
+          const recentRating = (l30Avg * 0.55) + (l15Avg * 0.30) + (l7Avg * 0.15);
+          const quality = (recentRating > 0) ? (recentRating * 0.65 + actAvg * 0.25 + projAvg * 0.10) : projAvg;
           const totalEstPts = Math.max(usableStarts, 1) * quality;
           return { player: p, usableStarts, daysList, quality, totalEstPts };
         })
@@ -4734,7 +4757,7 @@
           <div class="why-title">🔍 Why ${mainMultiTarget.name} is the Top Rest-of-Week Target:</div>
           <ul class="why-list">
             <li><strong>Lineup Volume:</strong> Delivers <strong>${topMulti.usableStarts} active un-benched start${topMulti.usableStarts > 1 ? 's' : ''}</strong> (${displayDays}), projecting <strong>+${topMulti.totalEstPts.toFixed(1)} fantasy points</strong>.</li>
-            <li><strong>Recent Form:</strong> ${mainMultiTrend.description} (${mainMultiTarget.l7Avg > 0 ? mainMultiTarget.l7Avg + ' L7 PPG' : mainMultiTarget.actAvg + ' Season PPG'}).</li>
+            <li><strong>Recent Form:</strong> ${mainMultiTrend.description} (${mainMultiTarget.l30Avg > 0 ? 'L30: ' + mainMultiTarget.l30Avg + ' | ' : ''}${mainMultiTarget.l7Avg > 0 ? 'L7: ' + mainMultiTarget.l7Avg : 'Season: ' + mainMultiTarget.actAvg} PPG).</li>
             <li><strong>Optimal Drop:</strong> Cut <strong>${topDrop.player.name}</strong> (${topDrop.player.pos}, ${topDrop.player.team}) to free up this high-volume streaming lane without losing tonight's active players.</li>
           </ul>
         </div>
@@ -4783,8 +4806,10 @@
       const hellebuyck = teamGoalies.find(g => g.name.toLowerCase().includes('hellebuyck'));
       const otherGoalies = teamGoalies.filter(g => !g.name.toLowerCase().includes('hellebuyck'))
         .sort((a, b) => {
-          const aScore = ((a.l7Avg > 0 ? a.l7Avg : a.actAvg) || 0) * 0.5 + (a.actAvg || 0) * 0.5;
-          const bScore = ((b.l7Avg > 0 ? b.l7Avg : b.actAvg) || 0) * 0.5 + (b.actAvg || 0) * 0.5;
+          const aRecent = ((a.l30Avg > 0 ? a.l30Avg : a.actAvg) || 0) * 0.55 + ((a.l15Avg > 0 ? a.l15Avg : a.actAvg) || 0) * 0.30 + ((a.l7Avg > 0 ? a.l7Avg : a.actAvg) || 0) * 0.15;
+          const bRecent = ((b.l30Avg > 0 ? b.l30Avg : b.actAvg) || 0) * 0.55 + ((b.l15Avg > 0 ? b.l15Avg : b.actAvg) || 0) * 0.30 + ((b.l7Avg > 0 ? b.l7Avg : b.actAvg) || 0) * 0.15;
+          const aScore = aRecent * 0.65 + (a.actAvg || 0) * 0.35;
+          const bScore = bRecent * 0.65 + (b.actAvg || 0) * 0.35;
           return bScore - aScore;
         });
 
@@ -4797,8 +4822,10 @@
 
       const availableGoalies = availablePool.filter(p => p.pos === 'G' && p.injury === 'ACTIVE')
         .sort((a, b) => {
-          const aRate = (a.l7Avg > 0 ? a.l7Avg * 0.6 : 0) + (a.actAvg || 0) * 0.4;
-          const bRate = (b.l7Avg > 0 ? b.l7Avg * 0.6 : 0) + (b.actAvg || 0) * 0.4;
+          const aRecent = ((a.l30Avg > 0 ? a.l30Avg : a.actAvg) || 0) * 0.55 + ((a.l15Avg > 0 ? a.l15Avg : a.actAvg) || 0) * 0.30 + ((a.l7Avg > 0 ? a.l7Avg : a.actAvg) || 0) * 0.15;
+          const bRecent = ((b.l30Avg > 0 ? b.l30Avg : b.actAvg) || 0) * 0.55 + ((b.l15Avg > 0 ? b.l15Avg : b.actAvg) || 0) * 0.30 + ((b.l7Avg > 0 ? b.l7Avg : b.actAvg) || 0) * 0.15;
+          const aRate = aRecent * 0.65 + (a.actAvg || 0) * 0.35;
+          const bRate = bRecent * 0.65 + (b.actAvg || 0) * 0.35;
           return bRate - aRate;
         });
       const topWaiverGoalie = availableGoalies[0] || { name: "Jakub Dobes", team: "MTL", pos: "G", actAvg: 2.86, l7Avg: 4.2, schedule: { Tue: "vs MIN", Thu: "@ BOS", Sat: "vs COL" } };
@@ -5207,8 +5234,9 @@
           <td>${injuryBadge}</td>
           <td class="td-mono" style="color:var(--text-muted);">${p.projAvg}</td>
           <td class="td-mono"><strong>${p.actAvg > 0 ? p.actAvg : '-'}</strong></td>
-          <td class="td-mono" style="font-weight: 600; color: ${p.l7Avg > p.actAvg ? '#f87171' : 'inherit'};">${p.l7Avg != null && p.l7Avg > 0 ? p.l7Avg : '-'}</td>
+          <td class="td-mono" style="font-weight: 700; color: ${p.l30Avg > p.actAvg ? '#34d399' : (p.l30Avg < p.actAvg - 0.3 ? '#f87171' : 'inherit')};">${p.l30Avg != null && p.l30Avg > 0 ? p.l30Avg : '-'}</td>
           <td class="td-mono" style="color:var(--text-muted);">${p.l15Avg != null && p.l15Avg > 0 ? p.l15Avg : '-'}</td>
+          <td class="td-mono" style="color:var(--text-muted);">${p.l7Avg != null && p.l7Avg > 0 ? p.l7Avg : '-'}</td>
           <td>${trend.badge}</td>
           <td class="td-mono" style="font-weight: 700;">${p.gamesCount}</td>
           <td>${schedHtml}</td>
@@ -5245,9 +5273,9 @@
           <td>${injuryBadge}</td>
           <td class="td-mono" style="color:var(--text-muted);">${p.projAvg}</td>
           <td class="td-mono"><strong>${p.actAvg > 0 ? p.actAvg : '-'}</strong></td>
-          <td class="td-mono" style="font-weight: 700; color: ${p.l7Avg > p.actAvg ? '#f87171' : 'inherit'};">${p.l7Avg != null && p.l7Avg > 0 ? p.l7Avg : '-'}</td>
+          <td class="td-mono" style="font-weight: 700; color: ${p.l30Avg > p.actAvg ? '#34d399' : (p.l30Avg < p.actAvg - 0.3 ? '#f87171' : 'inherit')};">${p.l30Avg != null && p.l30Avg > 0 ? p.l30Avg : '-'}</td>
           <td class="td-mono" style="color:var(--text-muted);">${p.l15Avg != null && p.l15Avg > 0 ? p.l15Avg : '-'}</td>
-          <td class="td-mono" style="color:var(--text-muted);">${p.l30Avg != null && p.l30Avg > 0 ? p.l30Avg : '-'}</td>
+          <td class="td-mono" style="color:var(--text-muted);">${p.l7Avg != null && p.l7Avg > 0 ? p.l7Avg : '-'}</td>
           <td>${trend.badge}</td>
           <td class="td-mono" style="font-weight: 700; color: ${p.gamesCount === 4 ? 'var(--accent-green)' : 'inherit'};">${p.gamesCount}</td>
           <td>${schedHtml}</td>
@@ -5272,7 +5300,8 @@
         }
         if (currentPosFilter === 'HOT') {
           const t = getPlayerTrendAnalysis(p);
-          return t.status === 'HEATING_UP' || t.status === 'ELITE' || (p.l7Avg > p.actAvg && p.l7Avg > 2.0);
+          const wL30 = (p.l30Avg > 0) ? p.l30Avg : (p.actAvg || 0);
+          return t.status === 'HEATING_UP' || t.status === 'ELITE' || (wL30 > p.actAvg && wL30 > 2.0);
         }
         if (currentPosFilter === 'G') return p.pos === 'G';
         if (currentPosFilter === 'D') return p.pos === 'D';
@@ -5280,7 +5309,11 @@
       });
 
       if (currentPosFilter === 'HOT') {
-        list.sort((a, b) => (b.l7Avg || 0) - (a.l7Avg || 0));
+        list.sort((a, b) => {
+          const aWtd = ((a.l30Avg || a.actAvg || 0) * 0.55) + ((a.l15Avg || a.actAvg || 0) * 0.30) + ((a.l7Avg || a.actAvg || 0) * 0.15);
+          const bWtd = ((b.l30Avg || b.actAvg || 0) * 0.55) + ((b.l15Avg || b.actAvg || 0) * 0.30) + ((b.l7Avg || b.actAvg || 0) * 0.15);
+          return bWtd - aWtd;
+        });
       } else {
         list.sort((a, b) => b.projPts - a.projPts);
       }
@@ -5357,6 +5390,12 @@
         let totalSOSMult = 0;
         const chips = [];
 
+        const l7Val = (p.l7Avg > 0) ? p.l7Avg : (p.actAvg || 0);
+        const l15Val = (p.l15Avg > 0) ? p.l15Avg : l7Val;
+        const l30Val = (p.l30Avg > 0) ? p.l30Avg : l15Val;
+        const recentStreamerPPG = (l30Val * 0.55) + (l15Val * 0.30) + (l7Val * 0.15);
+        const valPerGame = (recentStreamerPPG > 0) ? (recentStreamerPPG * 0.65 + (p.actAvg || 2.5) * 0.25 + (p.projAvg || 2.5) * 0.10) : (p.projAvg || 3.0);
+
         targetDays.forEach(d => {
           const game = p.schedule ? p.schedule[d] : null;
           if (game && game.trim() !== '') {
@@ -5368,7 +5407,6 @@
               const oppAbbr = game.replace(/^(vs|@)\s+/, '').trim();
               const sos = getSOSDetails(oppAbbr, p.pos === 'G', isHome);
               totalSOSMult += sos.multiplier;
-              const valPerGame = (p.l7Avg > 0) ? (p.l7Avg * 0.65 + (p.actAvg || 2.5) * 0.35) : (p.projAvg || 3.0);
               usablePts += (valPerGame * sos.multiplier);
               chips.push(`<span class="stream-chip open" style="border-color:${sos.color}">✅ ${d} (${game} <strong style="color:${sos.color}">${sos.grade}</strong>)</span>`);
             } else {
@@ -5390,7 +5428,6 @@
         // Search match
         if (q && !p.name.toLowerCase().includes(q) && !p.team.toLowerCase().includes(q)) return;
 
-        const valPerGame = (p.l7Avg > 0) ? (p.l7Avg * 0.65 + (p.actAvg || 2.5) * 0.35) : (p.projAvg || 3.0);
         const estPtsAdded = Math.round(usablePts * 10) / 10;
         const avgSOS = usableStarts > 0 ? Math.round((totalSOSMult / usableStarts) * 100) / 100 : 1.0;
 
@@ -5477,7 +5514,7 @@
           <td><div class="streamer-chips-wrap">${item.chips.join(' ')}</div></td>
           <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">
             <strong>${item.valPerGame}</strong>
-            <span style="font-size: 0.72rem; color: var(--text-muted);">${p.l7Avg > 0 ? '(L7: ' + p.l7Avg + ')' : '(Proj: ' + p.projAvg + ')'}</span>
+            <span style="font-size: 0.72rem; color: var(--text-muted);">${p.l30Avg > 0 ? '(L30: ' + p.l30Avg + ' | L15: ' + (p.l15Avg || '-') + ' | L7: ' + (p.l7Avg || '-') + ')' : (p.l7Avg > 0 ? '(L7: ' + p.l7Avg + ')' : '(Proj: ' + p.projAvg + ')')}</span>
           </td>
           <td style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 800; color: #34d399;">
             +${item.estPtsAdded.toFixed(1)} pts
@@ -5508,8 +5545,10 @@
       const pool = getAvailableFreeAgents();
       const availGoalies = pool.filter(p => p.pos === 'G' && p.injury === 'ACTIVE')
         .sort((a, b) => {
-          const aRate = (a.l7Avg > 0 ? a.l7Avg * 0.6 : 0) + (a.actAvg || 0) * 0.4;
-          const bRate = (b.l7Avg > 0 ? b.l7Avg * 0.6 : 0) + (b.actAvg || 0) * 0.4;
+          const aRecent = ((a.l30Avg > 0 ? a.l30Avg : a.actAvg) || 0) * 0.55 + ((a.l15Avg > 0 ? a.l15Avg : a.actAvg) || 0) * 0.30 + ((a.l7Avg > 0 ? a.l7Avg : a.actAvg) || 0) * 0.15;
+          const bRecent = ((b.l30Avg > 0 ? b.l30Avg : b.actAvg) || 0) * 0.55 + ((b.l15Avg > 0 ? b.l15Avg : b.actAvg) || 0) * 0.30 + ((b.l7Avg > 0 ? b.l7Avg : b.actAvg) || 0) * 0.15;
+          const aRate = aRecent * 0.65 + (a.actAvg || 0) * 0.35;
+          const bRate = bRecent * 0.65 + (b.actAvg || 0) * 0.35;
           return bRate - aRate;
         });
 
@@ -6682,7 +6721,11 @@
             if (p.slot !== 'IR' && s && s.Days) {
               daysOfWeek.forEach((d, dIdx) => {
                 if (dIdx >= realToday && s.Days[d]) {
-                  const ppg = p.actAvg > 0 ? (p.actAvg * 0.50 + (p.l7Avg || p.actAvg) * 0.30 + (p.projAvg || 3.0) * 0.20) : (p.projAvg || 3.0);
+                  const l7P = (p.l7Avg > 0) ? p.l7Avg : (p.actAvg || 0);
+                  const l15P = (p.l15Avg > 0) ? p.l15Avg : l7P;
+                  const l30P = (p.l30Avg > 0) ? p.l30Avg : l15P;
+                  const recentP = (l30P * 0.55) + (l15P * 0.30) + (l7P * 0.15);
+                  const ppg = p.actAvg > 0 ? (recentP * 0.65 + p.actAvg * 0.25 + (p.projAvg || 3.0) * 0.10) : (p.projAvg || 3.0);
                   remPts += ppg;
                 }
               });
